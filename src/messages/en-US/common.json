@@ -1,0 +1,75 @@
+{
+  "layout": {
+    "siteName": "Blog",
+    "description": "Personal blog"
+  },
+  "nav": {
+    "home": "Home",
+    "posts": "Posts",
+    "projects": "Projects",
+    "about": "About"
+  },
+  "hero": {
+    "greeting": "Hi, I'm",
+    "description": "Full-stack developer, passionate about AI-coding",
+    "cta": "Read Posts",
+    "viewProjects": "View Projects"
+  },
+  "footer": {
+    "rights": "All rights reserved",
+    "builtWith": "Built with Next.js"
+  },
+  "common": {
+    "loading": "Loading...",
+    "backToList": "Back to list",
+    "prev": "Previous",
+    "next": "Next",
+    "all": "All",
+    "search": "Search...",
+    "noResults": "No content yet",
+    "readMore": "Read more",
+    "switchLanguage": "Switch language"
+  },
+  "postPage": {
+    "title": "Posts",
+    "recentPosts": "Recent Posts",
+    "allPosts": "All Posts",
+    "publishedAt": "Published on",
+    "updatedAt": "Updated on",
+    "tags": "Tags",
+    "toc": "Table of Contents",
+    "minutes": "min read",
+    "empty": "No posts yet"
+  },
+  "projectPage": {
+    "title": "Projects",
+    "allProjects": "All Projects",
+    "featured": "Featured Projects",
+    "techStack": "Tech Stack",
+    "source": "Source Code",
+    "demo": "Live Demo",
+    "empty": "No projects yet"
+  },
+  "aboutPage": {
+    "title": "About Me",
+    "subtitle": "Introduction",
+    "skills": "Skills",
+    "experience": "Experience",
+    "present": "Present",
+    "exp1": {
+      "title": "全栈开发工程师",
+      "company": "绍兴极客信息科技有限公司",
+      "desc": "负责 Web 应用的设计与开发，使用 Next.js + Hono.js 技术栈"
+    },
+    "exp2": {
+      "title": "Java 开发工程师",
+      "company": "浙江大华技术股份有限公司",
+      "desc": "负责构建高可用性的后端程序，负责灰度测试平台搭建、数据填充工具构建、数据填充效率优化"
+    }
+  },
+  "notFound": {
+    "title": "Page Not Found",
+    "description": "The page you are looking for does not exist",
+    "backHome": "Back to Home"
+  }
+}
