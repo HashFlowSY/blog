@@ -16,16 +16,16 @@ A minimal, fast personal blog built with Next.js, deployed as a static site on G
 
 ## Tech Stack
 
-| Technology | Purpose |
-|-----------|---------|
-| [Next.js 16](https://nextjs.org) | Framework (App Router, static export) |
-| [TypeScript](https://www.typescriptlang.org) | Type safety |
-| [Tailwind CSS 4](https://tailwindcss.com) | Styling |
-| [next-intl](https://next-intl.dev) | Internationalization |
-| [Zod](https://zod.dev) | Frontmatter validation |
-| [remark / rehype](https://github.com/remarkjs/remark) | Markdown processing pipeline |
-| [highlight.js](https://highlightjs.org) | Syntax highlighting |
-| [pnpm](https://pnpm.io) | Package manager |
+| Technology                                            | Purpose                               |
+| ----------------------------------------------------- | ------------------------------------- |
+| [Next.js 16](https://nextjs.org)                      | Framework (App Router, static export) |
+| [TypeScript](https://www.typescriptlang.org)          | Type safety                           |
+| [Tailwind CSS 4](https://tailwindcss.com)             | Styling                               |
+| [next-intl](https://next-intl.dev)                    | Internationalization                  |
+| [Zod](https://zod.dev)                                | Frontmatter validation                |
+| [remark / rehype](https://github.com/remarkjs/remark) | Markdown processing pipeline          |
+| [highlight.js](https://highlightjs.org)               | Syntax highlighting                   |
+| [pnpm](https://pnpm.io)                               | Package manager                       |
 
 ## Project Structure
 
@@ -99,7 +99,7 @@ npx serve out
 
 Create a Markdown file in `content/posts/`:
 
-```markdown
+````markdown
 ---
 title: "My New Post"
 slug: "my-new-post"
@@ -115,7 +115,9 @@ Your Markdown content here. Code blocks get syntax highlighting:
 ```typescript
 console.log("Hello, World!");
 ```
-```
+````
+
+````
 
 ### Project Entry
 
@@ -135,37 +137,37 @@ draft: false
 ---
 
 Detailed project description in Markdown.
-```
+````
 
 ### Frontmatter Reference
 
 #### Post
 
-| Field | Type | Required | Default | Description |
-|-------|------|----------|---------|-------------|
-| `title` | `string` | Yes | — | Post title |
-| `slug` | `string` | No | Filename | URL path segment |
-| `date` | `string` | No | `1970-01-01` | Publish date (YYYY-MM-DD) |
-| `updated` | `string` | No | `date` | Last update date |
-| `tags` | `string[]` | No | `[]` | Tag list |
-| `summary` | `string` | No | `""` | Short description |
-| `cover` | `string` | No | `null` | Cover image path |
-| `draft` | `boolean` | No | `false` | Set `true` to skip in build |
+| Field     | Type       | Required | Default      | Description                 |
+| --------- | ---------- | -------- | ------------ | --------------------------- |
+| `title`   | `string`   | Yes      | —            | Post title                  |
+| `slug`    | `string`   | No       | Filename     | URL path segment            |
+| `date`    | `string`   | No       | `1970-01-01` | Publish date (YYYY-MM-DD)   |
+| `updated` | `string`   | No       | `date`       | Last update date            |
+| `tags`    | `string[]` | No       | `[]`         | Tag list                    |
+| `summary` | `string`   | No       | `""`         | Short description           |
+| `cover`   | `string`   | No       | `null`       | Cover image path            |
+| `draft`   | `boolean`  | No       | `false`      | Set `true` to skip in build |
 
 #### Project
 
-| Field | Type | Required | Default | Description |
-|-------|------|----------|---------|-------------|
-| `title` | `string` | Yes | — | Project name |
-| `slug` | `string` | No | Filename | URL path segment |
-| `date` | `string` | No | `1970-01-01` | Date (YYYY-MM-DD) |
-| `tags` | `string[]` | No | `[]` | Technology tags |
-| `description` | `string` | No | `""` | Brief description |
-| `source` | `string` | No | `null` | Source code URL |
-| `demo` | `string` | No | `null` | Live demo URL |
-| `featured` | `boolean` | No | `false` | Show on homepage |
-| `cover` | `string` | No | `null` | Cover image path |
-| `draft` | `boolean` | No | `false` | Set `true` to skip in build |
+| Field         | Type       | Required | Default      | Description                 |
+| ------------- | ---------- | -------- | ------------ | --------------------------- |
+| `title`       | `string`   | Yes      | —            | Project name                |
+| `slug`        | `string`   | No       | Filename     | URL path segment            |
+| `date`        | `string`   | No       | `1970-01-01` | Date (YYYY-MM-DD)           |
+| `tags`        | `string[]` | No       | `[]`         | Technology tags             |
+| `description` | `string`   | No       | `""`         | Brief description           |
+| `source`      | `string`   | No       | `null`       | Source code URL             |
+| `demo`        | `string`   | No       | `null`       | Live demo URL               |
+| `featured`    | `boolean`  | No       | `false`      | Show on homepage            |
+| `cover`       | `string`   | No       | `null`       | Cover image path            |
+| `draft`       | `boolean`  | No       | `false`      | Set `true` to skip in build |
 
 ## i18n
 
@@ -213,16 +215,16 @@ Set `NEXT_PUBLIC_SITE_URL` in the workflow environment:
 - name: Build with Next.js
   run: pnpm build
   env:
-      BASE_PATH: ${{ steps.base-path.outputs.base_path }}
-      NEXT_PUBLIC_SITE_URL: https://your-domain.com
+    BASE_PATH: ${{ steps.base-path.outputs.base_path }}
+    NEXT_PUBLIC_SITE_URL: https://your-domain.com
 ```
 
 ## Environment Variables
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `BASE_PATH` | No | `""` | URL prefix for project pages (set by CI) |
-| `NEXT_PUBLIC_SITE_URL` | No | `https://shangyang.github.io` | Base URL for sitemap/robots |
+| Variable               | Required | Default                      | Description                              |
+| ---------------------- | -------- | ---------------------------- | ---------------------------------------- |
+| `BASE_PATH`            | No       | `""`                         | URL prefix for project pages (set by CI) |
+| `NEXT_PUBLIC_SITE_URL` | No       | `https://username.github.io` | Base URL for sitemap/robots              |
 
 ## License
 
