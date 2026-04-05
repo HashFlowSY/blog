@@ -1,10 +1,11 @@
 import { setRequestLocale } from "next-intl/server";
 import { getTranslations } from "next-intl/server";
+
+import { PostList } from "@/components/post/post-list";
+import { ProjectList } from "@/components/project/project-list";
 import { Link } from "@/i18n/navigation";
 import { getAllPostsMeta } from "@/lib/posts";
 import { getFeaturedProjects } from "@/lib/projects";
-import { PostList } from "@/components/post/post-list";
-import { ProjectList } from "@/components/project/project-list";
 
 interface Props {
   params: Promise<{ locale: string }>;

@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useMemo } from "react";
 import { useTranslations } from "next-intl";
-import type { PostMeta } from "@/lib/posts";
+import { useState, useMemo } from "react";
+
 import { PostCard } from "@/components/post/post-card";
 import { cn } from "@/lib/utils";
+
+import type { PostMeta } from "@/lib/posts";
 
 interface PostListClientProps {
   posts: PostMeta[];
@@ -65,7 +67,11 @@ export function PostListClient({
         ) : (
           <div className="grid gap-4">
             {filtered.map((post) => (
-              <PostCard key={post.slug} post={post} updatedLabel={updatedLabel} />
+              <PostCard
+                key={post.slug}
+                post={post}
+                {...(updatedLabel !== null && { updatedLabel })}
+              />
             ))}
           </div>
         )}

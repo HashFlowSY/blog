@@ -1,5 +1,6 @@
-import type { PostMeta } from "@/lib/posts";
 import { Link } from "@/i18n/navigation";
+
+import type { PostMeta } from "@/lib/posts";
 
 interface PostCardProps {
   post: PostMeta;

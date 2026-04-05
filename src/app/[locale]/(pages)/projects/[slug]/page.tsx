@@ -1,9 +1,11 @@
-import type { Metadata } from "next";
 import { setRequestLocale } from "next-intl/server";
 import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
+
 import { Link } from "@/i18n/navigation";
 import { getProjectBySlug, getAllProjectsMeta } from "@/lib/projects";
+
+import type { Metadata } from "next";
 
 interface Props {
   params: Promise<{ locale: string; slug: string }>;

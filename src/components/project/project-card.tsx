@@ -1,8 +1,10 @@
 "use client";
 
-import type { ProjectMeta } from "@/lib/projects";
 import { useTranslations } from "next-intl";
+
 import { Link } from "@/i18n/navigation";
+
+import type { ProjectMeta } from "@/lib/projects";
 
 interface ProjectCardProps {
   project: ProjectMeta;

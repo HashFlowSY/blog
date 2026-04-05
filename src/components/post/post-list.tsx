@@ -1,5 +1,6 @@
-import type { PostMeta } from "@/lib/posts";
 import { PostCard } from "./post-card";
+
+import type { PostMeta } from "@/lib/posts";
 
 interface PostListProps {
   posts: PostMeta[];
@@ -12,7 +13,11 @@ export function PostList({ posts, updatedLabel }: PostListProps) {
   return (
     <div className="grid gap-4">
       {posts.map((post) => (
-        <PostCard key={post.slug} post={post} updatedLabel={updatedLabel} />
+        <PostCard
+          key={post.slug}
+          post={post}
+          {...(updatedLabel !== null && { updatedLabel })}
+        />
       ))}
     </div>
   );

@@ -1,6 +1,8 @@
-import { Geist, Geist_Mono } from "next/font/google";
-import { routing, type Locale } from "@/i18n/routing";
 import "./globals.css";
+
+import { Geist, Geist_Mono } from "next/font/google";
+
+import { routing, type Locale } from "@/i18n/routing";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

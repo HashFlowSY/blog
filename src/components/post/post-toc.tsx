@@ -2,11 +2,8 @@
 
 import { useEffect, useState } from "react";
 
-export interface TocItem {
-  id: string;
-  text: string;
-  level: number;
-}
+import type { TocItem } from "@/lib/markdown";
+export type { TocItem };
 
 interface PostTocProps {
   headings: TocItem[];

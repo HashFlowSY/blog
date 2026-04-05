@@ -1,5 +1,6 @@
-import type { ProjectMeta } from "@/lib/projects";
 import { ProjectCard } from "./project-card";
+
+import type { ProjectMeta } from "@/lib/projects";
 
 interface ProjectListProps {
   projects: ProjectMeta[];

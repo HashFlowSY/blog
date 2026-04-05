@@ -1,8 +1,11 @@
-import type { Metadata } from "next";
 import { setRequestLocale } from "next-intl/server";
 import { getTranslations } from "next-intl/server";
+
 import { getAllPostsMeta, getAllTags } from "@/lib/posts";
+
 import { PostListClient } from "./post-list-client";
+
+import type { Metadata } from "next";
 
 interface Props {
   params: Promise<{ locale: string }>;

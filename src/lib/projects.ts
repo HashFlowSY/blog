@@ -1,8 +1,12 @@
-import fs from "fs";
 import path from "path";
+
 import { z } from "zod";
-import matter from "gray-matter";
-import { markdownToHtml } from "./markdown";
+
+import { createContentLoader } from "./content-loader";
+
+// ---------------------------------------------------------------------------
+// Schema
+// ---------------------------------------------------------------------------
 
 const PROJECTS_DIR = path.join(process.cwd(), "content/projects");
 
@@ -18,6 +22,12 @@ const projectFrontmatterSchema = z.object({
   featured: z.boolean().optional().default(false),
   draft: z.boolean().optional().default(false),
 });
+
+type ProjectFrontmatter = z.infer<typeof projectFrontmatterSchema>;
+
+// ---------------------------------------------------------------------------
+// Public types
+// ---------------------------------------------------------------------------
 
 export interface Project {
   slug: string;
@@ -44,43 +54,53 @@ export interface ProjectMeta {
   featured: boolean;
 }
 
+// ---------------------------------------------------------------------------
+// Content loader instance
+// ---------------------------------------------------------------------------
+
+const projectsLoader = createContentLoader({
+  contentDir: PROJECTS_DIR,
+  schema: projectFrontmatterSchema,
+  slugField: "slug",
+  draftField: "draft",
+  sortField: "date",
+  logLabel: "[projects]",
+  toMeta(data: ProjectFrontmatter, slug: string): ProjectMeta {
+    return {
+      slug,
+      title: data.title,
+      description: data.description,
+      date: data.date,
+      tags: data.tags,
+      cover: data.cover,
+      source: data.source,
+      demo: data.demo,
+      featured: data.featured,
+    };
+  },
+  toFull(data: ProjectFrontmatter, slug: string, html: string): Project {
+    return {
+      slug,
+      title: data.title,
+      description: data.description,
+      date: data.date,
+      tags: data.tags,
+      cover: data.cover,
+      source: data.source,
+      demo: data.demo,
+      featured: data.featured,
+      content: html,
+    };
+  },
+});
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
 /** 获取所有项目元信息 */
 export function getAllProjectsMeta(): ProjectMeta[] {
-  if (!fs.existsSync(PROJECTS_DIR)) return [];
-
-  const files = fs.readdirSync(PROJECTS_DIR).filter((f) => f.endsWith(".md"));
-  const projects: ProjectMeta[] = [];
-
-  for (const file of files) {
-    const raw = fs.readFileSync(path.join(PROJECTS_DIR, file), "utf-8");
-    const { data } = matter(raw);
-    const parsed = projectFrontmatterSchema.safeParse(data);
-
-    if (!parsed.success) {
-      console.warn(
-        `[projects] Invalid frontmatter in ${file}: ${parsed.error.message}`,
-      );
-      continue;
-    }
-    if (parsed.data.draft) continue;
-
-    const slug = parsed.data.slug || file.replace(/\.md$/, "");
-    projects.push({
-      slug,
-      title: parsed.data.title,
-      description: parsed.data.description,
-      date: parsed.data.date,
-      tags: parsed.data.tags,
-      cover: parsed.data.cover,
-      source: parsed.data.source,
-      demo: parsed.data.demo,
-      featured: parsed.data.featured,
-    });
-  }
-
-  return projects.sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-  );
+  return projectsLoader.getAllMeta();
 }
 
 /** 获取精选项目 */
@@ -89,36 +109,8 @@ export function getFeaturedProjects(): ProjectMeta[] {
 }
 
 /** 根据 slug 获取单个项目 */
-export async function getProjectBySlug(slug: string): Promise<Project | null> {
-  if (!fs.existsSync(PROJECTS_DIR)) return null;
-
-  const files = fs.readdirSync(PROJECTS_DIR).filter((f) => f.endsWith(".md"));
-
-  for (const file of files) {
-    const raw = fs.readFileSync(path.join(PROJECTS_DIR, file), "utf-8");
-    const { data, content } = matter(raw);
-    const parsed = projectFrontmatterSchema.safeParse(data);
-
-    if (!parsed.success) continue;
-
-    const projectSlug = parsed.data.slug || file.replace(/\.md$/, "");
-    if (projectSlug !== slug) continue;
-    if (parsed.data.draft) return null;
-
-    const html = await markdownToHtml(content, file);
-    return {
-      slug: projectSlug,
-      title: parsed.data.title,
-      description: parsed.data.description,
-      date: parsed.data.date,
-      tags: parsed.data.tags,
-      cover: parsed.data.cover,
-      source: parsed.data.source,
-      demo: parsed.data.demo,
-      featured: parsed.data.featured,
-      content: html,
-    };
-  }
-
-  return null;
+export async function getProjectBySlug(
+  slug: string,
+): Promise<Project | null> {
+  return projectsLoader.getBySlug(slug);
 }

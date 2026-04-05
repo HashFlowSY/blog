@@ -1,10 +1,13 @@
-import type { Metadata } from "next";
 import { setRequestLocale } from "next-intl/server";
 import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
+
+import { PostToc } from "@/components/post/post-toc";
 import { Link } from "@/i18n/navigation";
+import { extractHeadings, type TocItem } from "@/lib/markdown";
 import { getPostBySlug, getAllPostsMeta, getAdjacentPosts } from "@/lib/posts";
-import { PostToc, type TocItem } from "@/components/post/post-toc";
+
+import type { Metadata } from "next";
 
 interface Props {
   params: Promise<{ locale: string; slug: string }>;
@@ -13,21 +16,6 @@ interface Props {
 export function generateStaticParams() {
   const posts = getAllPostsMeta();
   return posts.map((post) => ({ slug: post.slug }));
-}
-
-/** 从 HTML 内容中提取 h1/h2/h3 标题的 id 和文本 */
-function extractHeadings(html: string): TocItem[] {
-  const headings: TocItem[] = [];
-  const regex = /<h([1-3])[^>]*id="([^"]*)"[^>]*>(.*?)<\/h\1>/g;
-  let match: RegExpExecArray | null;
-  while ((match = regex.exec(html)) !== null) {
-    headings.push({
-      level: parseInt(match[1], 10),
-      id: match[2],
-      text: match[3].replace(/<[^>]*>/g, ""),
-    });
-  }
-  return headings;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

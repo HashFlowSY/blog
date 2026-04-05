@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
+import { useState } from "react";
+
 import { Link, usePathname } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 

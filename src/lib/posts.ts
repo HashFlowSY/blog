@@ -1,8 +1,12 @@
-import fs from "fs";
 import path from "path";
+
 import { z } from "zod";
-import matter from "gray-matter";
-import { markdownToHtml } from "./markdown";
+
+import { createContentLoader } from "./content-loader";
+
+// ---------------------------------------------------------------------------
+// Schema
+// ---------------------------------------------------------------------------
 
 const POSTS_DIR = path.join(process.cwd(), "content/posts");
 
@@ -18,6 +22,10 @@ const postFrontmatterSchema = z.object({
 });
 
 type PostFrontmatter = z.infer<typeof postFrontmatterSchema>;
+
+// ---------------------------------------------------------------------------
+// Public types
+// ---------------------------------------------------------------------------
 
 export interface Post {
   slug: string;
@@ -40,116 +48,59 @@ export interface PostMeta {
   cover: string | null;
 }
 
-/** 解析单个 Markdown 文件的 frontmatter */
-function parsePostFile(
-  file: string,
-): { data: PostFrontmatter; content: string; filename: string } | null {
-  const raw = fs.readFileSync(path.join(POSTS_DIR, file), "utf-8");
-  const { data, content } = matter(raw);
-  const parsed = postFrontmatterSchema.safeParse(data);
+// ---------------------------------------------------------------------------
+// Content loader instance
+// ---------------------------------------------------------------------------
 
-  if (!parsed.success) {
-    console.warn(
-      `[posts] Invalid frontmatter in ${file}: ${parsed.error.message}`,
-    );
-    return null;
-  }
+const postsLoader = createContentLoader({
+  contentDir: POSTS_DIR,
+  schema: postFrontmatterSchema,
+  slugField: "slug",
+  draftField: "draft",
+  sortField: "date",
+  logLabel: "[posts]",
+  toMeta(data: PostFrontmatter, slug: string): PostMeta {
+    return {
+      slug,
+      title: data.title,
+      date: data.date,
+      updated: data.updated ?? data.date,
+      tags: data.tags,
+      summary: data.summary,
+      cover: data.cover,
+    };
+  },
+  toFull(data: PostFrontmatter, slug: string, html: string): Post {
+    return {
+      slug,
+      title: data.title,
+      date: data.date,
+      updated: data.updated ?? data.date,
+      tags: data.tags,
+      summary: data.summary,
+      cover: data.cover,
+      content: html,
+    };
+  },
+});
 
-  return { data: parsed.data, content, filename: file };
-}
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
 
 /** 获取所有已发布文章的元信息（不含 content） */
 export function getAllPostsMeta(): PostMeta[] {
-  if (!fs.existsSync(POSTS_DIR)) return [];
-
-  const files = fs.readdirSync(POSTS_DIR).filter((f) => f.endsWith(".md"));
-  const posts: PostMeta[] = [];
-
-  for (const file of files) {
-    const parsed = parsePostFile(file);
-    if (!parsed) continue;
-    if (parsed.data.draft) continue;
-
-    const slug = parsed.data.slug || file.replace(/\.md$/, "");
-    posts.push({
-      slug,
-      title: parsed.data.title,
-      date: parsed.data.date,
-      updated: parsed.data.updated || parsed.data.date,
-      tags: parsed.data.tags,
-      summary: parsed.data.summary,
-      cover: parsed.data.cover,
-    });
-  }
-
-  return posts.sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-  );
+  return postsLoader.getAllMeta();
 }
 
 /** 获取所有已发布文章（含 content） */
 export async function getAllPosts(): Promise<Post[]> {
-  if (!fs.existsSync(POSTS_DIR)) return [];
-
-  const files = fs.readdirSync(POSTS_DIR).filter((f) => f.endsWith(".md"));
-
-  const results = await Promise.all(
-    files.map(async (file) => {
-      const parsed = parsePostFile(file);
-      if (!parsed || parsed.data.draft) return null;
-
-      const slug = parsed.data.slug || file.replace(/\.md$/, "");
-      const html = await markdownToHtml(parsed.content, file);
-
-      return {
-        slug,
-        title: parsed.data.title,
-        date: parsed.data.date,
-        updated: parsed.data.updated || parsed.data.date,
-        tags: parsed.data.tags,
-        summary: parsed.data.summary,
-        cover: parsed.data.cover,
-        content: html,
-      } satisfies Post;
-    }),
-  );
-
-  return results
-    .filter((p): p is Post => p !== null)
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  return postsLoader.getAllFull();
 }
 
 /** 根据 slug 获取单篇文章 */
 export async function getPostBySlug(slug: string): Promise<Post | null> {
-  if (!fs.existsSync(POSTS_DIR)) return null;
-
-  const files = fs.readdirSync(POSTS_DIR).filter((f) => f.endsWith(".md"));
-
-  for (const file of files) {
-    const raw = fs.readFileSync(path.join(POSTS_DIR, file), "utf-8");
-    const { data, content } = matter(raw);
-    const parsed = postFrontmatterSchema.safeParse(data);
-
-    if (!parsed.success) continue;
-
-    const postSlug = parsed.data.slug || file.replace(/\.md$/, "");
-    if (postSlug !== slug) continue;
-    if (parsed.data.draft) return null;
-
-    const html = await markdownToHtml(content, file);
-    return {
-      slug: postSlug,
-      title: parsed.data.title,
-      date: parsed.data.date,
-      updated: parsed.data.updated || parsed.data.date,
-      tags: parsed.data.tags,
-      summary: parsed.data.summary,
-      cover: parsed.data.cover,
-      content: html,
-    };
-  }
-
-  return null;
+  return postsLoader.getBySlug(slug);
 }
 
 /** 获取所有标签 */
@@ -169,7 +120,7 @@ export function getAdjacentPosts(slug: string): {
   const index = posts.findIndex((p) => p.slug === slug);
 
   return {
-    prev: index > 0 ? posts[index - 1] : null,
-    next: index < posts.length - 1 ? posts[index + 1] : null,
+    prev: index > 0 ? (posts[index - 1] ?? null) : null,
+    next: index < posts.length - 1 ? (posts[index + 1] ?? null) : null,
   };
 }
