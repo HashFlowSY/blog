@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 
+import { extractHeadings } from "./markdown";
 import { markdownToHtml } from "./markdown";
 
 describe("markdownToHtml", () => {
@@ -173,6 +174,73 @@ describe("markdownToHtml", () => {
     it("传入 filename 不影响正常输出", async () => {
       const result = await markdownToHtml("# Hello", "test.md");
       expect(result).toContain("Hello");
+    });
+  });
+
+  // ==========================================================
+  // extractHeadings
+  // ==========================================================
+  describe("extractHeadings", () => {
+    it("提取 h1/h2/h3 标题的 level、id 和 text", () => {
+      const html =
+        '<h1 id="intro">Introduction</h1><h2 id="setup">Setup</h2><h3 id="config">Configuration</h3>';
+      const headings = extractHeadings(html);
+
+      expect(headings).toHaveLength(3);
+      expect(headings[0]).toEqual({
+        level: 1,
+        id: "intro",
+        text: "Introduction",
+      });
+      expect(headings[1]).toEqual({ level: 2, id: "setup", text: "Setup" });
+      expect(headings[2]).toEqual({
+        level: 3,
+        id: "config",
+        text: "Configuration",
+      });
+    });
+
+    it("无标题时返回空数组", () => {
+      expect(extractHeadings("<p>No headings here</p>")).toEqual([]);
+    });
+
+    it("空字符串返回空数组", () => {
+      expect(extractHeadings("")).toEqual([]);
+    });
+
+    it("去除标题内嵌 HTML 标签", () => {
+      const html = '<h2 id="code">Using <code>hooks</code></h2>';
+      const headings = extractHeadings(html);
+
+      expect(headings).toHaveLength(1);
+      expect(headings[0]!.text).toBe("Using hooks");
+    });
+
+    it("忽略 h4-h6 标题", () => {
+      const html = '<h4 id="deep">Deep heading</h4><h5 id="deeper">Deeper</h5>';
+      expect(extractHeadings(html)).toEqual([]);
+    });
+
+    it("处理内容为空的标题", () => {
+      const html = '<h2 id="empty"></h2>';
+      const headings = extractHeadings(html);
+
+      expect(headings).toHaveLength(1);
+      expect(headings[0]!.text).toBe("");
+    });
+
+    it("按顺序返回多个标题", () => {
+      const html = [
+        '<h2 id="first">First</h2>',
+        '<h1 id="top">Top</h1>',
+        '<h3 id="third">Third</h3>',
+      ].join("");
+      const headings = extractHeadings(html);
+
+      expect(headings).toHaveLength(3);
+      expect(headings[0]!.id).toBe("first");
+      expect(headings[1]!.id).toBe("top");
+      expect(headings[2]!.id).toBe("third");
     });
   });
 });

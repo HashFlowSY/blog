@@ -1,0 +1,110 @@
+const mockObserve = vi.fn();
+const mockDisconnect = vi.fn();
+const mockUnobserve = vi.fn();
+
+function MockIntersectionObserver(
+  callback: IntersectionObserverCallback,
+  options?: IntersectionObserverInit,
+) {
+  mockObserve.mockImplementation((el: Element) => {
+    if (options?.rootMargin) return;
+    callback(
+      [{ isIntersecting: true, target: el } as IntersectionObserverEntry],
+      {} as IntersectionObserver,
+    );
+  });
+  return {
+    observe: mockObserve,
+    disconnect: mockDisconnect,
+    unobserve: mockUnobserve,
+  };
+}
+
+vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
+import { render, fireEvent } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+
+import { PostToc } from "./post-toc";
+
+import type { TocItem } from "@/lib/markdown";
+
+const headings: TocItem[] = [
+  { level: 1, id: "intro", text: "Introduction" },
+  { level: 2, id: "setup", text: "Setup" },
+  { level: 3, id: "config", text: "Configuration" },
+];
+
+describe("PostToc", () => {
+  beforeEach(() => {
+    mockObserve.mockClear();
+    mockDisconnect.mockClear();
+    document.body.innerHTML = "";
+    Element.prototype.scrollIntoView = vi.fn();
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  it("returns null when headings is empty", () => {
+    const { container } = render(<PostToc headings={[]} />);
+    expect(container.firstChild).toBeNull();
+  });
+
+  it("renders nav with heading links", () => {
+    const { container } = render(<PostToc headings={headings} />);
+    const nav = container.querySelector("nav");
+    expect(nav).toBeInTheDocument();
+    expect(container.textContent).toContain("Introduction");
+    expect(container.textContent).toContain("Setup");
+    expect(container.textContent).toContain("Configuration");
+  });
+
+  it("each link has correct href", () => {
+    const { container } = render(<PostToc headings={headings} />);
+    const links = container.querySelectorAll("a");
+    expect(links[0]).toHaveAttribute("href", "#intro");
+    expect(links[1]).toHaveAttribute("href", "#setup");
+    expect(links[2]).toHaveAttribute("href", "#config");
+  });
+
+  it("applies indentation based on heading level", () => {
+    const { container } = render(<PostToc headings={headings} />);
+    const items = container.querySelectorAll("li");
+    expect(items[0]).toHaveStyle({ paddingLeft: "0rem" });
+    expect(items[1]).toHaveStyle({ paddingLeft: "0.75rem" });
+    expect(items[2]).toHaveStyle({ paddingLeft: "1.5rem" });
+  });
+
+  it("no heading is active by default", () => {
+    const { container } = render(<PostToc headings={headings} />);
+    const links = container.querySelectorAll("a");
+    for (const link of links) {
+      expect(link.className).not.toContain("font-medium");
+    }
+  });
+
+  it("click prevents default and calls scrollIntoView", () => {
+    document.body.innerHTML = '<div id="setup">Setup</div>';
+    const { container } = render(<PostToc headings={headings} />);
+    const setupLink = container.querySelectorAll("a")[1]!;
+    fireEvent.click(setupLink);
+    expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({
+      behavior: "smooth",
+    });
+  });
+
+  it("disconnects observer on unmount", () => {
+    document.body.innerHTML = '<div class="prose"><h1 id="intro">X</h1></div>';
+    const { unmount } = render(<PostToc headings={headings} />);
+    expect(mockDisconnect).not.toHaveBeenCalled();
+    unmount();
+    expect(mockDisconnect).toHaveBeenCalledTimes(1);
+  });
+
+  it("creates observer", () => {
+    document.body.innerHTML = '<div class="prose"><h1 id="intro">X</h1></div>';
+    render(<PostToc headings={headings} />);
+    expect(mockObserve).toHaveBeenCalled();
+  });
+});
