@@ -93,9 +93,7 @@ describe("markdownToHtml", () => {
       const result = await markdownToHtml(
         "```typescript\nconst x: number = 1;\n```",
       );
-      expect(result).toMatch(
-        /class="[^"]*language-typescript[^"]*"/,
-      );
+      expect(result).toMatch(/class="[^"]*language-typescript[^"]*"/);
     });
 
     it("无语言标识的代码块也能正常渲染", async () => {
@@ -107,9 +105,7 @@ describe("markdownToHtml", () => {
 
   describe("XSS 过滤", () => {
     it("过滤 <script> 标签", async () => {
-      const result = await markdownToHtml(
-        '<script>alert("xss")</script>',
-      );
+      const result = await markdownToHtml('<script>alert("xss")</script>');
       expect(result).not.toContain("<script>");
       expect(result).not.toContain("alert");
     });
@@ -139,9 +135,7 @@ describe("markdownToHtml", () => {
     });
 
     it("过滤 <img onerror> 属性", async () => {
-      const result = await markdownToHtml(
-        '<img src="x" onerror="alert(1)">',
-      );
+      const result = await markdownToHtml('<img src="x" onerror="alert(1)">');
       expect(result).not.toContain("onerror");
     });
   });

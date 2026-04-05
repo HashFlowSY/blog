@@ -2,6 +2,7 @@ import { setRequestLocale } from "next-intl/server";
 import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 
+import { TagBadge } from "@/components/tag";
 import { Link } from "@/i18n/navigation";
 import { getProjectBySlug, getAllProjectsMeta } from "@/lib/projects";
 
@@ -57,9 +58,7 @@ export default async function ProjectDetailPage({ params }: Props) {
         )}
         <div className="mt-4 flex flex-wrap gap-2">
           {project.tags.map((tag) => (
-            <span key={tag} className="rounded-full bg-muted px-3 py-1 text-sm">
-              {tag}
-            </span>
+            <TagBadge key={tag} tag={tag} size="md" />
           ))}
         </div>
         <div className="mt-6 flex gap-3">

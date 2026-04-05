@@ -1,3 +1,4 @@
+import { TagBadge } from "@/components/tag";
 import { Link } from "@/i18n/navigation";
 
 import type { PostMeta } from "@/lib/posts";
@@ -15,7 +16,9 @@ export function PostCard({ post, updatedLabel }: PostCardProps) {
           <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
             <time dateTime={post.date}>{post.date}</time>
             {post.updated !== post.date && updatedLabel && (
-              <span>({updatedLabel} {post.updated})</span>
+              <span>
+                ({updatedLabel} {post.updated})
+              </span>
             )}
           </div>
           <h3 className="text-lg font-semibold group-hover:opacity-80 transition-opacity">
@@ -29,12 +32,7 @@ export function PostCard({ post, updatedLabel }: PostCardProps) {
           {post.tags.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-1">
               {post.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
-                >
-                  {tag}
-                </span>
+                <TagBadge key={tag} tag={tag} />
               ))}
             </div>
           )}

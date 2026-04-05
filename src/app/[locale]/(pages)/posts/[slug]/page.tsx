@@ -3,8 +3,9 @@ import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 
 import { PostToc } from "@/components/post/post-toc";
+import { TagBadge } from "@/components/tag";
 import { Link } from "@/i18n/navigation";
-import { extractHeadings, type TocItem } from "@/lib/markdown";
+import { extractHeadings } from "@/lib/markdown";
 import { getPostBySlug, getAllPostsMeta, getAdjacentPosts } from "@/lib/posts";
 
 import type { Metadata } from "next";
@@ -65,12 +66,7 @@ export default async function PostDetailPage({ params }: Props) {
           {post.tags.length > 0 && (
             <div className="flex gap-1">
               {post.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="rounded-full bg-muted px-2 py-0.5 text-xs"
-                >
-                  {tag}
-                </span>
+                <TagBadge key={tag} tag={tag} />
               ))}
             </div>
           )}

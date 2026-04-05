@@ -1,10 +1,10 @@
 ---
-title: 'Personal Blog'
-slug: 'personal-blog'
-date: '2026-04-02'
-tags: ['nextjs', 'typescript', 'tailwindcss']
-description: 'A personal blog built with Next.js 15, deployed on GitHub Pages'
-source: 'https://github.com/shangyang/blog'
+title: "Personal Blog"
+slug: "personal-blog"
+date: "2026-04-02"
+tags: ["nextjs", "typescript", "tailwindcss"]
+description: "A personal blog built with Next.js 15, deployed on GitHub Pages"
+source: "https://github.com/shangyang/blog"
 featured: true
 draft: false
 ---

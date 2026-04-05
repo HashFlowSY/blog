@@ -71,5 +71,14 @@
     "title": "Page Not Found",
     "description": "The page you are looking for does not exist",
     "backHome": "Back to Home"
+  },
+  "theme": {
+    "toggle": "Toggle theme"
+  },
+  "error": {
+    "title": "Something went wrong",
+    "description": "An unexpected error occurred while loading this page.",
+    "retry": "Try Again",
+    "backHome": "Back to Home"
   }
 }

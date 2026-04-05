@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 
+import { TagBadge } from "@/components/tag";
 import { Link } from "@/i18n/navigation";
 
 import type { ProjectMeta } from "@/lib/projects";
@@ -28,12 +29,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
           {project.tags.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-1">
               {project.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
-                >
-                  {tag}
-                </span>
+                <TagBadge key={tag} tag={tag} />
               ))}
             </div>
           )}

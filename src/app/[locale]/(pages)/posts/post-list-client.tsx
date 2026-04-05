@@ -4,7 +4,7 @@ import { useTranslations } from "next-intl";
 import { useState, useMemo } from "react";
 
 import { PostCard } from "@/components/post/post-card";
-import { cn } from "@/lib/utils";
+import { TagFilter } from "@/components/tag";
 
 import type { PostMeta } from "@/lib/posts";
 
@@ -31,35 +31,13 @@ export function PostListClient({
 
   return (
     <>
-      {tags.length > 0 && (
-        <div className="mt-6 flex flex-wrap gap-2">
-          <button
-            onClick={() => setActiveTag(null)}
-            className={cn(
-              "rounded-full border px-3 py-1 text-sm transition-colors",
-              activeTag === null
-                ? "border-primary bg-primary text-primary-foreground"
-                : "border-border text-muted-foreground hover:text-foreground hover:border-foreground",
-            )}
-          >
-            {t("all")}
-          </button>
-          {tags.map((tag) => (
-            <button
-              key={tag}
-              onClick={() => setActiveTag(tag === activeTag ? null : tag)}
-              className={cn(
-                "rounded-full border px-3 py-1 text-sm transition-colors",
-                activeTag === tag
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border text-muted-foreground hover:text-foreground hover:border-foreground",
-              )}
-            >
-              {tag}
-            </button>
-          ))}
-        </div>
-      )}
+      <TagFilter
+        tags={tags}
+        activeTag={activeTag}
+        onTagChange={setActiveTag}
+        allLabel={t("all")}
+        className="mt-6"
+      />
 
       <div className="mt-8">
         {filtered.length === 0 ? (
@@ -70,7 +48,7 @@ export function PostListClient({
               <PostCard
                 key={post.slug}
                 post={post}
-                {...(updatedLabel !== null && { updatedLabel })}
+                {...(updatedLabel !== undefined && { updatedLabel })}
               />
             ))}
           </div>

@@ -3,6 +3,7 @@
 import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Link, usePathname } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 
@@ -57,6 +58,7 @@ export function Header() {
           >
             {locale === "zh-CN" ? "EN" : "中文"}
           </Link>
+          <ThemeToggle />
         </nav>
 
         {/* Mobile menu button */}
@@ -119,6 +121,7 @@ export function Header() {
             >
               {locale === "zh-CN" ? "EN" : "中文"}
             </Link>
+            <ThemeToggle />
           </div>
         </nav>
       )}

@@ -2,20 +2,17 @@ import fs from "fs";
 import path from "path";
 
 import matter from "gray-matter";
-import { z } from "zod";
 
 import { markdownToHtml } from "./markdown";
+
+import type { z } from "zod";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
 /** Configuration for a content loader instance. */
-export interface ContentLoaderConfig<
-  TSchema extends z.ZodType,
-  TMeta,
-  TFull,
-> {
+export interface ContentLoaderConfig<TSchema extends z.ZodType, TMeta, TFull> {
   /** Absolute or cwd-relative path to the content directory. */
   contentDir: string;
   /** Zod schema used to validate frontmatter. */
@@ -92,7 +89,9 @@ export function createContentLoader<
   const TSchema extends z.ZodType,
   TMeta,
   TFull,
->(config: ContentLoaderConfig<TSchema, TMeta, TFull>): ContentLoader<TMeta, TFull> {
+>(
+  config: ContentLoaderConfig<TSchema, TMeta, TFull>,
+): ContentLoader<TMeta, TFull> {
   const {
     contentDir,
     schema,
@@ -107,9 +106,7 @@ export function createContentLoader<
   // ----- Internal helpers -----
 
   /** Read and validate a single file. Returns null on parse/validation failure. */
-  function parseFile(
-    file: string,
-  ): ParsedFile<z.infer<TSchema>> | null {
+  function parseFile(file: string): ParsedFile<z.infer<TSchema>> | null {
     const raw = fs.readFileSync(path.join(contentDir, file), "utf-8");
     const { data, content } = matter(raw);
     const parsed = schema.safeParse(data);

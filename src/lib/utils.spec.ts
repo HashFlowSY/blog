@@ -76,9 +76,7 @@ describe("cn 工具函数", () => {
     });
 
     it("保留有效类名并过滤所有 falsy 值", () => {
-      expect(cn("a", null, "b", undefined, "c", false, "", 0)).toBe(
-        "a b c",
-      );
+      expect(cn("a", null, "b", undefined, "c", false, "", 0)).toBe("a b c");
     });
   });
 

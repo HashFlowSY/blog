@@ -1,10 +1,10 @@
 ---
-title: 'Building a Static Blog with Next.js'
-slug: 'nextjs-static-export-guide'
-date: '2026-04-01'
-updated: '2026-04-02'
-tags: ['nextjs', 'github-pages', 'tutorial']
-summary: 'A guide to building a static blog with Next.js and deploying to GitHub Pages'
+title: "Building a Static Blog with Next.js"
+slug: "nextjs-static-export-guide"
+date: "2026-04-01"
+updated: "2026-04-02"
+tags: ["nextjs", "github-pages", "tutorial"]
+summary: "A guide to building a static blog with Next.js and deploying to GitHub Pages"
 draft: false
 ---
 
@@ -33,9 +33,9 @@ Then configure `next.config.ts`:
 
 ```typescript
 const nextConfig = {
-    output: 'export',
-    images: { unoptimized: true },
-    trailingSlash: true,
+  output: "export",
+  images: { unoptimized: true },
+  trailingSlash: true,
 };
 ```
 
@@ -45,11 +45,11 @@ Content is stored as Markdown files in a `content/` directory. Each file has fro
 
 ```yaml
 ---
-title: 'My Post'
-slug: 'my-post'
-date: '2026-04-01'
-tags: ['example']
-summary: 'A short description'
+title: "My Post"
+slug: "my-post"
+date: "2026-04-01"
+tags: ["example"]
+summary: "A short description"
 ---
 ```
 
@@ -61,9 +61,9 @@ For multilingual support, use `next-intl` with `localePrefix: 'always'`:
 
 ```typescript
 export const routing = defineRouting({
-    locales: ['zh-CN', 'en-US'],
-    defaultLocale: 'zh-CN',
-    localePrefix: 'always',
+  locales: ["zh-CN", "en-US"],
+  defaultLocale: "zh-CN",
+  localePrefix: "always",
 });
 ```
 

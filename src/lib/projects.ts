@@ -109,8 +109,6 @@ export function getFeaturedProjects(): ProjectMeta[] {
 }
 
 /** 根据 slug 获取单个项目 */
-export async function getProjectBySlug(
-  slug: string,
-): Promise<Project | null> {
+export async function getProjectBySlug(slug: string): Promise<Project | null> {
   return projectsLoader.getBySlug(slug);
 }

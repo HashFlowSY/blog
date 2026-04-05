@@ -15,7 +15,12 @@ export default async function HomePage({ params }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const t = await getTranslations({ locale });
+  const [tHero, tPostPage, tProjectPage] = await Promise.all([
+    getTranslations({ locale, namespace: "hero" }),
+    getTranslations({ locale, namespace: "postPage" }),
+    getTranslations({ locale, namespace: "projectPage" }),
+  ]);
+
   const recentPosts = getAllPostsMeta().slice(0, 6);
   const featuredProjects = getFeaturedProjects().slice(0, 4);
 
@@ -24,24 +29,24 @@ export default async function HomePage({ params }: Props) {
       {/* Hero Section */}
       <section className="py-16 sm:py-24">
         <h1 className="text-4xl font-bold sm:text-5xl">
-          {t("hero.greeting")}{" "}
+          {tHero("greeting")}{" "}
           <span className="text-muted-foreground">ShangYang</span>
         </h1>
         <p className="mt-4 text-lg text-muted-foreground max-w-2xl">
-          {t("hero.description")}
+          {tHero("description")}
         </p>
         <div className="mt-8 flex gap-4">
           <Link
             href="/posts/"
             className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:opacity-80"
           >
-            {t("hero.cta")}
+            {tHero("cta")}
           </Link>
           <Link
             href="/projects/"
             className="rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-accent"
           >
-            {t("hero.viewProjects")}
+            {tHero("viewProjects")}
           </Link>
         </div>
       </section>
@@ -50,18 +55,15 @@ export default async function HomePage({ params }: Props) {
       {recentPosts.length > 0 && (
         <section className="pb-16">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold">{t("postPage.recentPosts")}</h2>
+            <h2 className="text-2xl font-bold">{tPostPage("recentPosts")}</h2>
             <Link
               href="/posts/"
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              {t("postPage.allPosts")} &rarr;
+              {tPostPage("allPosts")} &rarr;
             </Link>
           </div>
-          <PostList
-            posts={recentPosts}
-            updatedLabel={t("postPage.updatedAt")}
-          />
+          <PostList posts={recentPosts} updatedLabel={tPostPage("updatedAt")} />
         </section>
       )}
 
@@ -69,12 +71,12 @@ export default async function HomePage({ params }: Props) {
       {featuredProjects.length > 0 && (
         <section className="pb-16">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold">{t("projectPage.featured")}</h2>
+            <h2 className="text-2xl font-bold">{tProjectPage("featured")}</h2>
             <Link
               href="/projects/"
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              {t("projectPage.allProjects")} &rarr;
+              {tProjectPage("allProjects")} &rarr;
             </Link>
           </div>
           <ProjectList projects={featuredProjects} />
