@@ -8,7 +8,20 @@ vi.stubGlobal(
 );
 
 vi.mock("@/components/search", () => ({
-  SearchBar: () => createElement("div", { "data-testid": "search-bar" }),
+  SearchBar: ({
+    onResultsChange,
+  }: {
+    locale: string;
+    placeholder: string;
+    noResultsText: string;
+    onResultsChange?: (results: Array<{ slug: string }>) => void;
+    className?: string;
+  }) => {
+    // Store callback on window so tests can invoke it
+    (window as unknown as Record<string, unknown>)["__searchOnResultsChange"] =
+      onResultsChange;
+    return createElement("div", { "data-testid": "search-bar" });
+  },
 }));
 
 vi.mock("@/hooks/use-search", () => ({
@@ -185,5 +198,58 @@ describe("PostListClient", () => {
     for (const card of postCards) {
       expect(card).not.toHaveTextContent("[");
     }
+  });
+
+  it("filters posts by search results when onResultsChange is called with results", async () => {
+    render(<PostListClient {...defaultProps} />);
+
+    expect(screen.getAllByTestId("post-card")).toHaveLength(3);
+
+    // Simulate search results via the stored callback
+    const onResultsChange = (window as unknown as Record<string, unknown>)[
+      "__searchOnResultsChange"
+    ] as (results: Array<{ slug: string }>) => void;
+
+    await act(async () => {
+      onResultsChange([{ slug: "post-2" }]);
+    });
+
+    expect(screen.getAllByTestId("post-card")).toHaveLength(1);
+    expect(screen.getByText("Rust Intro")).toBeInTheDocument();
+  });
+
+  it("clears search filter when onResultsChange is called with empty array", async () => {
+    render(<PostListClient {...defaultProps} />);
+
+    const onResultsChange = (window as unknown as Record<string, unknown>)[
+      "__searchOnResultsChange"
+    ] as (results: Array<{ slug: string }>) => void;
+
+    // First filter
+    await act(async () => {
+      onResultsChange([{ slug: "post-1" }]);
+    });
+    expect(screen.getAllByTestId("post-card")).toHaveLength(1);
+
+    // Then clear (empty results → null → no filter)
+    await act(async () => {
+      onResultsChange([]);
+    });
+
+    expect(screen.getAllByTestId("post-card")).toHaveLength(3);
+  });
+
+  it("shows emptyText when search filter matches no posts", async () => {
+    render(<PostListClient {...defaultProps} />);
+
+    const onResultsChange = (window as unknown as Record<string, unknown>)[
+      "__searchOnResultsChange"
+    ] as (results: Array<{ slug: string }>) => void;
+
+    await act(async () => {
+      onResultsChange([{ slug: "nonexistent-post" }]);
+    });
+
+    expect(screen.getByText("No posts found")).toBeInTheDocument();
   });
 });

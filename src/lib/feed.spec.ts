@@ -209,6 +209,13 @@ describe("buildRssXml", () => {
     expect(xml).toMatch(/15 Apr 2026/);
   });
 
+  it("uses current date when items array is empty", () => {
+    const xml = buildRssXml(baseConfig);
+    expect(xml).toContain("<lastBuildDate>");
+    // lastBuildDate is formatted as "02 Apr 2026" (RFC 822)
+    expect(xml).toMatch(/Apr 2026/);
+  });
+
   it("single post produces exactly one item", () => {
     const xml = buildRssXml({
       ...baseConfig,
@@ -224,5 +231,29 @@ describe("buildRssXml", () => {
     });
     const itemMatches = xml.match(/<item>/g);
     expect(itemMatches).toHaveLength(1);
+  });
+
+  it("uses first item as latest when dates are descending", () => {
+    const xml = buildRssXml({
+      ...baseConfig,
+      items: [
+        {
+          title: "Newest Post",
+          link: "https://example.com/posts/new/",
+          description: "New",
+          pubDate: "2026-06-01",
+          categories: [],
+        },
+        {
+          title: "Older Post",
+          link: "https://example.com/posts/old/",
+          description: "Old",
+          pubDate: "2026-01-01",
+          categories: [],
+        },
+      ],
+    });
+    expect(xml).toContain("<lastBuildDate>");
+    expect(xml).toMatch(/01 Jun 2026/);
   });
 });

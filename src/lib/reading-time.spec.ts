@@ -47,4 +47,8 @@ describe("estimateReadingTime", () => {
     const text = "Hello world"; // 2 words
     expect(estimateReadingTime(text)).toBe(1);
   });
+
+  it("returns 0 for whitespace-only input", () => {
+    expect(estimateReadingTime("   ")).toBe(0);
+  });
 });

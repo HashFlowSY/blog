@@ -168,6 +168,41 @@ describe("Header - A11y (H5: Mobile Menu)", () => {
     expect(mobilePostsLink).toBeInTheDocument();
   });
 
+  it("Shift+Tab on first focusable wraps to last focusable", () => {
+    render(<Header />);
+    const toggle = screen.getByLabelText("Toggle menu");
+    fireEvent.click(toggle);
+
+    const homeLinks = screen.getAllByText("home");
+    const mobileHomeLink = homeLinks[1]!;
+    expect(mobileHomeLink).toHaveFocus();
+
+    // Shift+Tab on first element should wrap to last
+    fireEvent.keyDown(mobileHomeLink, { key: "Tab", shiftKey: true });
+
+    const themeToggle = screen.getAllByTestId("theme-toggle")[1]!;
+    expect(themeToggle).toHaveFocus();
+  });
+
+  it("Tab on last focusable wraps to first focusable", () => {
+    render(<Header />);
+    const toggle = screen.getByLabelText("Toggle menu");
+    fireEvent.click(toggle);
+
+    // Focus the last focusable element (theme toggle in mobile menu)
+    const themeToggles = screen.getAllByTestId("theme-toggle");
+    const mobileThemeToggle = themeToggles[1]!;
+    mobileThemeToggle.focus();
+    expect(mobileThemeToggle).toHaveFocus();
+
+    // Tab on last element should wrap to first
+    fireEvent.keyDown(mobileThemeToggle, { key: "Tab" });
+
+    const homeLinks = screen.getAllByText("home");
+    const mobileHomeLink = homeLinks[1]!;
+    expect(mobileHomeLink).toHaveFocus();
+  });
+
   it("Escape closes menu and returns focus to button", () => {
     render(<Header />);
     const toggle = screen.getByLabelText("Toggle menu");

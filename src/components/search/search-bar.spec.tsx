@@ -169,4 +169,77 @@ describe("SearchBar", () => {
 
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
   });
+
+  it("closes dropdown on click outside", () => {
+    render(<SearchBar locale="zh-CN" placeholder="Search..." />);
+
+    const input = screen.getByPlaceholderText("Search...");
+    fireEvent.change(input, { target: { value: "hello" } });
+
+    expect(screen.getByRole("listbox")).toBeInTheDocument();
+
+    // Click on body (outside the search container)
+    fireEvent.mouseDown(document.body);
+
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+  });
+
+  it("clear button appears when query is non-empty and clears on click", () => {
+    render(<SearchBar locale="zh-CN" placeholder="Search..." />);
+
+    const input = screen.getByPlaceholderText("Search...");
+
+    // No clear button initially
+    expect(screen.queryByLabelText("Clear search")).not.toBeInTheDocument();
+
+    fireEvent.change(input, { target: { value: "hello" } });
+
+    const clearButton = screen.getByLabelText("Clear search");
+    expect(clearButton).toBeInTheDocument();
+
+    fireEvent.click(clearButton);
+
+    expect(input).toHaveValue("");
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+  });
+
+  it("opens dropdown on focus when query has text", () => {
+    render(<SearchBar locale="zh-CN" placeholder="Search..." />);
+
+    const input = screen.getByPlaceholderText("Search...");
+
+    // Type something first
+    fireEvent.change(input, { target: { value: "hello" } });
+
+    // Close the dropdown via escape
+    fireEvent.keyDown(input, { key: "Escape" });
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+
+    // Re-focus should reopen
+    fireEvent.focus(input);
+    expect(screen.getByRole("listbox")).toBeInTheDocument();
+  });
+
+  it("does not open dropdown on focus when query is empty", () => {
+    render(<SearchBar locale="zh-CN" placeholder="Search..." />);
+
+    const input = screen.getByPlaceholderText("Search...");
+    fireEvent.focus(input);
+
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+  });
+
+  it("result click closes dropdown", () => {
+    render(<SearchBar locale="zh-CN" placeholder="Search..." />);
+
+    const input = screen.getByPlaceholderText("Search...");
+    fireEvent.change(input, { target: { value: "hello" } });
+
+    expect(screen.getByRole("listbox")).toBeInTheDocument();
+
+    const resultLink = screen.getByText("Hello World").closest("a")!;
+    fireEvent.click(resultLink);
+
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+  });
 });

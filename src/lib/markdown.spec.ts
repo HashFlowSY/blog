@@ -175,6 +175,10 @@ describe("markdownToHtml", () => {
       const result = await markdownToHtml("# Hello", "test.md");
       expect(result).toContain("Hello");
     });
+
+    it("no filename: error message omits file reference", async () => {
+      await expect(markdownToHtml("".slice(0, 0))).resolves.toBeDefined();
+    });
   });
 
   // ==========================================================

@@ -213,4 +213,92 @@ describe("useSearch", () => {
       expect(scores[i]!).toBeGreaterThanOrEqual(scores[i - 1]!);
     }
   });
+
+  it("searches with cached index after first load", async () => {
+    const { result } = renderHook(() => useSearch("zh-CN"));
+
+    act(() => {
+      result.current.setQuery("hello");
+    });
+
+    await waitFor(
+      () => {
+        expect(result.current.results.length).toBeGreaterThan(0);
+      },
+      { timeout: 3000 },
+    );
+
+    // Wait for debounce period, then change query
+    await new Promise((r) => setTimeout(r, 300));
+
+    act(() => {
+      result.current.setQuery("react");
+    });
+
+    await waitFor(
+      () => {
+        expect(result.current.results.length).toBeGreaterThan(0);
+      },
+      { timeout: 3000 },
+    );
+  });
+
+  it("invalidates cache when locale changes", async () => {
+    const { result, rerender } = renderHook(({ locale }) => useSearch(locale), {
+      initialProps: { locale: "zh-CN" },
+    });
+
+    act(() => {
+      result.current.setQuery("blog");
+    });
+
+    await waitFor(
+      () => {
+        expect(result.current.results.length).toBeGreaterThan(0);
+      },
+      { timeout: 3000 },
+    );
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+
+    // Switch locale — should trigger a new fetch
+    rerender({ locale: "en-US" });
+
+    act(() => {
+      result.current.setQuery("blog");
+    });
+
+    await waitFor(
+      () => {
+        expect(fetch).toHaveBeenCalledTimes(2);
+      },
+      { timeout: 3000 },
+    );
+  });
+
+  it("sets error for non-ok HTTP response", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 404,
+        json: () => Promise.resolve([]),
+      }),
+    );
+
+    const { result } = renderHook(() => useSearch("zh-CN"));
+
+    act(() => {
+      result.current.setQuery("hello");
+    });
+
+    await waitFor(
+      () => {
+        expect(result.current.error).toBeTruthy();
+      },
+      { timeout: 3000 },
+    );
+
+    expect(result.current.error).toContain("HTTP 404");
+  });
 });
