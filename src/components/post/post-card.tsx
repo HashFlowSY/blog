@@ -12,18 +12,19 @@ export function PostCard({ post, updatedLabel }: PostCardProps) {
   return (
     <article className="group">
       <Link href={`/posts/${post.slug}/`} className="block">
-        <div className="rounded-lg border border-border p-4 transition-colors hover:bg-accent">
+        <div className="rounded-lg border border-border p-4 transition-all duration-200 hover:bg-accent hover:-translate-y-0.5 hover:shadow-sm">
           <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
             <time dateTime={post.date}>{post.date}</time>
+            {post.readingTime > 0 && <span>{post.readingTime} min read</span>}
             {post.updated !== post.date && updatedLabel && (
               <span>
                 ({updatedLabel} {post.updated})
               </span>
             )}
           </div>
-          <h3 className="text-lg font-semibold group-hover:opacity-80 transition-opacity">
+          <h2 className="text-lg font-semibold group-hover:opacity-80 transition-opacity">
             {post.title}
-          </h3>
+          </h2>
           {post.summary && (
             <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
               {post.summary}

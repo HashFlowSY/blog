@@ -2,6 +2,7 @@ import { setRequestLocale } from "next-intl/server";
 import { getTranslations } from "next-intl/server";
 
 import { getAllPostsMeta, getAllTags } from "@/lib/posts";
+import { siteUrl } from "@/lib/site";
 
 import { PostListClient } from "./post-list-client";
 
@@ -17,6 +18,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: t("title"),
     description: t("allPosts"),
+    openGraph: {
+      title: t("title"),
+      description: t("allPosts"),
+      type: "website",
+      url: siteUrl(`/${locale}/posts/`),
+      locale: locale.replace("-", "_"),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: t("title"),
+      description: t("allPosts"),
+    },
   };
 }
 
@@ -36,6 +49,7 @@ export default async function PostsPage({ params }: Props) {
         tags={tags}
         emptyText={t("empty")}
         updatedLabel={t("updatedAt")}
+        locale={locale}
       />
     </div>
   );

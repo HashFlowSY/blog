@@ -17,10 +17,10 @@ export function ProjectCard({ project }: ProjectCardProps) {
   return (
     <article className="group">
       <Link href={`/projects/${project.slug}/`} className="block">
-        <div className="rounded-lg border border-border p-4 transition-colors hover:bg-accent">
-          <h3 className="text-lg font-semibold group-hover:opacity-80 transition-opacity">
+        <div className="rounded-lg border border-border p-4 transition-all duration-200 hover:bg-accent hover:-translate-y-0.5 hover:shadow-sm">
+          <h2 className="text-lg font-semibold group-hover:opacity-80 transition-opacity">
             {project.title}
-          </h3>
+          </h2>
           {project.description && (
             <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
               {project.description}

@@ -20,6 +20,7 @@ const posts: PostMeta[] = [
     tags: [],
     summary: "",
     cover: null,
+    readingTime: 0,
   },
   {
     slug: "post-2",
@@ -29,6 +30,7 @@ const posts: PostMeta[] = [
     tags: [],
     summary: "",
     cover: null,
+    readingTime: 0,
   },
 ];
 

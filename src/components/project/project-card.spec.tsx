@@ -71,7 +71,7 @@ describe("ProjectCard", () => {
 
   it("renders source link text when source is present", () => {
     render(<ProjectCard project={baseProject} />);
-    // next-intl mock returns key: t("source") → "source"
+    // next-intl mock returns key: t("source") -> "source"
     expect(screen.getByText("source")).toBeInTheDocument();
   });
 
@@ -90,5 +90,19 @@ describe("ProjectCard", () => {
     const noDemo = { ...baseProject, demo: null };
     render(<ProjectCard project={noDemo} />);
     expect(screen.queryByText("demo")).not.toBeInTheDocument();
+  });
+});
+
+describe("ProjectCard - A11y (H6: Heading hierarchy)", () => {
+  it("uses h2 element for project title instead of h3", () => {
+    render(<ProjectCard project={baseProject} />);
+    const heading = screen.getByRole("heading", { level: 2 });
+    expect(heading).toBeInTheDocument();
+    expect(heading).toHaveTextContent("My Project");
+  });
+
+  it("does not render h3 element", () => {
+    render(<ProjectCard project={baseProject} />);
+    expect(screen.queryByRole("heading", { level: 3 })).not.toBeInTheDocument();
   });
 });

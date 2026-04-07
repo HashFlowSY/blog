@@ -6,9 +6,28 @@ import { ProjectList } from "@/components/project/project-list";
 import { Link } from "@/i18n/navigation";
 import { getAllPostsMeta } from "@/lib/posts";
 import { getFeaturedProjects } from "@/lib/projects";
+import { siteUrl } from "@/lib/site";
+
+import type { Metadata } from "next";
 
 interface Props {
   params: Promise<{ locale: string }>;
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { locale } = await params;
+  const [tHero] = await Promise.all([
+    getTranslations({ locale, namespace: "hero" }),
+  ]);
+  return {
+    title: tHero("title"),
+    description: tHero("description"),
+    openGraph: {
+      title: tHero("title"),
+      description: tHero("description"),
+      type: "website",
+    },
+  };
 }
 
 export default async function HomePage({ params }: Props) {
@@ -24,13 +43,24 @@ export default async function HomePage({ params }: Props) {
   const recentPosts = getAllPostsMeta().slice(0, 6);
   const featuredProjects = getFeaturedProjects().slice(0, 4);
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: tHero("siteName"),
+    url: siteUrl("/"),
+  };
+
   return (
     <div className="mx-auto max-w-4xl px-6">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* Hero Section */}
-      <section className="py-16 sm:py-24">
-        <h1 className="text-4xl font-bold sm:text-5xl">
+      <section aria-labelledby="hero-heading" className="py-16 sm:py-24">
+        <h1 id="hero-heading" className="text-4xl font-bold sm:text-5xl">
           {tHero("greeting")}{" "}
-          <span className="text-muted-foreground">ShangYang</span>
+          <span className="text-muted-foreground">HashFlow</span>
         </h1>
         <p className="mt-4 text-lg text-muted-foreground max-w-2xl">
           {tHero("description")}
@@ -53,9 +83,11 @@ export default async function HomePage({ params }: Props) {
 
       {/* Recent Posts */}
       {recentPosts.length > 0 && (
-        <section className="pb-16">
+        <section aria-labelledby="recent-posts-heading" className="pb-16">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold">{tPostPage("recentPosts")}</h2>
+            <h2 id="recent-posts-heading" className="text-2xl font-bold">
+              {tPostPage("recentPosts")}
+            </h2>
             <Link
               href="/posts/"
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -69,9 +101,11 @@ export default async function HomePage({ params }: Props) {
 
       {/* Featured Projects */}
       {featuredProjects.length > 0 && (
-        <section className="pb-16">
+        <section aria-labelledby="featured-projects-heading" className="pb-16">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold">{tProjectPage("featured")}</h2>
+            <h2 id="featured-projects-heading" className="text-2xl font-bold">
+              {tProjectPage("featured")}
+            </h2>
             <Link
               href="/projects/"
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"

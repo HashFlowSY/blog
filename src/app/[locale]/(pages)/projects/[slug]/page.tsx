@@ -2,9 +2,11 @@ import { setRequestLocale } from "next-intl/server";
 import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 
+import { CodeBlockEnhancer } from "@/components/post/code-block";
 import { TagBadge } from "@/components/tag";
 import { Link } from "@/i18n/navigation";
 import { getProjectBySlug, getAllProjectsMeta } from "@/lib/projects";
+import { siteUrl } from "@/lib/site";
 
 import type { Metadata } from "next";
 
@@ -17,17 +19,31 @@ export function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { slug } = await params;
+  const { locale, slug } = await params;
   const project = await getProjectBySlug(slug);
   if (!project) return {};
+
+  const canonical = siteUrl(`/${locale}/projects/${slug}/`);
 
   return {
     title: project.title,
     description: project.description,
+    alternates: {
+      canonical,
+    },
     openGraph: {
       title: project.title,
       description: project.description,
-      type: "website",
+      type: "article",
+      url: canonical,
+      publishedTime: project.date,
+      tags: project.tags,
+      locale: locale.replace("-", "_"),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: project.title,
+      description: project.description,
     },
   };
 }
@@ -85,10 +101,12 @@ export default async function ProjectDetailPage({ params }: Props) {
         </div>
       </header>
 
-      <div
-        className="prose"
-        dangerouslySetInnerHTML={{ __html: project.content }}
-      />
+      <CodeBlockEnhancer>
+        <div
+          className="prose"
+          dangerouslySetInnerHTML={{ __html: project.content }}
+        />
+      </CodeBlockEnhancer>
     </article>
   );
 }

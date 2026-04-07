@@ -1,18 +1,11 @@
 import { routing } from "@/i18n/routing";
 import { getAllPostsMeta } from "@/lib/posts";
 import { getAllProjectsMeta } from "@/lib/projects";
+import { siteUrl } from "@/lib/site";
 
 import type { MetadataRoute } from "next";
 
 export const dynamic = "force-static";
-
-const BASE_URL =
-  process.env["NEXT_PUBLIC_SITE_URL"] || "https://shangyang.github.io";
-const BASE_PATH = process.env["BASE_PATH"] || "";
-
-function siteUrl(path: string) {
-  return `${BASE_URL}${BASE_PATH}${path}`;
-}
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const posts = getAllPostsMeta();

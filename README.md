@@ -1,31 +1,46 @@
-# ShangYang's Blog
+# HashFlow's Blog
 
-A minimal, fast personal blog built with Next.js, deployed as a static site on GitHub Pages. Supports Chinese and English.
+A minimal, fast personal blog built with Next.js 16, deployed as a static site on GitHub Pages. Supports Chinese and English.
 
 ## Features
 
-- **Static Export** — Pure HTML/CSS/JS output, no server required
-- **Markdown Writing** — Write posts and projects in Markdown with frontmatter
-- **i18n** — Chinese (zh-CN) / English (en-US), switchable in one click
-- **Syntax Highlighting** — Code blocks with highlight.js, auto-detected language
+- **Static Export** — Pure HTML/CSS/JS, no server required
+- **Markdown Writing** — Posts and projects with Zod-validated frontmatter
+- **i18n** — Chinese (zh-CN) / English (en-US), one-click switch
+- **Syntax Highlighting** — Code blocks with language labels, copy button, line highlighting
+- **Full-Text Search** — Client-side fuzzy search (Fuse.js), keyboard accessible
+- **Table of Contents** — Auto-generated from headings, collapsible on mobile, scroll-spy active state
+- **Share Buttons** — Web Share API, Twitter/X, clipboard link copy
+- **Dark Mode** — System-aware with manual toggle (next-themes)
+- **Scroll Animations** — FadeIn scroll-reveal, enhanced card hover effects
+- **SEO** — Sitemap, robots.txt, canonical URLs, hreflang, OG, Twitter, JSON-LD, noindex 404
+- **RSS Feed** — `/feed.xml` (zh-CN) + `/en-US/feed.xml` with autodiscovery
+- **Reading Time** — Word-count-based estimation on post cards and detail pages
+- **Analytics** — Privacy-first (Plausible / Umami), cookie-free, configurable via env vars
 - **XSS Safe** — All Markdown HTML sanitized via rehype-sanitize
-- **SEO** — Sitemap, robots.txt, OpenGraph metadata, correct `<html lang>` per locale
-- **Client-side Tag Filter** — Filter posts by tags without a backend
-- **Table of Contents** — Auto-generated from headings with scroll-spy
 - **CI/CD** — Auto-deploy on push to `main` via GitHub Actions
 
 ## Tech Stack
 
-| Technology                                            | Purpose                               |
-| ----------------------------------------------------- | ------------------------------------- |
-| [Next.js 16](https://nextjs.org)                      | Framework (App Router, static export) |
-| [TypeScript](https://www.typescriptlang.org)          | Type safety                           |
-| [Tailwind CSS 4](https://tailwindcss.com)             | Styling                               |
-| [next-intl](https://next-intl.dev)                    | Internationalization                  |
-| [Zod](https://zod.dev)                                | Frontmatter validation                |
-| [remark / rehype](https://github.com/remarkjs/remark) | Markdown processing pipeline          |
-| [highlight.js](https://highlightjs.org)               | Syntax highlighting                   |
-| [pnpm](https://pnpm.io)                               | Package manager                       |
+| Technology                                                | Purpose                               |
+| --------------------------------------------------------- | ------------------------------------- |
+| [Next.js 16](https://nextjs.org)                          | Framework (App Router, static export) |
+| [React 19](https://react.dev)                             | UI library                            |
+| [TypeScript 5](https://www.typescriptlang.org)            | Type safety (strict mode)             |
+| [Tailwind CSS 4](https://tailwindcss.com)                 | Styling                               |
+| [shadcn/ui](https://ui.shadcn.com)                        | Component primitives (@base-ui/react) |
+| [next-intl](https://next-intl.dev)                        | Internationalization                  |
+| [next-themes](https://github.com/pacocoursey/next-themes) | Dark mode                             |
+| [Fuse.js](https://www.fusejs.io)                          | Client-side fuzzy search              |
+| [Lucide React](https://lucide.dev)                        | Icons                                 |
+| [Zod 4](https://zod.dev)                                  | Frontmatter validation                |
+| [remark / rehype](https://github.com/remarkjs/remark)     | Markdown processing pipeline          |
+| [highlight.js](https://highlightjs.org)                   | Syntax highlighting                   |
+| [Vitest](https://vitest.dev)                              | Unit testing (421 tests)              |
+| [ESLint 9](https://eslint.org)                            | Linting (flat config)                 |
+| [Prettier 3](https://prettier.io)                         | Code formatting                       |
+| [husky](https://typicode.github.io/husky)                 | Git hooks                             |
+| [pnpm 10](https://pnpm.io)                                | Package manager                       |
 
 ## Project Structure
 
@@ -35,24 +50,48 @@ content/
 └── projects/                 # Project entries (Markdown)
 
 src/
-├── app/                      # Next.js App Router pages
-│   ├── layout.tsx            # Root layout (<html>, <body>, fonts)
-│   ├── [locale]/             # Locale-prefixed routes
-│   │   ├── layout.tsx        # i18n provider, header, footer
-│   │   └── (pages)/
-│   │       ├── page.tsx      # Home
-│   │       ├── about/        # About me
-│   │       ├── posts/        # Blog posts (list + detail)
-│   │       ├── projects/     # Projects (list + detail)
-│   │       └── not-found.tsx # 404
-│   ├── sitemap.ts
-│   └── robots.ts
-├── components/               # React components
+├── app/
+│   ├── layout.tsx            # Root layout (html, body, fonts)
+│   ├── globals.css           # Global styles + design tokens
+│   ├── not-found.tsx         # 404 page
+│   ├── sitemap.ts            # Auto-generated sitemap
+│   ├── robots.ts             # robots.txt
+│   ├── feed.xml/             # RSS feed (zh-CN)
+│   ├── en-US/feed.xml/       # RSS feed (en-US)
+│   └── [locale]/             # Locale-prefixed routes
+│       ├── layout.tsx        # i18n provider, header, footer, analytics
+│       └── (pages)/
+│           ├── page.tsx      # Home
+│           ├── about/        # About me
+│           ├── posts/        # Blog posts (list + detail)
+│           └── projects/     # Projects (list + detail)
+├── components/
+│   ├── analytics/            # Plausible / Umami provider
+│   ├── layout/               # Header, footer, skip-link
+│   ├── motion/               # FadeIn scroll-reveal
+│   ├── post/                 # Post card, post list, TOC, code block
+│   ├── project/              # Project card, project list
+│   ├── search/               # SearchBar, useSearch hook
+│   ├── share/                # Share buttons
+│   ├── tag/                  # TagBadge, TagFilter
+│   ├── theme/                # ThemeProvider, toggle
+│   └── ui/                   # shadcn/ui base components
+├── hooks/                    # Custom React hooks
 ├── i18n/                     # Locale routing & navigation
-├── lib/                      # Data layer (posts, projects, markdown)
-└── messages/                 # Translation files
-    ├── zh-CN/common.json
-    └── en-US/common.json
+├── lib/                      # Data layer, utilities
+│   ├── content-loader.ts     # Shared content loader factory
+│   ├── posts.ts              # Post loading & queries
+│   ├── projects.ts           # Project loading & queries
+│   ├── markdown.ts           # Markdown → HTML pipeline
+│   ├── site.ts               # Site URL config
+│   ├── feed.ts               # RSS XML builder
+│   └── search/               # Search index builder & types
+├── messages/
+│   ├── zh-CN/common.json     # Chinese translations
+│   └── en-US/common.json     # English translations
+├── scripts/
+│   └── generate-search-index.ts  # Prebuild search index
+└── test-utils/               # Shared test helpers
 ```
 
 ## Getting Started
@@ -68,6 +107,17 @@ src/
 git clone <repo-url> && cd blog
 pnpm install
 ```
+
+### Environment Variables
+
+Create `.env.local` for local development:
+
+```env
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+BASE_PATH=
+```
+
+See [Environment Variables](#environment-variables) for the full list.
 
 ### Development
 
@@ -117,8 +167,6 @@ console.log("Hello, World!");
 ```
 ````
 
-````
-
 ### Project Entry
 
 Create a Markdown file in `content/projects/`:
@@ -137,7 +185,7 @@ draft: false
 ---
 
 Detailed project description in Markdown.
-````
+```
 
 ### Frontmatter Reference
 
@@ -181,9 +229,9 @@ To add or modify a translation:
    - Server Components: `const t = await getTranslations({ locale, namespace: "postPage" })`
    - Client Components: `const t = useTranslations("postPage")`
 
-## Deploy to GitHub Pages
+## Deployment
 
-### Automatic (Recommended)
+### GitHub Pages (Automatic)
 
 The included GitHub Actions workflow (`deploy.yml`) handles everything:
 
@@ -198,33 +246,105 @@ The included GitHub Actions workflow (`deploy.yml`) handles everything:
 
 1. Go to repo **Settings → Pages → Source**
 2. Select **GitHub Actions** as the source
-3. Push to `main` — deployment starts automatically
-
-### Manual
-
-```bash
-pnpm build
-# Upload contents of out/ to GitHub Pages
-```
+3. Go to **Settings → Secrets and variables → Actions → Variables**
+4. Add `NEXT_PUBLIC_SITE_URL` (e.g. `https://username.github.io`)
+5. Push to `main` — deployment starts automatically
 
 ### Custom Domain
 
-Set `NEXT_PUBLIC_SITE_URL` in the workflow environment:
-
-```yaml
-- name: Build with Next.js
-  run: pnpm build
-  env:
-    BASE_PATH: ${{ steps.base-path.outputs.base_path }}
-    NEXT_PUBLIC_SITE_URL: https://your-domain.com
-```
+Set `NEXT_PUBLIC_SITE_URL` to your domain in GitHub Variables, and configure DNS accordingly.
 
 ## Environment Variables
 
-| Variable               | Required | Default                      | Description                              |
-| ---------------------- | -------- | ---------------------------- | ---------------------------------------- |
-| `BASE_PATH`            | No       | `""`                         | URL prefix for project pages (set by CI) |
-| `NEXT_PUBLIC_SITE_URL` | No       | `https://username.github.io` | Base URL for sitemap/robots              |
+| Variable                       | Required | Description                                      |
+| ------------------------------ | -------- | ------------------------------------------------ |
+| `NEXT_PUBLIC_SITE_URL`         | Yes      | Base URL for sitemap, robots, RSS, canonical, OG |
+| `BASE_PATH`                    | Yes      | URL prefix for project pages (auto-set by CI)    |
+| `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` | No       | Plausible Analytics domain (enables Plausible)   |
+| `NEXT_PUBLIC_UMAMI_ID`         | No       | Umami Analytics website ID (enables Umami)       |
+
+### NEXT_PUBLIC_SITE_URL
+
+The base URL of your site. Used to generate sitemap, robots.txt, RSS feed URLs, canonical links, and Open Graph metadata.
+
+**Local development:**
+
+```env
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+```
+
+**GitHub Pages (default address):**
+
+```
+# Settings → Secrets and variables → Actions → Variables
+Name:  NEXT_PUBLIC_SITE_URL
+Value: https://username.github.io
+```
+
+**GitHub Pages (custom domain):**
+
+```
+Name:  NEXT_PUBLIC_SITE_URL
+Value: https://your-domain.com
+```
+
+### BASE_PATH
+
+The URL prefix for GitHub Pages project sites. Automatically computed by `deploy.yml`, no manual configuration needed.
+
+- `username.github.io` → `BASE_PATH=` (empty)
+- `username.github.io/repo-name` → `BASE_PATH=/repo-name`
+
+### NEXT_PUBLIC_PLAUSIBLE_DOMAIN
+
+Enable [Plausible Analytics](https://plausible.io/) by setting this to your registered site domain. No cookie, GDPR-friendly. Requires a Plausible account (self-hosted or cloud).
+
+```
+Name:  NEXT_PUBLIC_PLAUSIBLE_DOMAIN
+Value: your-domain.com
+```
+
+Leave empty to disable.
+
+### NEXT_PUBLIC_UMAMI_ID
+
+Enable [Umami Analytics](https://umami.is/) by setting this to your website ID from the Umami dashboard. No cookie, can be self-hosted.
+
+```
+Name:  NEXT_PUBLIC_UMAMI_ID
+Value: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+```
+
+Leave empty to disable.
+
+> **Note:** `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` and `NEXT_PUBLIC_UMAMI_ID` are mutually exclusive. If both are set, only Plausible is used.
+
+### Local Development
+
+Create `.env.local` in the project root:
+
+```env
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+BASE_PATH=
+# Optional — analytics (leave empty to disable)
+NEXT_PUBLIC_PLAUSIBLE_DOMAIN=
+NEXT_PUBLIC_UMAMI_ID=
+```
+
+## Scripts
+
+| Command                | Description                                            |
+| ---------------------- | ------------------------------------------------------ |
+| `pnpm dev`             | Start development server                               |
+| `pnpm build`           | Production build to `out/`                             |
+| `pnpm preview`         | Preview production build                               |
+| `pnpm lint`            | Run ESLint                                             |
+| `pnpm lint:fix`        | Run ESLint with auto-fix                               |
+| `pnpm format:check`    | Check Prettier formatting                              |
+| `pnpm test`            | Run unit tests (421 tests)                             |
+| `pnpm test:watch`      | Run tests in watch mode                                |
+| `pnpm test:coverage`   | Run tests with coverage report                         |
+| `pnpm generate:search` | Generate search index (runs automatically on prebuild) |
 
 ## License
 

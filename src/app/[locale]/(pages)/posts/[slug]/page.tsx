@@ -2,11 +2,14 @@ import { setRequestLocale } from "next-intl/server";
 import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 
+import { CodeBlockEnhancer } from "@/components/post/code-block";
 import { PostToc } from "@/components/post/post-toc";
+import { ShareButtons } from "@/components/share/share-buttons";
 import { TagBadge } from "@/components/tag";
 import { Link } from "@/i18n/navigation";
 import { extractHeadings } from "@/lib/markdown";
 import { getPostBySlug, getAllPostsMeta, getAdjacentPosts } from "@/lib/posts";
+import { siteUrl } from "@/lib/site";
 
 import type { Metadata } from "next";
 
@@ -20,20 +23,32 @@ export function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { slug } = await params;
+  const { locale, slug } = await params;
   const post = await getPostBySlug(slug);
   if (!post) return {};
+
+  const canonical = siteUrl(`/${locale}/posts/${slug}/`);
 
   return {
     title: post.title,
     description: post.summary,
+    alternates: {
+      canonical,
+    },
     openGraph: {
       title: post.title,
       description: post.summary,
       type: "article",
       publishedTime: post.date,
       modifiedTime: post.updated,
+      url: canonical,
       tags: post.tags,
+      locale: locale.replace("-", "_"),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: post.title,
+      description: post.summary,
     },
   };
 }
@@ -49,8 +64,22 @@ export default async function PostDetailPage({ params }: Props) {
   const { prev, next } = getAdjacentPosts(slug);
   const headings = extractHeadings(post.content);
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: post.title,
+    datePublished: post.date,
+    dateModified: post.updated,
+    keywords: post.tags.join(", "),
+    url: siteUrl(`/${locale}/posts/${slug}/`),
+  };
+
   return (
     <article className="mx-auto max-w-4xl px-6 py-12">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* Header */}
       <header className="mb-8">
         <h1 className="text-3xl font-bold sm:text-4xl">{post.title}</h1>
@@ -58,6 +87,11 @@ export default async function PostDetailPage({ params }: Props) {
           <time dateTime={post.date}>
             {t("publishedAt")} {post.date}
           </time>
+          {post.readingTime > 0 && (
+            <span>
+              {post.readingTime} {t("minutes")}
+            </span>
+          )}
           {post.updated !== post.date && (
             <time dateTime={post.updated}>
               ({t("updatedAt")} {post.updated})
@@ -75,19 +109,32 @@ export default async function PostDetailPage({ params }: Props) {
 
       {/* Content + TOC */}
       <div className="grid gap-8 lg:grid-cols-[1fr_200px]">
-        <div
-          className="prose"
-          dangerouslySetInnerHTML={{ __html: post.content }}
-        />
-        <aside className="hidden lg:block">
-          <div className="sticky top-20">
+        <CodeBlockEnhancer>
+          <div
+            className="prose"
+            dangerouslySetInnerHTML={{ __html: post.content }}
+          />
+        </CodeBlockEnhancer>
+        <aside>
+          <div className="lg:sticky lg:top-20">
             <PostToc headings={headings} />
           </div>
         </aside>
       </div>
 
+      {/* Share */}
+      <div className="flex items-center justify-end border-t border-border pt-6">
+        <ShareButtons
+          url={siteUrl(`/${locale}/posts/${slug}/`)}
+          title={post.title}
+        />
+      </div>
+
       {/* Prev/Next Navigation */}
-      <nav className="mt-12 flex items-center justify-between border-t border-border pt-8">
+      <nav
+        aria-label="Post navigation"
+        className="mt-12 flex items-center justify-between border-t border-border pt-8"
+      >
         {prev ? (
           <Link
             href={`/posts/${prev.slug}/`}

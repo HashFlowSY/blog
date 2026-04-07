@@ -1,16 +1,32 @@
 import { setRequestLocale } from "next-intl/server";
 import { getTranslations } from "next-intl/server";
 
+import { siteUrl } from "@/lib/site";
+
+import type { Metadata } from "next";
+
 interface Props {
   params: Promise<{ locale: string }>;
 }
 
-export async function generateMetadata({ params }: Props) {
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "aboutPage" });
   return {
     title: t("title"),
     description: t("subtitle"),
+    openGraph: {
+      title: t("title"),
+      description: t("subtitle"),
+      type: "profile",
+      url: siteUrl(`/${locale}/about/`),
+      locale: locale.replace("-", "_"),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: t("title"),
+      description: t("subtitle"),
+    },
   };
 }
 
@@ -55,6 +71,11 @@ export default async function AboutPage({ params }: Props) {
                   <div
                     className="h-full rounded-full bg-primary transition-all"
                     style={{ width: `${skill.level}%` }}
+                    role="progressbar"
+                    aria-valuenow={skill.level}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-label={`${skill.name}: ${skill.level}%`}
                   />
                 </div>
               </div>

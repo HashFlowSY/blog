@@ -1,3 +1,12 @@
+vi.stubGlobal(
+  "IntersectionObserver",
+  class MockIntersectionObserver {
+    observe = vi.fn();
+    disconnect = vi.fn();
+    unobserve = vi.fn();
+  },
+);
+
 vi.mock("./project-card", () => ({
   ProjectCard: ({
     project,

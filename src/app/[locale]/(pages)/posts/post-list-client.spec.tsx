@@ -1,3 +1,27 @@
+vi.stubGlobal(
+  "IntersectionObserver",
+  class MockIntersectionObserver {
+    observe = vi.fn();
+    disconnect = vi.fn();
+    unobserve = vi.fn();
+  },
+);
+
+vi.mock("@/components/search", () => ({
+  SearchBar: () => createElement("div", { "data-testid": "search-bar" }),
+}));
+
+vi.mock("@/hooks/use-search", () => ({
+  useSearch: () => ({
+    query: "",
+    setQuery: () => {},
+    results: [],
+    isIndexLoading: false,
+    error: null,
+    clear: () => {},
+  }),
+}));
+
 vi.mock("@/components/tag", () => ({
   TagFilter: ({
     tags,
@@ -63,6 +87,7 @@ const posts: PostMeta[] = [
     tags: ["react", "typescript"],
     summary: "Learn React",
     cover: null,
+    readingTime: 0,
   },
   {
     slug: "post-2",
@@ -72,6 +97,7 @@ const posts: PostMeta[] = [
     tags: ["rust"],
     summary: "Learn Rust",
     cover: null,
+    readingTime: 0,
   },
   {
     slug: "post-3",
@@ -81,6 +107,7 @@ const posts: PostMeta[] = [
     tags: ["typescript"],
     summary: "TS tips",
     cover: null,
+    readingTime: 0,
   },
 ];
 
@@ -90,6 +117,7 @@ const defaultProps = {
   posts,
   tags,
   emptyText: "No posts found",
+  locale: "zh-CN",
 };
 
 describe("PostListClient", () => {
@@ -97,8 +125,9 @@ describe("PostListClient", () => {
     vi.clearAllMocks();
   });
 
-  it("renders TagFilter with correct props", () => {
+  it("renders SearchBar and TagFilter with correct props", () => {
     render(<PostListClient {...defaultProps} />);
+    expect(screen.getByTestId("search-bar")).toBeInTheDocument();
     expect(screen.getByText("all")).toBeInTheDocument();
     expect(screen.getByText("react")).toBeInTheDocument();
   });

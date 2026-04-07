@@ -37,12 +37,15 @@ export default defineConfig({
         "src/app/global-error.tsx",
         "src/app/robots.ts",
         "src/app/sitemap.ts",
+        "src/app/**/route.ts",
         // i18n 配置（通过集成测试验证）
         "src/i18n/routing.ts",
         "src/i18n/request.ts",
         "src/i18n/navigation.ts",
         // 第三方 shadcn/ui 组件（无自定义逻辑）
         "src/components/ui/**",
+        // 构建脚本
+        "src/scripts/**",
         // 测试文件自身
         "src/**/*.spec.{ts,tsx}",
         "src/**/*.test-utils.{ts,tsx}",

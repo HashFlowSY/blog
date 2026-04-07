@@ -11,9 +11,9 @@ export default function GlobalError({
       <body className="flex min-h-screen items-center justify-center bg-background px-6">
         <title>Error</title>
         <div className="text-center max-w-md">
-          <h2 className="text-2xl font-bold tracking-tight">
+          <h1 className="text-2xl font-bold tracking-tight">
             Something went wrong
-          </h2>
+          </h1>
           <p className="mt-3 text-sm text-muted-foreground">
             An unexpected error occurred. Please try again.
           </p>

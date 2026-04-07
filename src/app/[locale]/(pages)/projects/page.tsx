@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 
 import { ProjectList } from "@/components/project/project-list";
 import { getAllProjectsMeta } from "@/lib/projects";
+import { siteUrl } from "@/lib/site";
 
 import type { Metadata } from "next";
 
@@ -16,6 +17,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: t("title"),
     description: t("allProjects"),
+    openGraph: {
+      title: t("title"),
+      description: t("allProjects"),
+      type: "website",
+      url: siteUrl(`/${locale}/projects/`),
+      locale: locale.replace("-", "_"),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: t("title"),
+      description: t("allProjects"),
+    },
   };
 }
 

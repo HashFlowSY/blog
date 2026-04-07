@@ -10,6 +10,8 @@
     "about": "关于"
   },
   "hero": {
+    "siteName": "博客",
+    "title": "博客",
     "greeting": "你好，我是",
     "description": "全栈开发者，热衷 AI 开发",
     "cta": "查看文章",

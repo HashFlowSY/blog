@@ -31,6 +31,7 @@ const basePost: PostMeta = {
   tags: ["typescript", "react"],
   summary: "A test summary",
   cover: null,
+  readingTime: 0,
 };
 
 describe("PostCard", () => {
@@ -93,5 +94,19 @@ describe("PostCard", () => {
     const updated = { ...basePost, updated: "2026-02-01" };
     render(<PostCard post={updated} />);
     expect(screen.queryByText("2026-02-01")).not.toBeInTheDocument();
+  });
+});
+
+describe("PostCard - A11y (H6: Heading hierarchy)", () => {
+  it("uses h2 element for post title instead of h3", () => {
+    render(<PostCard post={basePost} />);
+    const heading = screen.getByRole("heading", { level: 2 });
+    expect(heading).toBeInTheDocument();
+    expect(heading).toHaveTextContent("Test Post");
+  });
+
+  it("does not render h3 element", () => {
+    render(<PostCard post={basePost} />);
+    expect(screen.queryByRole("heading", { level: 3 })).not.toBeInTheDocument();
   });
 });

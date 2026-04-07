@@ -5,6 +5,9 @@ import rehypeStringify from "rehype-stringify";
 import { remark } from "remark";
 import remarkRehype from "remark-rehype";
 
+import rehypeCodeBlock from "./rehype-code-block";
+import remarkCodeMeta from "./remark-code-meta";
+
 /** Represents a heading extracted from rendered HTML, used to build a table of contents */
 export interface TocItem {
   level: number;
@@ -18,9 +21,15 @@ const sanitizeSchema: typeof defaultSchema = {
   ...defaultSchema,
   attributes: {
     ...baseAttrs,
-    code: [...(baseAttrs["code"] || []), ["className"]],
-    span: [...(baseAttrs["span"] || []), ["className"]],
+    code: [...(baseAttrs["code"] || []), ["className"], ["data-meta"]],
+    span: [
+      ...(baseAttrs["span"] || []),
+      ["className"],
+      ["data-line"],
+      ["data-highlighted"],
+    ],
     pre: [...(baseAttrs["pre"] || []), ["className"]],
+    div: [...(baseAttrs["div"] || []), ["className"], ["data-language"]],
   },
 };
 
@@ -28,9 +37,11 @@ const sanitizeSchema: typeof defaultSchema = {
 export async function markdownToHtml(markdown: string, filename?: string) {
   try {
     const result = await remark()
+      .use(remarkCodeMeta)
       .use(remarkRehype)
       .use(rehypeSlug)
       .use(rehypeHighlight)
+      .use(rehypeCodeBlock)
       .use(rehypeSanitize, sanitizeSchema)
       .use(rehypeStringify)
       .process(markdown);

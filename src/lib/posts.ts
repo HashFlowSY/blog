@@ -1,8 +1,10 @@
+import fs from "fs";
 import path from "path";
 
 import { z } from "zod";
 
 import { createContentLoader } from "./content-loader";
+import { estimateReadingTime } from "./reading-time";
 
 // ---------------------------------------------------------------------------
 // Schema
@@ -36,6 +38,7 @@ export interface Post {
   summary: string;
   cover: string | null;
   content: string;
+  readingTime: number;
 }
 
 export interface PostMeta {
@@ -46,6 +49,7 @@ export interface PostMeta {
   tags: string[];
   summary: string;
   cover: string | null;
+  readingTime: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -68,6 +72,7 @@ const postsLoader = createContentLoader({
       tags: data.tags,
       summary: data.summary,
       cover: data.cover,
+      readingTime: 0,
     };
   },
   toFull(data: PostFrontmatter, slug: string, html: string): Post {
@@ -80,6 +85,7 @@ const postsLoader = createContentLoader({
       summary: data.summary,
       cover: data.cover,
       content: html,
+      readingTime: 0,
     };
   },
 });
@@ -88,9 +94,23 @@ const postsLoader = createContentLoader({
 // Public API
 // ---------------------------------------------------------------------------
 
-/** 获取所有已发布文章的元信息（不含 content） */
+/** 获取所有已发布文章的元信息（不含 content），包含阅读时间估算 */
 export function getAllPostsMeta(): PostMeta[] {
-  return postsLoader.getAllMeta();
+  const postsDir = path.join(process.cwd(), "content/posts");
+  const metas = postsLoader.getAllMeta();
+
+  // Enrich with reading time by scanning raw markdown files
+  return metas.map((meta) => {
+    const filePath = path.join(postsDir, `${meta.slug}.md`);
+    try {
+      const raw = fs.readFileSync(filePath, "utf-8");
+      // Strip frontmatter to get content-only word count
+      const content = raw.replace(/^---[\s\S]*?---/, "");
+      return { ...meta, readingTime: estimateReadingTime(content) };
+    } catch {
+      return meta;
+    }
+  });
 }
 
 /** 获取所有已发布文章（含 content） */
@@ -100,7 +120,17 @@ export async function getAllPosts(): Promise<Post[]> {
 
 /** 根据 slug 获取单篇文章 */
 export async function getPostBySlug(slug: string): Promise<Post | null> {
-  return postsLoader.getBySlug(slug);
+  const post = await postsLoader.getBySlug(slug);
+  if (!post) return null;
+
+  const filePath = path.join(POSTS_DIR, `${slug}.md`);
+  try {
+    const raw = fs.readFileSync(filePath, "utf-8");
+    const content = raw.replace(/^---[\s\S]*?---/, "");
+    return { ...post, readingTime: estimateReadingTime(content) };
+  } catch {
+    return post;
+  }
 }
 
 /** 获取所有标签 */
