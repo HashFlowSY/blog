@@ -20,12 +20,11 @@ describe("siteUrl", () => {
     expect(siteUrl("/about/")).toBe("https://example.com/about/");
   });
 
-  it("defaults to https://shangyang.github.io when NEXT_PUBLIC_SITE_URL is not set", async () => {
+  it("returns undefined when NEXT_PUBLIC_SITE_URL is not set", async () => {
     delete process.env["NEXT_PUBLIC_SITE_URL"];
     process.env["BASE_PATH"] = "";
-    const { siteUrl, BASE_URL } = await import("./site");
-    expect(BASE_URL).toBe("https://shangyang.github.io");
-    expect(siteUrl("/")).toBe("https://shangyang.github.io/");
+    const { BASE_URL } = await import("./site");
+    expect(BASE_URL).toBeUndefined();
   });
 
   it("appends BASE_PATH when set", async () => {
@@ -58,11 +57,10 @@ describe("siteUrl", () => {
     expect(siteUrl("/about/")).toBe("https://example.com/about/");
   });
 
-  it("defaults BASE_PATH to empty string when not set", async () => {
+  it("returns undefined when BASE_PATH is not set", async () => {
     process.env["NEXT_PUBLIC_SITE_URL"] = "https://example.com";
     delete process.env["BASE_PATH"];
-    const { siteUrl, BASE_PATH } = await import("./site");
-    expect(BASE_PATH).toBe("");
-    expect(siteUrl("/test/")).toBe("https://example.com/test/");
+    const { BASE_PATH } = await import("./site");
+    expect(BASE_PATH).toBeUndefined();
   });
 });
