@@ -253,6 +253,19 @@ describe("posts 数据层", () => {
 
       expect(posts[0]!.updated).toBe("2026-03-01");
     });
+
+    it("readingTime is computed from raw content (no double I/O)", () => {
+      mockExistsSync.mockReturnValue(true);
+      mockReaddirSync.mockReturnValue(["test-post.md"]);
+      mockReadFileSync.mockReturnValueOnce(VALID_POST_MD);
+
+      const posts = getAllPostsMeta();
+
+      // Only one readFileSync call (no enrichment re-read)
+      expect(mockReadFileSync).toHaveBeenCalledTimes(1);
+      // Content has words, so readingTime should be > 0
+      expect(posts[0]!.readingTime).toBeGreaterThan(0);
+    });
   });
 
   // ==========================================================
@@ -311,6 +324,16 @@ describe("posts 数据层", () => {
       expect(posts[0]!.date).toBe("2026-02-20");
       expect(posts[1]!.date).toBe("2026-01-15");
     });
+
+    it("readingTime is computed from raw content", async () => {
+      mockExistsSync.mockReturnValue(true);
+      mockReaddirSync.mockReturnValue(["test-post.md"]);
+      mockReadFileSync.mockReturnValueOnce(VALID_POST_MD);
+
+      const posts = await getAllPosts();
+
+      expect(posts[0]!.readingTime).toBeGreaterThan(0);
+    });
   });
 
   // ==========================================================
@@ -366,6 +389,18 @@ describe("posts 数据层", () => {
 
       expect(post).not.toBeNull();
       expect(post!.title).toBe("No Slug Post");
+    });
+
+    it("readingTime is computed from raw content (no double I/O)", async () => {
+      mockExistsSync.mockReturnValue(true);
+      mockReaddirSync.mockReturnValue(["test-post.md"]);
+      mockReadFileSync.mockReturnValueOnce(VALID_POST_MD);
+
+      const post = await getPostBySlug("test-post");
+
+      // Only one readFileSync call (no enrichment re-read)
+      expect(mockReadFileSync).toHaveBeenCalledTimes(1);
+      expect(post!.readingTime).toBeGreaterThan(0);
     });
   });
 

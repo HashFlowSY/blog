@@ -1,16 +1,22 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { useEffect } from "react";
 
 import { Link } from "@/i18n/navigation";
 
 export default function Error({
+  error,
   unstable_retry: retry,
 }: {
   error: Error & { digest?: string };
   unstable_retry: () => void;
 }) {
   const t = useTranslations("error");
+
+  useEffect(() => {
+    console.error(error);
+  }, [error]);
 
   return (
     <div className="flex min-h-[60vh] items-center justify-center px-6">

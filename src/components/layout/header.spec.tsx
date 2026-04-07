@@ -242,9 +242,9 @@ describe("Header - A11y (M3+M4: Nav aria-label)", () => {
     expect(navs[0]).toHaveAttribute("aria-label", "Main navigation");
   });
 
-  it("mobile nav has aria-label='Main navigation'", () => {
+  it("mobile nav has aria-label='Mobile navigation'", () => {
     render(<Header />);
     const mobileNav = document.getElementById("mobile-nav");
-    expect(mobileNav).toHaveAttribute("aria-label", "Main navigation");
+    expect(mobileNav).toHaveAttribute("aria-label", "Mobile navigation");
   });
 });

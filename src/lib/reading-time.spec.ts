@@ -23,13 +23,29 @@ describe("estimateReadingTime", () => {
     expect(estimateReadingTime(text)).toBe(2);
   });
 
-  it("handles CJK characters (each counts as 2 words equivalent)", () => {
-    // CJK reading speed is slower, ~500 chars/min
-    // Our formula: split by whitespace, CJK chars counted individually
-    const text = "你好世界"; // 4 CJK characters
-    // CJK chars are ~1 word each in our simplified model
-    const result = estimateReadingTime(text);
-    expect(result).toBeGreaterThan(0);
+  it("counts CJK characters individually at a slower rate", () => {
+    // 4 CJK chars → 4/500 = 0.008 min → ceil → 1 min
+    const text = "你好世界";
+    expect(estimateReadingTime(text)).toBe(1);
+  });
+
+  it("estimates CJK correctly for longer text", () => {
+    // 500 CJK chars → 500/500 = 1 min
+    const text = "你".repeat(500);
+    expect(estimateReadingTime(text)).toBe(1);
+  });
+
+  it("estimates CJK correctly for 2 minutes", () => {
+    // 1000 CJK chars → 1000/500 = 2 min
+    const text = "你".repeat(1000);
+    expect(estimateReadingTime(text)).toBe(2);
+  });
+
+  it("handles mixed CJK and English text", () => {
+    // 100 English words + 100 CJK chars
+    // = 100/200 + 100/500 = 0.5 + 0.2 = 0.7 → ceil → 1 min
+    const text = "word ".repeat(100) + "你".repeat(100);
+    expect(estimateReadingTime(text)).toBe(1);
   });
 
   it("counts words separated by whitespace", () => {
@@ -50,5 +66,17 @@ describe("estimateReadingTime", () => {
 
   it("returns 0 for whitespace-only input", () => {
     expect(estimateReadingTime("   ")).toBe(0);
+  });
+
+  it("counts Japanese hiragana and katakana as CJK", () => {
+    // 600 Japanese chars → 600/500 = 1.2 → ceil → 2 min
+    const text = "あ".repeat(600);
+    expect(estimateReadingTime(text)).toBe(2);
+  });
+
+  it("counts Korean hangul as CJK", () => {
+    // 600 Korean chars → 600/500 = 1.2 → ceil → 2 min
+    const text = "한".repeat(600);
+    expect(estimateReadingTime(text)).toBe(2);
   });
 });

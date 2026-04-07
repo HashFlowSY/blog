@@ -25,10 +25,15 @@ export interface ContentLoaderConfig<TSchema extends z.ZodType, TMeta, TFull> {
   sortField?: string;
   /** Label used in console warnings (e.g. "[posts]"). */
   logLabel?: string;
-  /** Map validated frontmatter + resolved slug to the meta (list) shape. */
-  toMeta: (data: z.infer<TSchema>, slug: string) => TMeta;
-  /** Map validated frontmatter + resolved slug + rendered HTML to the full shape. */
-  toFull: (data: z.infer<TSchema>, slug: string, html: string) => TFull;
+  /** Map validated frontmatter + resolved slug + raw markdown to the meta (list) shape. */
+  toMeta: (data: z.infer<TSchema>, slug: string, rawContent: string) => TMeta;
+  /** Map validated frontmatter + resolved slug + rendered HTML + raw markdown to the full shape. */
+  toFull: (
+    data: z.infer<TSchema>,
+    slug: string,
+    html: string,
+    rawContent: string,
+  ) => TFull;
 }
 
 /** Public API returned by createContentLoader. */
@@ -150,7 +155,7 @@ export function createContentLoader<
       if (isDraft(parsed.data)) continue;
 
       const slug = resolveSlug(file, parsed.data);
-      items.push(toMeta(parsed.data, slug));
+      items.push(toMeta(parsed.data, slug, parsed.content));
     }
 
     return items.sort((a, b) => {
@@ -172,7 +177,7 @@ export function createContentLoader<
 
         const slug = resolveSlug(file, parsed.data);
         const html = await markdownToHtml(parsed.content, file);
-        return toFull(parsed.data, slug, html);
+        return toFull(parsed.data, slug, html, parsed.content);
       }),
     );
 
@@ -199,7 +204,7 @@ export function createContentLoader<
       if (isDraft(parsed.data)) return null;
 
       const html = await markdownToHtml(parsed.content, file);
-      return toFull(parsed.data, resolvedSlug, html);
+      return toFull(parsed.data, resolvedSlug, html, parsed.content);
     }
 
     return null;

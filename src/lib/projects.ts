@@ -65,7 +65,11 @@ const projectsLoader = createContentLoader({
   draftField: "draft",
   sortField: "date",
   logLabel: "[projects]",
-  toMeta(data: ProjectFrontmatter, slug: string): ProjectMeta {
+  toMeta(
+    data: ProjectFrontmatter,
+    slug: string,
+    _rawContent: string,
+  ): ProjectMeta {
     return {
       slug,
       title: data.title,
@@ -78,7 +82,12 @@ const projectsLoader = createContentLoader({
       featured: data.featured,
     };
   },
-  toFull(data: ProjectFrontmatter, slug: string, html: string): Project {
+  toFull(
+    data: ProjectFrontmatter,
+    slug: string,
+    html: string,
+    _rawContent: string,
+  ): Project {
     return {
       slug,
       title: data.title,

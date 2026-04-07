@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { FadeIn } from "@/components/motion/fade-in";
 import { PostCard } from "@/components/post/post-card";
@@ -41,8 +41,8 @@ export function PostListClient({
     return filtered;
   }, [posts, activeTag, searchSlugs]);
 
-  const handleSearchResults = useMemo(
-    () => (results: Array<{ slug: string }>) => {
+  const handleSearchResults = useCallback(
+    (results: Array<{ slug: string }>) => {
       setSearchSlugs(
         results.length > 0 ? new Set(results.map((r) => r.slug)) : null,
       );

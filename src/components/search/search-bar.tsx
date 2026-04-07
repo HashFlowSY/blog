@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 
 import { useSearch } from "@/hooks/use-search";
 import { Link } from "@/i18n/navigation";
@@ -29,7 +29,9 @@ export function SearchBar({
     onResultsChange?.(results);
   }, [results, onResultsChange]);
   const [isOpen, setIsOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
+  const listboxRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -46,11 +48,46 @@ export function SearchBar({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (!isOpen || results.length === 0) return;
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setActiveIndex((prev) => {
+          const next = prev + 1;
+          return next >= results.length ? 0 : next;
+        });
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setActiveIndex((prev) => {
+          const next = prev - 1;
+          return next < 0 ? results.length - 1 : next;
+        });
+      } else if (e.key === "Enter") {
+        setActiveIndex((prev) => {
+          if (prev < 0 || prev >= results.length) return prev;
+          e.preventDefault();
+          const activeLink =
+            listboxRef.current?.querySelector<HTMLAnchorElement>(
+              `[data-option-index="${prev}"] a`,
+            );
+          if (activeLink) {
+            activeLink.click();
+          }
+          return prev;
+        });
+      }
+    },
+    [isOpen, results.length],
+  );
+
   // Close on Escape
   useEffect(() => {
     function handleEscape(e: KeyboardEvent) {
       if (e.key === "Escape") {
         setIsOpen(false);
+        setActiveIndex(-1);
         containerRef.current?.querySelector("input")?.blur();
       }
     }
@@ -61,6 +98,10 @@ export function SearchBar({
 
   const hasResults = results.length > 0;
   const showNoResults = query.trim() !== "" && !isIndexLoading && !hasResults;
+  const activeId =
+    activeIndex >= 0 && activeIndex < results.length
+      ? `search-option-${activeIndex}`
+      : undefined;
 
   return (
     <div ref={containerRef} className={`relative ${className ?? ""}`}>
@@ -84,6 +125,7 @@ export function SearchBar({
           role="combobox"
           aria-expanded={isOpen && (hasResults || showNoResults)}
           aria-controls="search-results"
+          aria-activedescendant={activeId}
           aria-label="Search posts"
           value={query}
           onChange={(e) => {
@@ -93,6 +135,7 @@ export function SearchBar({
           onFocus={() => {
             if (query.trim()) setIsOpen(true);
           }}
+          onKeyDown={handleKeyDown}
           placeholder={placeholder}
           className="w-full rounded-lg border border-border bg-background py-2 pl-10 pr-10 text-sm placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20"
         />
@@ -103,6 +146,7 @@ export function SearchBar({
             onClick={() => {
               clear();
               setIsOpen(false);
+              setActiveIndex(-1);
             }}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
           >
@@ -128,6 +172,7 @@ export function SearchBar({
         <div
           id="search-results"
           role="listbox"
+          ref={listboxRef}
           className="absolute top-full z-50 mt-1 w-full rounded-lg border border-border bg-popover p-2 shadow-md"
         >
           {isIndexLoading && (
@@ -138,12 +183,24 @@ export function SearchBar({
 
           {hasResults && (
             <ul className="max-h-80 overflow-y-auto">
-              {results.map((result: SearchResult) => (
-                <li key={result.slug} role="option" aria-selected={false}>
+              {results.map((result: SearchResult, index: number) => (
+                <li
+                  key={result.slug}
+                  id={`search-option-${index}`}
+                  role="option"
+                  aria-selected={index === activeIndex}
+                  data-option-index={index}
+                  className={
+                    index === activeIndex ? "rounded-md bg-accent" : ""
+                  }
+                >
                   <Link
                     href={`/posts/${result.slug}/`}
-                    className="block rounded-md px-3 py-2 hover:bg-accent transition-colors"
-                    onClick={() => setIsOpen(false)}
+                    className="block rounded-md px-3 py-2 transition-colors"
+                    onClick={() => {
+                      setIsOpen(false);
+                      setActiveIndex(-1);
+                    }}
                   >
                     <div className="font-medium text-sm">{result.title}</div>
                     <div className="mt-0.5 text-xs text-muted-foreground line-clamp-1">

@@ -1,4 +1,3 @@
-import fs from "fs";
 import path from "path";
 
 import { z } from "zod";
@@ -63,7 +62,7 @@ const postsLoader = createContentLoader({
   draftField: "draft",
   sortField: "date",
   logLabel: "[posts]",
-  toMeta(data: PostFrontmatter, slug: string): PostMeta {
+  toMeta(data: PostFrontmatter, slug: string, rawContent: string): PostMeta {
     return {
       slug,
       title: data.title,
@@ -72,10 +71,15 @@ const postsLoader = createContentLoader({
       tags: data.tags,
       summary: data.summary,
       cover: data.cover,
-      readingTime: 0,
+      readingTime: estimateReadingTime(rawContent),
     };
   },
-  toFull(data: PostFrontmatter, slug: string, html: string): Post {
+  toFull(
+    data: PostFrontmatter,
+    slug: string,
+    html: string,
+    rawContent: string,
+  ): Post {
     return {
       slug,
       title: data.title,
@@ -85,7 +89,7 @@ const postsLoader = createContentLoader({
       summary: data.summary,
       cover: data.cover,
       content: html,
-      readingTime: 0,
+      readingTime: estimateReadingTime(rawContent),
     };
   },
 });
@@ -96,21 +100,7 @@ const postsLoader = createContentLoader({
 
 /** 获取所有已发布文章的元信息（不含 content），包含阅读时间估算 */
 export function getAllPostsMeta(): PostMeta[] {
-  const postsDir = path.join(process.cwd(), "content/posts");
-  const metas = postsLoader.getAllMeta();
-
-  // Enrich with reading time by scanning raw markdown files
-  return metas.map((meta) => {
-    const filePath = path.join(postsDir, `${meta.slug}.md`);
-    try {
-      const raw = fs.readFileSync(filePath, "utf-8");
-      // Strip frontmatter to get content-only word count
-      const content = raw.replace(/^---[\s\S]*?---/, "");
-      return { ...meta, readingTime: estimateReadingTime(content) };
-    } catch {
-      return meta;
-    }
-  });
+  return postsLoader.getAllMeta();
 }
 
 /** 获取所有已发布文章（含 content） */
@@ -120,17 +110,7 @@ export async function getAllPosts(): Promise<Post[]> {
 
 /** 根据 slug 获取单篇文章 */
 export async function getPostBySlug(slug: string): Promise<Post | null> {
-  const post = await postsLoader.getBySlug(slug);
-  if (!post) return null;
-
-  const filePath = path.join(POSTS_DIR, `${slug}.md`);
-  try {
-    const raw = fs.readFileSync(filePath, "utf-8");
-    const content = raw.replace(/^---[\s\S]*?---/, "");
-    return { ...post, readingTime: estimateReadingTime(content) };
-  } catch {
-    return post;
-  }
+  return postsLoader.getBySlug(slug);
 }
 
 /** 获取所有标签 */

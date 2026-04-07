@@ -136,7 +136,7 @@ export function Header() {
       {/* Mobile nav */}
       <nav
         id="mobile-nav"
-        aria-label="Main navigation"
+        aria-label="Mobile navigation"
         aria-hidden={!mobileOpen}
         ref={mobileNavRef}
         className={cn(

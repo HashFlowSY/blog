@@ -122,6 +122,7 @@ describe("SearchBar", () => {
     const input = screen.getByPlaceholderText("Search...");
     expect(input).toHaveAttribute("role", "combobox");
     expect(input).toHaveAttribute("aria-expanded", "false");
+    expect(input).not.toHaveAttribute("aria-activedescendant");
   });
 
   it("shows tag badges for result tags", () => {
@@ -241,5 +242,104 @@ describe("SearchBar", () => {
     fireEvent.click(resultLink);
 
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+  });
+
+  // ==========================================================
+  // Keyboard navigation tests
+  // ==========================================================
+
+  describe("keyboard navigation", () => {
+    it("ArrowDown sets aria-activedescendant and aria-selected", () => {
+      render(<SearchBar locale="zh-CN" placeholder="Search..." />);
+
+      const input = screen.getByPlaceholderText("Search...");
+      fireEvent.change(input, { target: { value: "hello" } });
+
+      // ArrowDown once — should highlight first option
+      fireEvent.keyDown(input, { key: "ArrowDown" });
+
+      expect(input).toHaveAttribute("aria-activedescendant", "search-option-0");
+
+      const options = screen.getAllByRole("option");
+      expect(options[0]).toHaveAttribute("aria-selected", "true");
+      expect(options[1]).toHaveAttribute("aria-selected", "false");
+    });
+
+    it("ArrowDown wraps around to first option", () => {
+      render(<SearchBar locale="zh-CN" placeholder="Search..." />);
+
+      const input = screen.getByPlaceholderText("Search...");
+      fireEvent.change(input, { target: { value: "hello" } });
+
+      // Move to last option
+      fireEvent.keyDown(input, { key: "ArrowDown" });
+      fireEvent.keyDown(input, { key: "ArrowDown" });
+
+      expect(input).toHaveAttribute("aria-activedescendant", "search-option-1");
+
+      // ArrowDown again — wraps to first
+      fireEvent.keyDown(input, { key: "ArrowDown" });
+
+      expect(input).toHaveAttribute("aria-activedescendant", "search-option-0");
+    });
+
+    it("ArrowUp wraps around to last option", () => {
+      render(<SearchBar locale="zh-CN" placeholder="Search..." />);
+
+      const input = screen.getByPlaceholderText("Search...");
+      fireEvent.change(input, { target: { value: "hello" } });
+
+      // ArrowUp from no selection — wraps to last
+      fireEvent.keyDown(input, { key: "ArrowUp" });
+
+      expect(input).toHaveAttribute("aria-activedescendant", "search-option-1");
+    });
+
+    it("Enter on active option clicks the link", () => {
+      render(<SearchBar locale="zh-CN" placeholder="Search..." />);
+
+      const input = screen.getByPlaceholderText("Search...");
+      fireEvent.change(input, { target: { value: "hello" } });
+
+      // Highlight first option
+      fireEvent.keyDown(input, { key: "ArrowDown" });
+
+      // Enter should navigate (click the link)
+      fireEvent.keyDown(input, { key: "Enter" });
+
+      // The dropdown should close after navigation
+      expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+    });
+
+    it("Enter with no active option does nothing special", () => {
+      render(<SearchBar locale="zh-CN" placeholder="Search..." />);
+
+      const input = screen.getByPlaceholderText("Search...");
+      fireEvent.change(input, { target: { value: "hello" } });
+
+      // Enter without ArrowDown — no active option
+      fireEvent.keyDown(input, { key: "Enter" });
+
+      // Dropdown should still be open
+      expect(screen.getByRole("listbox")).toBeInTheDocument();
+    });
+
+    it("active index becomes invalid when results shrink", () => {
+      render(<SearchBar locale="zh-CN" placeholder="Search..." />);
+
+      const input = screen.getByPlaceholderText("Search...");
+      fireEvent.change(input, { target: { value: "hello" } });
+
+      // Highlight second option
+      fireEvent.keyDown(input, { key: "ArrowDown" });
+      fireEvent.keyDown(input, { key: "ArrowDown" });
+      expect(input).toHaveAttribute("aria-activedescendant", "search-option-1");
+
+      // Change query to something with no results — activeIndex out of range
+      fireEvent.change(input, { target: { value: "xyz" } });
+
+      // activeId should be undefined since activeIndex >= results.length
+      expect(input).not.toHaveAttribute("aria-activedescendant");
+    });
   });
 });
