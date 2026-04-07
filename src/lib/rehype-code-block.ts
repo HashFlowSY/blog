@@ -159,67 +159,56 @@ function buildLineSpans(
   highlightedLines: Set<number>,
 ): HastElement[] {
   const sourceChildren = codeEl.children ?? [];
+
+  type LineItem =
+    | { kind: "text"; value: string }
+    | { kind: "element"; node: HastElement };
+  const lineItems: LineItem[][] = Array.from({ length: totalLines }, () => []);
+
+  // Track current line via newlines encountered in text nodes
+  let currentLine = 0;
+
+  for (const child of sourceChildren) {
+    if (typeof child === "object" && child?.type === "text") {
+      const parts = child.value.split("\n");
+      for (let i = 0; i < parts.length; i++) {
+        const part = parts[i] ?? "";
+        // Skip empty trailing text after last newline
+        if (i === parts.length - 1 && part === "" && i > 0) break;
+        const lineIdx = Math.min(currentLine, totalLines - 1);
+        lineItems[lineIdx]!.push({ kind: "text", value: part });
+        if (i < parts.length - 1) {
+          currentLine++;
+        }
+      }
+    } else if (typeof child === "object" && child?.type === "element") {
+      const lineIdx = Math.min(currentLine, totalLines - 1);
+      lineItems[lineIdx]!.push({ kind: "element", node: child });
+    }
+  }
+
   const result: HastElement[] = [];
 
-  let currentLine = 1;
-  let currentText = "";
-  let currentElements: HastElement[] = [];
-
-  function flushLine() {
-    if (currentLine > totalLines) return;
-    const props: Record<string, unknown> = { "data-line": String(currentLine) };
-    if (highlightedLines.has(currentLine)) {
+  for (let lineIdx = 0; lineIdx < totalLines; lineIdx++) {
+    const props: Record<string, unknown> = { "data-line": String(lineIdx + 1) };
+    if (highlightedLines.has(lineIdx + 1)) {
       props["data-highlighted"] = "true";
     }
 
     const children: HastElement[] = [];
-    if (currentText) {
-      children.push({ type: "text", value: currentText });
+    for (const item of lineItems[lineIdx]!) {
+      if (item.kind === "text") {
+        children.push({ type: "text", value: item.value });
+      } else {
+        children.push(item.node);
+      }
     }
-    children.push(...currentElements);
 
     result.push({
       type: "element",
       tagName: "span",
       properties: props,
       children,
-    });
-    currentLine++;
-    currentText = "";
-    currentElements = [];
-  }
-
-  for (const child of sourceChildren) {
-    if (typeof child === "object" && child?.type === "text") {
-      const parts = child.value.split("\n");
-      for (let i = 0; i < parts.length; i++) {
-        if (i > 0) flushLine();
-        if (i < parts.length - 1 || parts[i] !== "") {
-          currentText += parts[i] ?? "";
-        }
-      }
-    } else if (typeof child === "object" && child?.type === "element") {
-      currentElements.push(child);
-    }
-  }
-
-  if (currentText || currentElements.length > 0) {
-    flushLine();
-  }
-
-  // Pad missing lines
-  while (result.length < totalLines) {
-    const props: Record<string, unknown> = {
-      "data-line": String(result.length + 1),
-    };
-    if (highlightedLines.has(result.length + 1)) {
-      props["data-highlighted"] = "true";
-    }
-    result.push({
-      type: "element",
-      tagName: "span",
-      properties: props,
-      children: [{ type: "text", value: "" }],
     });
   }
 
