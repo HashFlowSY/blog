@@ -23,8 +23,17 @@ describe("siteUrl", () => {
   it("returns undefined when NEXT_PUBLIC_SITE_URL is not set", async () => {
     delete process.env["NEXT_PUBLIC_SITE_URL"];
     process.env["BASE_PATH"] = "";
-    const { BASE_URL } = await import("./site");
+    const { BASE_URL, siteUrl } = await import("./site");
     expect(BASE_URL).toBeUndefined();
+    // siteUrl returns path as-is when BASE_URL is missing
+    expect(siteUrl("/about/")).toBe("/about/");
+  });
+
+  it("ignores BASE_PATH when BASE_URL is not set", async () => {
+    delete process.env["NEXT_PUBLIC_SITE_URL"];
+    process.env["BASE_PATH"] = "/blog";
+    const { siteUrl } = await import("./site");
+    expect(siteUrl("/about/")).toBe("/about/");
   });
 
   it("appends BASE_PATH when set", async () => {
@@ -62,5 +71,12 @@ describe("siteUrl", () => {
     delete process.env["BASE_PATH"];
     const { BASE_PATH } = await import("./site");
     expect(BASE_PATH).toBeUndefined();
+  });
+
+  it("omits BASE_PATH when it is undefined but BASE_URL is set", async () => {
+    process.env["NEXT_PUBLIC_SITE_URL"] = "https://example.com";
+    delete process.env["BASE_PATH"];
+    const { siteUrl } = await import("./site");
+    expect(siteUrl("/posts/test/")).toBe("https://example.com/posts/test/");
   });
 });
