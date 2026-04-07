@@ -32,10 +32,8 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "layout" });
-  const baseUrl = siteUrl("");
 
-  return {
-    metadataBase: new URL(baseUrl),
+  const metadata: Metadata = {
     title: {
       template: `%s | ${t("siteName")}`,
       default: t("siteName"),
@@ -62,6 +60,12 @@ export async function generateMetadata({
       site: t("siteName"),
     },
   };
+
+  if (siteUrl("")) {
+    metadata.metadataBase = new URL(siteUrl(""));
+  }
+
+  return metadata;
 }
 
 export default async function LocaleLayout({ children, params }: Props) {
