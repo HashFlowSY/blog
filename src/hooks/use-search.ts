@@ -65,7 +65,7 @@ export function useSearch(locale: string): UseSearchReturn {
       setIsIndexLoading(true);
       setError(null);
 
-      const base = process.env["SEARCH_BASE_PATH"] ?? "";
+      const base = process.env["NEXT_PUBLIC_SEARCH_BASE_PATH"] ?? "";
       fetch(`${base}/search-index.json`)
         .then((r) => {
           if (!r.ok) throw new Error(`HTTP ${r.status}`);
