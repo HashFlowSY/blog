@@ -1,16 +1,27 @@
 import { expect } from "@playwright/test";
 
 import { test } from "./fixtures";
-import { goToPostDetail, getText } from "./helpers/navigation";
+import { goToPosts, getText } from "./helpers/navigation";
 
 test.describe("Post detail", () => {
   test("renders post metadata", async ({ page }) => {
     const zh = getText("zh-CN");
 
-    await goToPostDetail(page, "nextjs-static-export-guide");
+    await goToPosts(page);
+
+    const firstPostTitle = await page
+      .locator("article")
+      .first()
+      .getByRole("heading")
+      .textContent();
+
+    await Promise.all([
+      page.waitForURL(/\/zh-CN\/posts\/.+\/$/),
+      page.locator("article a").first().click(),
+    ]);
 
     await expect(page.getByRole("heading", { level: 1 }).first()).toContainText(
-      "Building a Static Blog with Next.js",
+      firstPostTitle!,
     );
 
     await expect(page.getByText(zh.publishedAt)).toBeVisible();
@@ -18,7 +29,12 @@ test.describe("Post detail", () => {
   });
 
   test("table of contents exists", async ({ page }) => {
-    await goToPostDetail(page, "nextjs-static-export-guide");
+    await goToPosts(page);
+
+    await Promise.all([
+      page.waitForURL(/\/zh-CN\/posts\/.+\/$/),
+      page.locator("article a").first().click(),
+    ]);
 
     const toc = page.locator('nav[aria-label="Table of contents"]');
     await expect(toc).toBeAttached();
@@ -28,7 +44,12 @@ test.describe("Post detail", () => {
   });
 
   test("previous and next post navigation exists", async ({ page }) => {
-    await goToPostDetail(page, "hello-world");
+    await goToPosts(page);
+
+    await Promise.all([
+      page.waitForURL(/\/zh-CN\/posts\/.+\/$/),
+      page.locator("article a").first().click(),
+    ]);
 
     await expect(
       page.locator('nav[aria-label="Post navigation"]'),
@@ -36,14 +57,18 @@ test.describe("Post detail", () => {
   });
 
   test("copy link button works", async ({ page }) => {
-    await goToPostDetail(page, "nextjs-static-export-guide");
+    await goToPosts(page);
+
+    await Promise.all([
+      page.waitForURL(/\/zh-CN\/posts\/.+\/$/),
+      page.locator("article a").first().click(),
+    ]);
 
     const copyButton = page.getByRole("button", { name: "Copy link" });
     await expect(copyButton).toBeVisible();
 
     await copyButton.click();
 
-    // Button text changes from "Copy link" to "Copied!"
     await expect(copyButton).not.toContainText("Copy link");
     await expect(copyButton).toContainText("Copied");
   });

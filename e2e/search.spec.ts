@@ -10,13 +10,22 @@ test.describe("Search integration", () => {
     const searchInput = page.locator('input[role="combobox"]');
     await expect(searchInput).toBeVisible();
 
-    await searchInput.pressSequentially("Hello", { delay: 100 });
+    // Get the title of the first post to use as a content-agnostic search query
+    const firstPostTitle = await page
+      .locator("article")
+      .first()
+      .getByRole("heading")
+      .textContent();
+
+    // Type the first word of the title
+    const firstWord = firstPostTitle?.split(/\s+/)[0] ?? "";
+    await searchInput.pressSequentially(firstWord, { delay: 100 });
 
     const listbox = page.locator('[role="listbox"]');
     await expect(listbox).toBeVisible();
 
     const resultItems = listbox.locator('[role="option"]');
-    await expect(resultItems.first()).toContainText("Hello World");
+    await expect(resultItems.first()).toContainText(firstPostTitle!);
   });
 
   test("no matching results shows empty state", async ({ page }) => {
@@ -40,7 +49,15 @@ test.describe("Search integration", () => {
     const searchInput = page.locator('input[role="combobox"]');
     await expect(searchInput).toBeVisible();
 
-    await searchInput.pressSequentially("Hello", { delay: 100 });
+    // Get the first post title for a content-agnostic search query
+    const firstPostTitle = await page
+      .locator("article")
+      .first()
+      .getByRole("heading")
+      .textContent();
+
+    const firstWord = firstPostTitle?.split(/\s+/)[0] ?? "";
+    await searchInput.pressSequentially(firstWord, { delay: 100 });
 
     const listbox = page.locator('[role="listbox"]');
     await expect(listbox).toBeVisible();

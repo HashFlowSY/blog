@@ -7,6 +7,7 @@ import { PostToc } from "@/components/post/post-toc";
 import { ShareButtons } from "@/components/share/share-buttons";
 import { TagBadge } from "@/components/tag";
 import { Link } from "@/i18n/navigation";
+import { routing } from "@/i18n/routing";
 import { extractHeadings } from "@/lib/markdown";
 import { getPostBySlug, getAllPostsMeta, getAdjacentPosts } from "@/lib/posts";
 import { siteUrl } from "@/lib/site";
@@ -19,7 +20,9 @@ interface Props {
 
 export function generateStaticParams() {
   const posts = getAllPostsMeta();
-  return posts.map((post) => ({ slug: post.slug }));
+  return routing.locales.flatMap((locale) =>
+    posts.map((post) => ({ locale, slug: post.slug })),
+  );
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
