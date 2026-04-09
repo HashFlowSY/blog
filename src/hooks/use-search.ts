@@ -65,7 +65,8 @@ export function useSearch(locale: string): UseSearchReturn {
       setIsIndexLoading(true);
       setError(null);
 
-      fetch("/search-index.json")
+      const base = process.env["NEXT_PUBLIC_SITE_URL"] ?? "";
+      fetch(`${base}/search-index.json`)
         .then((r) => {
           if (!r.ok) throw new Error(`HTTP ${r.status}`);
           return r.json() as Promise<SearchIndexEntry[]>;
