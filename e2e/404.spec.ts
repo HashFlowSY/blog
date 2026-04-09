@@ -1,18 +1,27 @@
 import { expect } from "@playwright/test";
 
 import { test } from "./fixtures";
+import { goToPosts } from "./helpers/navigation";
 
 test.describe("404 page", () => {
-  test("visiting about page with invalid locale shows 404", async ({
-    page,
-  }) => {
-    await page.goto("/zh-CN/posts/nonexistent-slug/");
+  test("visiting a nonexistent route shows error state", async ({ page }) => {
+    await goToPosts(page);
+
+    // Get the first post title so we know what should NOT appear
+    const firstPostTitle = await page
+      .locator("article")
+      .first()
+      .getByRole("heading")
+      .textContent();
+
+    // Visit a path that doesn't match any dynamic segment,
+    // avoiding the generateStaticParams validation error
+    await page.goto("/zh-CN/nonexistent-page/");
     await page.waitForLoadState("networkidle");
 
-    // Static export dev server returns a generic error page for unknown routes
     // The page should not contain normal post content
     await expect(
-      page.getByRole("heading", { name: "Building a Static Blog" }),
+      page.getByRole("heading", { name: firstPostTitle! }),
     ).not.toBeVisible();
   });
 });
