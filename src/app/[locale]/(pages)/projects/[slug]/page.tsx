@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { CodeBlockEnhancer } from "@/components/post/code-block";
 import { TagBadge } from "@/components/tag";
 import { Link } from "@/i18n/navigation";
-import { routing } from "@/i18n/routing";
+import { localeParamsWith } from "@/i18n/routing";
 import { getProjectBySlug, getAllProjectsMeta } from "@/lib/projects";
 import { siteUrl } from "@/lib/site";
 
@@ -16,8 +16,8 @@ interface Props {
 }
 
 export function generateStaticParams() {
-  return routing.locales.flatMap((locale) =>
-    getAllProjectsMeta().map((project) => ({ locale, slug: project.slug })),
+  return localeParamsWith(
+    getAllProjectsMeta().map((project) => ({ slug: project.slug })),
   );
 }
 

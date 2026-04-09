@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { PostList } from "@/components/post/post-list";
 import { ProjectList } from "@/components/project/project-list";
 import { Link } from "@/i18n/navigation";
+import { localeParams } from "@/i18n/routing";
 import { getAllPostsMeta } from "@/lib/posts";
 import { getFeaturedProjects } from "@/lib/projects";
 import { siteUrl } from "@/lib/site";
@@ -12,6 +13,10 @@ import type { Metadata } from "next";
 
 interface Props {
   params: Promise<{ locale: string }>;
+}
+
+export function generateStaticParams() {
+  return localeParams();
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
