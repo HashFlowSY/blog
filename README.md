@@ -1,4 +1,4 @@
-# HashFlow's Blog
+# Blog
 
 A minimal, fast personal blog built with Next.js 16, deployed as a static site on GitHub Pages. Supports Chinese and English.
 
@@ -247,7 +247,7 @@ The included GitHub Actions workflow (`deploy.yml`) handles everything:
 1. Go to repo **Settings → Pages → Source**
 2. Select **GitHub Actions** as the source
 3. Go to **Settings → Secrets and variables → Actions → Variables**
-4. Add `NEXT_PUBLIC_SITE_URL` (e.g. `https://username.github.io`)
+4. Add `NEXT_PUBLIC_SITE_URL` to **Repository variables**(e.g. `https://username.github.io`)
 5. Push to `main` — deployment starts automatically
 
 ### Custom Domain

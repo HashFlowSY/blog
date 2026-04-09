@@ -1,0 +1,76 @@
+import { test as base } from "@playwright/test";
+
+type Locale = "zh-CN" | "en-US";
+
+const LOCALES = {
+  "zh-CN": {
+    home: "首页",
+    posts: "文章",
+    projects: "项目",
+    about: "关于",
+    siteName: "博客",
+    allPosts: "所有文章",
+    allProjects: "所有项目",
+    recentPosts: "最近文章",
+    featuredProjects: "精选项目",
+    search: "搜索...",
+    all: "全部",
+    noResults: "暂无内容",
+    readMore: "阅读更多",
+    viewPosts: "查看文章",
+    viewProjects: "查看项目",
+    publishedAt: "发布于",
+    updatedAt: "更新于",
+    toc: "目录",
+    minutes: "分钟阅读",
+    source: "源代码",
+    demo: "在线演示",
+    aboutTitle: "关于我",
+    skills: "技能",
+    experience: "经历",
+    notFound: "404",
+    notFoundDesc: "你访问的页面不存在",
+    backHome: "返回首页",
+    copyLink: "Copy link",
+    copied: "Copied!",
+    langSwitch: "EN",
+  },
+  "en-US": {
+    home: "Home",
+    posts: "Posts",
+    projects: "Projects",
+    about: "About",
+    siteName: "Blog",
+    allPosts: "All Posts",
+    allProjects: "All Projects",
+    recentPosts: "Recent Posts",
+    featuredProjects: "Featured Projects",
+    search: "Search...",
+    all: "All",
+    noResults: "No content yet",
+    readMore: "Read more",
+    viewPosts: "Read Posts",
+    viewProjects: "View Projects",
+    publishedAt: "Published on",
+    updatedAt: "Updated on",
+    toc: "Table of Contents",
+    minutes: "min read",
+    source: "Source Code",
+    demo: "Live Demo",
+    aboutTitle: "About Me",
+    skills: "Skills",
+    experience: "Experience",
+    notFound: "404",
+    notFoundDesc: "The page you are looking for does not exist",
+    backHome: "Back to Home",
+    copyLink: "Copy link",
+    copied: "Copied!",
+    langSwitch: "中文",
+  },
+} as const;
+
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+const test = base.extend<{}>({});
+
+export { LOCALES, test };
+export type { Locale };
