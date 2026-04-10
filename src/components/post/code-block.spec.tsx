@@ -22,7 +22,7 @@ describe("CodeBlockEnhancer", () => {
     );
     expect(container.querySelector("p")).toHaveTextContent("Just text");
     expect(
-      container.querySelector('button[aria-label="Copy code"]'),
+      container.querySelector('button[aria-label="copyCode"]'),
     ).not.toBeInTheDocument();
   });
 
@@ -45,7 +45,7 @@ describe("CodeBlockEnhancer", () => {
       await new Promise((r) => setTimeout(r, 0));
     });
 
-    const button = container.querySelector('button[aria-label="Copy code"]');
+    const button = container.querySelector('button[aria-label="copyCode"]');
     expect(button).toBeInTheDocument();
   });
 
@@ -78,7 +78,7 @@ describe("CodeBlockEnhancer", () => {
       configurable: true,
     });
 
-    const button = container.querySelector('button[aria-label="Copy code"]')!;
+    const button = container.querySelector('button[aria-label="copyCode"]')!;
     await user.click(button);
 
     expect(writeText).toHaveBeenCalledWith("const x = 1;");
@@ -108,9 +108,7 @@ describe("CodeBlockEnhancer", () => {
       await new Promise((r) => setTimeout(r, 0));
     });
 
-    const buttons = container.querySelectorAll(
-      'button[aria-label="Copy code"]',
-    );
+    const buttons = container.querySelectorAll('button[aria-label="copyCode"]');
     expect(buttons).toHaveLength(2);
   });
 
@@ -151,7 +149,7 @@ describe("CodeBlockEnhancer", () => {
     });
 
     expect(
-      container.querySelector('button[aria-label="Copy code"]'),
+      container.querySelector('button[aria-label="copyCode"]'),
     ).toBeInTheDocument();
 
     unmount();
@@ -176,7 +174,7 @@ describe("CodeBlockEnhancer", () => {
       await new Promise((r) => setTimeout(r, 0));
     });
 
-    const button = container.querySelector('button[aria-label="Copy code"]');
+    const button = container.querySelector('button[aria-label="copyCode"]');
     expect(button).toBeInTheDocument();
 
     const header = container.querySelector(".code-block-header");
@@ -211,11 +209,11 @@ describe("CodeBlockEnhancer", () => {
       await new Promise((r) => setTimeout(r, 0));
     });
 
-    const button = container.querySelector('button[aria-label="Copy code"]')!;
+    const button = container.querySelector('button[aria-label="copyCode"]')!;
     await user.click(button);
 
     // Button text should still say "Copy" (failure is silent)
-    expect(button.textContent).toBe("Copy");
+    expect(button.textContent).toBe("copyCode");
   });
 
   it("shows Copied! feedback after successful copy", async () => {
@@ -245,7 +243,7 @@ describe("CodeBlockEnhancer", () => {
       await vi.advanceTimersByTimeAsync(0);
     });
 
-    const button = container.querySelector('button[aria-label="Copy code"]')!;
+    const button = container.querySelector('button[aria-label="copyCode"]')!;
 
     await act(async () => {
       fireEvent.click(button);
@@ -253,14 +251,14 @@ describe("CodeBlockEnhancer", () => {
       await vi.advanceTimersByTimeAsync(0);
     });
 
-    expect(button.textContent).toBe("Copied!");
+    expect(button.textContent).toBe("copied");
 
     // Advance past the restore timeout (2000ms)
     await act(async () => {
       await vi.advanceTimersByTimeAsync(2500);
     });
 
-    expect(button.textContent).toBe("Copy");
+    expect(button.textContent).toBe("copyCode");
 
     vi.useRealTimers();
   });

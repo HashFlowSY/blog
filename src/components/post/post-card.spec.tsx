@@ -32,6 +32,7 @@ const basePost: PostMeta = {
   summary: "A test summary",
   cover: null,
   readingTime: 0,
+  locale: "zh-CN",
 };
 
 describe("PostCard", () => {
@@ -88,6 +89,18 @@ describe("PostCard", () => {
     // Should only have one date text (the time element)
     expect(screen.getByText("2026-01-15")).toBeInTheDocument();
     expect(screen.queryByText("Updated 2026-01-15")).not.toBeInTheDocument();
+  });
+
+  it("shows minutesLabel when readingTime > 0 and minutesLabel provided", () => {
+    const withReading = { ...basePost, readingTime: 5 };
+    render(<PostCard post={withReading} minutesLabel="min read" />);
+    expect(screen.getByText("5 min read")).toBeInTheDocument();
+  });
+
+  it("does not show reading time when minutesLabel is undefined", () => {
+    const withReading = { ...basePost, readingTime: 5 };
+    render(<PostCard post={withReading} />);
+    expect(screen.queryByText(/min read/)).not.toBeInTheDocument();
   });
 
   it("does not show updated date when updatedLabel is undefined", () => {

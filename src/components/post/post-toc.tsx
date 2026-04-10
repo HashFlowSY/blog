@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronDown } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
 import type { TocItem } from "@/lib/markdown";
@@ -12,6 +13,7 @@ interface PostTocProps {
 
 /** 文章目录组件 — headings 由服务端从 HTML 内容中提取后传入 */
 export function PostToc({ headings }: PostTocProps) {
+  const t = useTranslations("postPage");
   const [activeId, setActiveId] = useState<string>("");
   const [isOpen, setIsOpen] = useState(false);
 
@@ -40,17 +42,14 @@ export function PostToc({ headings }: PostTocProps) {
   if (headings.length === 0) return null;
 
   return (
-    <nav
-      aria-label="Table of contents"
-      className="rounded-lg border border-border p-4"
-    >
+    <nav aria-label={t("toc")} className="rounded-lg border border-border p-4">
       <button
         type="button"
         className="flex w-full items-center justify-between text-sm font-medium text-foreground lg:cursor-default lg:pointer-events-none"
         onClick={() => setIsOpen((prev) => !prev)}
         aria-expanded={isOpen}
       >
-        <span>Table of Contents</span>
+        <span>{t("toc")}</span>
         <ChevronDown
           className={`h-4 w-4 shrink-0 transition-transform lg:hidden ${isOpen ? "rotate-180" : ""}`}
         />

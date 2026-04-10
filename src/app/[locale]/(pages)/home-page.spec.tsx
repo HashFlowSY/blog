@@ -16,7 +16,7 @@ vi.mock("@/i18n/navigation", () => ({
 }));
 
 vi.mock("@/lib/posts", () => ({
-  getAllPostsMeta: () => [
+  getAllPostsMeta: (_locale: string) => [
     {
       slug: "post-1",
       title: "Post 1",
@@ -25,12 +25,14 @@ vi.mock("@/lib/posts", () => ({
       tags: ["react"],
       summary: "First post",
       cover: null,
+      readingTime: 0,
+      locale: "zh-CN",
     },
   ],
 }));
 
 vi.mock("@/lib/projects", () => ({
-  getFeaturedProjects: () => [
+  getFeaturedProjects: (_locale: string) => [
     {
       slug: "project-1",
       title: "Project 1",
@@ -41,6 +43,7 @@ vi.mock("@/lib/projects", () => ({
       source: "https://github.com/example/repo",
       demo: "https://example.com",
       featured: true,
+      locale: "zh-CN",
     },
   ],
 }));

@@ -34,6 +34,7 @@ const projects: ProjectMeta[] = [
     source: null,
     demo: null,
     featured: false,
+    locale: "zh-CN",
   },
   {
     slug: "project-2",
@@ -45,6 +46,7 @@ const projects: ProjectMeta[] = [
     source: null,
     demo: null,
     featured: false,
+    locale: "zh-CN",
   },
 ];
 

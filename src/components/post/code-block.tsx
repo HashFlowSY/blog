@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useRef } from "react";
 
 interface CodeBlockEnhancerProps {
@@ -8,10 +9,14 @@ interface CodeBlockEnhancerProps {
 
 export function CodeBlockEnhancer({ children }: CodeBlockEnhancerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const t = useTranslations("postPage");
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
+
+    const copyLabel = t("copyCode");
+    const copiedLabel = t("copied");
 
     const blocks = container.querySelectorAll<HTMLElement>(".code-block");
     const cleanups: Array<() => void> = [];
@@ -25,13 +30,13 @@ export function CodeBlockEnhancer({ children }: CodeBlockEnhancerProps) {
 
       // Create copy button
       const button = document.createElement("button");
-      button.setAttribute("aria-label", "Copy code");
+      button.setAttribute("aria-label", copyLabel);
       button.setAttribute("type", "button");
       button.className =
         "code-block-copy inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover/code-block:opacity-100";
 
       const copyIcon = document.createElement("span");
-      copyIcon.innerHTML = "Copy";
+      copyIcon.innerHTML = copyLabel;
       button.appendChild(copyIcon);
 
       const handleClick = async () => {
@@ -39,13 +44,13 @@ export function CodeBlockEnhancer({ children }: CodeBlockEnhancerProps) {
           await navigator.clipboard.writeText(text);
           button.innerHTML = "";
           const checkIcon = document.createElement("span");
-          checkIcon.textContent = "Copied!";
+          checkIcon.textContent = copiedLabel;
           button.appendChild(checkIcon);
           button.classList.add("text-green-500");
           setTimeout(() => {
             button.innerHTML = "";
             const restoreIcon = document.createElement("span");
-            restoreIcon.textContent = "Copy";
+            restoreIcon.textContent = copyLabel;
             button.appendChild(restoreIcon);
             button.classList.remove("text-green-500");
           }, 2000);
@@ -76,7 +81,7 @@ export function CodeBlockEnhancer({ children }: CodeBlockEnhancerProps) {
         cleanup();
       }
     };
-  }, []);
+  }, [t]);
 
   return (
     <div ref={containerRef} className="contents">

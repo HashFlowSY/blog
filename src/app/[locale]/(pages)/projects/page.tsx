@@ -42,7 +42,7 @@ export default async function ProjectsPage({ params }: Props) {
   setRequestLocale(locale);
 
   const t = await getTranslations({ locale, namespace: "projectPage" });
-  const projects = getAllProjectsMeta();
+  const projects = getAllProjectsMeta(locale);
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-12">

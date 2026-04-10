@@ -1,6 +1,7 @@
 "use client";
 
 import { Check, Link as LinkIcon, Share2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 interface ShareButtonsProps {
@@ -9,6 +10,7 @@ interface ShareButtonsProps {
 }
 
 export function ShareButtons({ url, title }: ShareButtonsProps) {
+  const t = useTranslations("postPage");
   const [copied, setCopied] = useState(false);
 
   async function handleShare() {
@@ -51,10 +53,10 @@ export function ShareButtons({ url, title }: ShareButtonsProps) {
           type="button"
           onClick={handleShare}
           className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-          aria-label="Share"
+          aria-label={t("share")}
         >
           <Share2 className="h-4 w-4" />
-          <span>Share</span>
+          <span>{t("share")}</span>
         </button>
       )}
 
@@ -62,7 +64,7 @@ export function ShareButtons({ url, title }: ShareButtonsProps) {
         type="button"
         onClick={handleTwitter}
         className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-        aria-label="Share on Twitter"
+        aria-label={t("shareOnX")}
       >
         <svg
           className="h-4 w-4"
@@ -79,14 +81,14 @@ export function ShareButtons({ url, title }: ShareButtonsProps) {
         type="button"
         onClick={handleCopyLink}
         className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-        aria-label="Copy link"
+        aria-label={t("copyLink")}
       >
         {copied ? (
           <Check className="h-4 w-4" />
         ) : (
           <LinkIcon className="h-4 w-4" />
         )}
-        <span>{copied ? "Copied!" : "Copy link"}</span>
+        <span>{copied ? t("copied") : t("copyLink")}</span>
       </button>
     </div>
   );

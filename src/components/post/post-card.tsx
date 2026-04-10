@@ -6,16 +6,21 @@ import type { PostMeta } from "@/lib/posts";
 interface PostCardProps {
   post: PostMeta;
   updatedLabel?: string;
+  minutesLabel?: string;
 }
 
-export function PostCard({ post, updatedLabel }: PostCardProps) {
+export function PostCard({ post, updatedLabel, minutesLabel }: PostCardProps) {
   return (
     <article className="group">
       <Link href={`/posts/${post.slug}/`} className="block">
         <div className="rounded-lg border border-border p-4 transition-all duration-200 hover:bg-accent hover:-translate-y-0.5 hover:shadow-sm">
           <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
             <time dateTime={post.date}>{post.date}</time>
-            {post.readingTime > 0 && <span>{post.readingTime} min read</span>}
+            {post.readingTime > 0 && minutesLabel && (
+              <span>
+                {post.readingTime} {minutesLabel}
+              </span>
+            )}
             {post.updated !== post.date && updatedLabel && (
               <span>
                 ({updatedLabel} {post.updated})

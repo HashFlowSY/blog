@@ -5,9 +5,10 @@ import type { PostMeta } from "@/lib/posts";
 interface PostListProps {
   posts: PostMeta[];
   updatedLabel?: string;
+  minutesLabel?: string;
 }
 
-export function PostList({ posts, updatedLabel }: PostListProps) {
+export function PostList({ posts, updatedLabel, minutesLabel }: PostListProps) {
   if (posts.length === 0) return null;
 
   return (
@@ -17,6 +18,7 @@ export function PostList({ posts, updatedLabel }: PostListProps) {
           key={post.slug}
           post={post}
           {...(updatedLabel !== null && { updatedLabel })}
+          {...(minutesLabel !== null && { minutesLabel })}
         />
       ))}
     </div>

@@ -4,7 +4,7 @@ vi.mock("next-intl/server", () => ({
 }));
 
 vi.mock("@/lib/posts", () => ({
-  getAllPostsMeta: () => [
+  getAllPostsMeta: (_locale: string) => [
     {
       slug: "post-1",
       title: "Post 1",
@@ -13,9 +13,11 @@ vi.mock("@/lib/posts", () => ({
       tags: ["react"],
       summary: "First post",
       cover: null,
+      readingTime: 0,
+      locale: "zh-CN",
     },
   ],
-  getAllTags: () => ["react"],
+  getAllTags: (_locale: string) => ["react"],
 }));
 
 vi.mock("@/lib/site", () => ({

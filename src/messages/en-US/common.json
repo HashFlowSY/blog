@@ -41,7 +41,12 @@
     "tags": "Tags",
     "toc": "Table of Contents",
     "minutes": "min read",
-    "empty": "No posts yet"
+    "empty": "No posts yet",
+    "share": "Share",
+    "shareOnX": "Share on X",
+    "copyLink": "Copy link",
+    "copied": "Copied!",
+    "copyCode": "Copy code"
   },
   "projectPage": {
     "title": "Projects",

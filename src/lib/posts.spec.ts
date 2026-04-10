@@ -43,6 +43,8 @@ import {
 // 测试数据
 // ============================================================
 
+const TEST_LOCALE = "zh-CN";
+
 const VALID_POST_MD = `---
 title: "Test Post"
 slug: "test-post"
@@ -123,7 +125,7 @@ describe("posts 数据层", () => {
         .mockReturnValueOnce(VALID_POST_MD)
         .mockReturnValueOnce(VALID_POST_2_MD);
 
-      const posts = getAllPostsMeta();
+      const posts = getAllPostsMeta(TEST_LOCALE);
 
       expect(posts).toHaveLength(2);
       // 按日期降序：Second Post (2026-02-20) 在前
@@ -138,7 +140,7 @@ describe("posts 数据层", () => {
         .mockReturnValueOnce(VALID_POST_2_MD)
         .mockReturnValueOnce(VALID_POST_MD);
 
-      const posts = getAllPostsMeta();
+      const posts = getAllPostsMeta(TEST_LOCALE);
 
       expect(posts[0]!.date).toBe("2026-02-20");
       expect(posts[1]!.date).toBe("2026-01-15");
@@ -151,7 +153,7 @@ describe("posts 数据层", () => {
         .mockReturnValueOnce(VALID_POST_MD)
         .mockReturnValueOnce(DRAFT_POST_MD);
 
-      const posts = getAllPostsMeta();
+      const posts = getAllPostsMeta(TEST_LOCALE);
 
       expect(posts).toHaveLength(1);
       expect(posts[0]!.slug).toBe("test-post");
@@ -164,7 +166,7 @@ describe("posts 数据层", () => {
         .mockReturnValueOnce(VALID_POST_MD)
         .mockReturnValueOnce(INVALID_FRONTMATTER_MD);
 
-      const posts = getAllPostsMeta();
+      const posts = getAllPostsMeta(TEST_LOCALE);
 
       expect(posts).toHaveLength(1);
       expect(posts[0]!.slug).toBe("test-post");
@@ -173,7 +175,7 @@ describe("posts 数据层", () => {
     it("文章目录不存在时返回空数组", () => {
       mockExistsSync.mockReturnValue(false);
 
-      const posts = getAllPostsMeta();
+      const posts = getAllPostsMeta(TEST_LOCALE);
 
       expect(posts).toEqual([]);
     });
@@ -182,7 +184,7 @@ describe("posts 数据层", () => {
       mockExistsSync.mockReturnValue(true);
       mockReaddirSync.mockReturnValue([]);
 
-      const posts = getAllPostsMeta();
+      const posts = getAllPostsMeta(TEST_LOCALE);
 
       expect(posts).toEqual([]);
     });
@@ -196,7 +198,7 @@ describe("posts 数据层", () => {
       ]);
       mockReadFileSync.mockReturnValueOnce(VALID_POST_MD);
 
-      const posts = getAllPostsMeta();
+      const posts = getAllPostsMeta(TEST_LOCALE);
 
       expect(posts).toHaveLength(1);
     });
@@ -206,7 +208,7 @@ describe("posts 数据层", () => {
       mockReaddirSync.mockReturnValue(["test-post.md"]);
       mockReadFileSync.mockReturnValueOnce(VALID_POST_MD);
 
-      const posts = getAllPostsMeta();
+      const posts = getAllPostsMeta(TEST_LOCALE);
 
       expect(posts[0]!.slug).toBe("test-post");
     });
@@ -216,7 +218,7 @@ describe("posts 数据层", () => {
       mockReaddirSync.mockReturnValue(["no-slug-post.md"]);
       mockReadFileSync.mockReturnValueOnce(NO_SLUG_POST_MD);
 
-      const posts = getAllPostsMeta();
+      const posts = getAllPostsMeta(TEST_LOCALE);
 
       expect(posts[0]!.slug).toBe("no-slug-post");
     });
@@ -226,7 +228,7 @@ describe("posts 数据层", () => {
       mockReaddirSync.mockReturnValue(["minimal.md"]);
       mockReadFileSync.mockReturnValueOnce(MINIMAL_POST_MD);
 
-      const posts = getAllPostsMeta();
+      const posts = getAllPostsMeta(TEST_LOCALE);
 
       expect(posts[0]!.date).toBe("1970-01-01");
       expect(posts[0]!.tags).toEqual([]);
@@ -239,7 +241,7 @@ describe("posts 数据层", () => {
       mockReaddirSync.mockReturnValue(["test-post.md"]);
       mockReadFileSync.mockReturnValueOnce(VALID_POST_MD);
 
-      const posts = getAllPostsMeta();
+      const posts = getAllPostsMeta(TEST_LOCALE);
 
       expect(posts[0]!.updated).toBe(posts[0]!.date);
     });
@@ -249,7 +251,7 @@ describe("posts 数据层", () => {
       mockReaddirSync.mockReturnValue(["second-post.md"]);
       mockReadFileSync.mockReturnValueOnce(VALID_POST_2_MD);
 
-      const posts = getAllPostsMeta();
+      const posts = getAllPostsMeta(TEST_LOCALE);
 
       expect(posts[0]!.updated).toBe("2026-03-01");
     });
@@ -259,7 +261,7 @@ describe("posts 数据层", () => {
       mockReaddirSync.mockReturnValue(["test-post.md"]);
       mockReadFileSync.mockReturnValueOnce(VALID_POST_MD);
 
-      const posts = getAllPostsMeta();
+      const posts = getAllPostsMeta(TEST_LOCALE);
 
       // Only one readFileSync call (no enrichment re-read)
       expect(mockReadFileSync).toHaveBeenCalledTimes(1);
@@ -277,7 +279,7 @@ describe("posts 数据层", () => {
       mockReaddirSync.mockReturnValue(["test-post.md"]);
       mockReadFileSync.mockReturnValueOnce(VALID_POST_MD);
 
-      const posts = await getAllPosts();
+      const posts = await getAllPosts(TEST_LOCALE);
 
       expect(posts).toHaveLength(1);
       expect(posts[0]!.content).toBe("<p>mocked html</p>");
@@ -289,7 +291,7 @@ describe("posts 数据层", () => {
       mockReaddirSync.mockReturnValue(["test-post.md"]);
       mockReadFileSync.mockReturnValueOnce(VALID_POST_MD);
 
-      await getAllPosts();
+      await getAllPosts(TEST_LOCALE);
 
       expect(markdownToHtml).toHaveBeenCalled();
     });
@@ -299,7 +301,7 @@ describe("posts 数据层", () => {
       mockReaddirSync.mockReturnValue(["draft-post.md"]);
       mockReadFileSync.mockReturnValueOnce(DRAFT_POST_MD);
 
-      const posts = await getAllPosts();
+      const posts = await getAllPosts(TEST_LOCALE);
 
       expect(posts).toHaveLength(0);
     });
@@ -307,7 +309,7 @@ describe("posts 数据层", () => {
     it("目录不存在时返回空数组", async () => {
       mockExistsSync.mockReturnValue(false);
 
-      const posts = await getAllPosts();
+      const posts = await getAllPosts(TEST_LOCALE);
 
       expect(posts).toEqual([]);
     });
@@ -319,7 +321,7 @@ describe("posts 数据层", () => {
         .mockReturnValueOnce(VALID_POST_MD)
         .mockReturnValueOnce(VALID_POST_2_MD);
 
-      const posts = await getAllPosts();
+      const posts = await getAllPosts(TEST_LOCALE);
 
       expect(posts[0]!.date).toBe("2026-02-20");
       expect(posts[1]!.date).toBe("2026-01-15");
@@ -330,7 +332,7 @@ describe("posts 数据层", () => {
       mockReaddirSync.mockReturnValue(["test-post.md"]);
       mockReadFileSync.mockReturnValueOnce(VALID_POST_MD);
 
-      const posts = await getAllPosts();
+      const posts = await getAllPosts(TEST_LOCALE);
 
       expect(posts[0]!.readingTime).toBeGreaterThan(0);
     });
@@ -345,7 +347,7 @@ describe("posts 数据层", () => {
       mockReaddirSync.mockReturnValue(["test-post.md"]);
       mockReadFileSync.mockReturnValueOnce(VALID_POST_MD);
 
-      const post = await getPostBySlug("test-post");
+      const post = await getPostBySlug("test-post", TEST_LOCALE);
 
       expect(post).not.toBeNull();
       expect(post!.title).toBe("Test Post");
@@ -357,7 +359,7 @@ describe("posts 数据层", () => {
       mockReaddirSync.mockReturnValue(["test-post.md"]);
       mockReadFileSync.mockReturnValueOnce(VALID_POST_MD);
 
-      const post = await getPostBySlug("non-existent");
+      const post = await getPostBySlug("non-existent", TEST_LOCALE);
 
       expect(post).toBeNull();
     });
@@ -367,7 +369,7 @@ describe("posts 数据层", () => {
       mockReaddirSync.mockReturnValue(["draft-post.md"]);
       mockReadFileSync.mockReturnValueOnce(DRAFT_POST_MD);
 
-      const post = await getPostBySlug("draft-post");
+      const post = await getPostBySlug("draft-project", TEST_LOCALE);
 
       expect(post).toBeNull();
     });
@@ -375,7 +377,7 @@ describe("posts 数据层", () => {
     it("目录不存在时返回 null", async () => {
       mockExistsSync.mockReturnValue(false);
 
-      const post = await getPostBySlug("any-slug");
+      const post = await getPostBySlug("any-slug", TEST_LOCALE);
 
       expect(post).toBeNull();
     });
@@ -385,7 +387,7 @@ describe("posts 数据层", () => {
       mockReaddirSync.mockReturnValue(["no-slug-post.md"]);
       mockReadFileSync.mockReturnValueOnce(NO_SLUG_POST_MD);
 
-      const post = await getPostBySlug("no-slug-post");
+      const post = await getPostBySlug("no-slug-post", TEST_LOCALE);
 
       expect(post).not.toBeNull();
       expect(post!.title).toBe("No Slug Post");
@@ -396,7 +398,7 @@ describe("posts 数据层", () => {
       mockReaddirSync.mockReturnValue(["test-post.md"]);
       mockReadFileSync.mockReturnValueOnce(VALID_POST_MD);
 
-      const post = await getPostBySlug("test-post");
+      const post = await getPostBySlug("test-post", TEST_LOCALE);
 
       // Only one readFileSync call (no enrichment re-read)
       expect(mockReadFileSync).toHaveBeenCalledTimes(1);
@@ -415,7 +417,7 @@ describe("posts 数据层", () => {
         .mockReturnValueOnce(VALID_POST_MD)
         .mockReturnValueOnce(VALID_POST_2_MD);
 
-      const tags = getAllTags();
+      const tags = getAllTags(TEST_LOCALE);
 
       expect(tags).toEqual(["react", "testing", "typescript"]);
     });
@@ -423,7 +425,7 @@ describe("posts 数据层", () => {
     it("无文章时返回空数组", () => {
       mockExistsSync.mockReturnValue(false);
 
-      const tags = getAllTags();
+      const tags = getAllTags(TEST_LOCALE);
 
       expect(tags).toEqual([]);
     });
@@ -449,7 +451,7 @@ tags: ["common", "b"]
         .mockReturnValueOnce(postWithTagsA)
         .mockReturnValueOnce(postWithTagsB);
 
-      const tags = getAllTags();
+      const tags = getAllTags(TEST_LOCALE);
 
       expect(tags.filter((t) => t === "common")).toHaveLength(1);
     });
@@ -467,7 +469,7 @@ tags: ["common", "b"]
         .mockReturnValueOnce(VALID_POST_2_MD);
 
       // 降序排列：Second Post(index=0), Test Post(index=1)
-      const adjacent = getAdjacentPosts("second-post");
+      const adjacent = getAdjacentPosts("second-post", TEST_LOCALE);
 
       // second-post 在 index 0：prev=null(无更新), next=Test Post(更早的文章)
       expect(adjacent.prev).toBeNull();
@@ -482,24 +484,22 @@ tags: ["common", "b"]
         .mockReturnValueOnce(VALID_POST_MD)
         .mockReturnValueOnce(VALID_POST_2_MD);
 
-      const adjacent = getAdjacentPosts("test-post");
+      const adjacent = getAdjacentPosts("test-post", TEST_LOCALE);
 
       expect(adjacent.next).toBeNull();
       expect(adjacent.prev).not.toBeNull();
       expect(adjacent.prev!.slug).toBe("second-post");
     });
 
-    it("slug 不存在时 prev 为 null", () => {
+    it("slug 不存在时 prev 和 next 都为 null", () => {
       mockExistsSync.mockReturnValue(true);
       mockReaddirSync.mockReturnValue(["test-post.md"]);
       mockReadFileSync.mockReturnValueOnce(VALID_POST_MD);
 
-      const adjacent = getAdjacentPosts("non-existent");
+      const adjacent = getAdjacentPosts("non-existent", TEST_LOCALE);
 
-      // 注意：当前代码 findIndex 返回 -1 时，
-      // -1 > 0 为 false 所以 prev=null（正确）
-      // -1 < posts.length-1 为 true 所以 next=posts[0]（已知边界 bug）
       expect(adjacent.prev).toBeNull();
+      expect(adjacent.next).toBeNull();
     });
 
     it("只有一篇文章时 prev 和 next 都为 null", () => {
@@ -507,7 +507,7 @@ tags: ["common", "b"]
       mockReaddirSync.mockReturnValue(["test-post.md"]);
       mockReadFileSync.mockReturnValueOnce(VALID_POST_MD);
 
-      const adjacent = getAdjacentPosts("test-post");
+      const adjacent = getAdjacentPosts("test-post", TEST_LOCALE);
 
       expect(adjacent.prev).toBeNull();
       expect(adjacent.next).toBeNull();
@@ -516,7 +516,7 @@ tags: ["common", "b"]
     it("目录不存在时 prev 和 next 都为 null", () => {
       mockExistsSync.mockReturnValue(false);
 
-      const adjacent = getAdjacentPosts("any-slug");
+      const adjacent = getAdjacentPosts("any-slug", TEST_LOCALE);
 
       expect(adjacent.prev).toBeNull();
       expect(adjacent.next).toBeNull();

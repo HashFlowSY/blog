@@ -31,8 +31,8 @@ const LOCALES = {
     notFound: "404",
     notFoundDesc: "你访问的页面不存在",
     backHome: "返回首页",
-    copyLink: "Copy link",
-    copied: "Copied!",
+    copyLink: "复制链接",
+    copied: "已复制!",
     langSwitch: "EN",
   },
   "en-US": {

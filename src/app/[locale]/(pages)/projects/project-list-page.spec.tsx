@@ -4,7 +4,7 @@ vi.mock("next-intl/server", () => ({
 }));
 
 vi.mock("@/lib/projects", () => ({
-  getAllProjectsMeta: () => [
+  getAllProjectsMeta: (_locale: string) => [
     {
       slug: "project-1",
       title: "Project 1",
@@ -15,6 +15,7 @@ vi.mock("@/lib/projects", () => ({
       source: null,
       demo: null,
       featured: false,
+      locale: "zh-CN",
     },
   ],
 }));

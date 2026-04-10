@@ -34,6 +34,7 @@ import {
   getAllProjectsMeta,
   getFeaturedProjects,
   getProjectBySlug,
+  getProjectSlugs,
 } from "./projects";
 
 // ============================================================
@@ -101,6 +102,8 @@ title: "Minimal"
 # Minimal Project
 `;
 
+const TEST_LOCALE = "zh-CN";
+
 describe("projects 数据层", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -120,7 +123,7 @@ describe("projects 数据层", () => {
         .mockReturnValueOnce(VALID_PROJECT_MD)
         .mockReturnValueOnce(VALID_PROJECT_2_MD);
 
-      const projects = getAllProjectsMeta();
+      const projects = getAllProjectsMeta(TEST_LOCALE);
 
       expect(projects).toHaveLength(2);
       expect(projects[0]!.title).toBe("Another Project");
@@ -137,7 +140,7 @@ describe("projects 数据层", () => {
         .mockReturnValueOnce(VALID_PROJECT_MD)
         .mockReturnValueOnce(VALID_PROJECT_2_MD);
 
-      const projects = getAllProjectsMeta();
+      const projects = getAllProjectsMeta(TEST_LOCALE);
 
       expect(projects[0]!.date).toBe("2026-02-20");
       expect(projects[1]!.date).toBe("2026-01-15");
@@ -150,7 +153,7 @@ describe("projects 数据层", () => {
         .mockReturnValueOnce(VALID_PROJECT_MD)
         .mockReturnValueOnce(DRAFT_PROJECT_MD);
 
-      const projects = getAllProjectsMeta();
+      const projects = getAllProjectsMeta(TEST_LOCALE);
 
       expect(projects).toHaveLength(1);
       expect(projects[0]!.slug).toBe("test-project");
@@ -163,7 +166,7 @@ describe("projects 数据层", () => {
         .mockReturnValueOnce(VALID_PROJECT_MD)
         .mockReturnValueOnce(INVALID_FRONTMATTER_MD);
 
-      const projects = getAllProjectsMeta();
+      const projects = getAllProjectsMeta(TEST_LOCALE);
 
       expect(projects).toHaveLength(1);
       expect(projects[0]!.slug).toBe("test-project");
@@ -172,7 +175,7 @@ describe("projects 数据层", () => {
     it("目录不存在时返回空数组", () => {
       mockExistsSync.mockReturnValue(false);
 
-      const projects = getAllProjectsMeta();
+      const projects = getAllProjectsMeta(TEST_LOCALE);
 
       expect(projects).toEqual([]);
     });
@@ -181,7 +184,7 @@ describe("projects 数据层", () => {
       mockExistsSync.mockReturnValue(true);
       mockReaddirSync.mockReturnValue([]);
 
-      const projects = getAllProjectsMeta();
+      const projects = getAllProjectsMeta(TEST_LOCALE);
 
       expect(projects).toEqual([]);
     });
@@ -195,7 +198,7 @@ describe("projects 数据层", () => {
       ]);
       mockReadFileSync.mockReturnValueOnce(VALID_PROJECT_MD);
 
-      const projects = getAllProjectsMeta();
+      const projects = getAllProjectsMeta(TEST_LOCALE);
 
       expect(projects).toHaveLength(1);
     });
@@ -205,7 +208,7 @@ describe("projects 数据层", () => {
       mockReaddirSync.mockReturnValue(["test-project.md"]);
       mockReadFileSync.mockReturnValueOnce(VALID_PROJECT_MD);
 
-      const projects = getAllProjectsMeta();
+      const projects = getAllProjectsMeta(TEST_LOCALE);
 
       expect(projects[0]!.slug).toBe("test-project");
     });
@@ -215,7 +218,7 @@ describe("projects 数据层", () => {
       mockReaddirSync.mockReturnValue(["no-slug-project.md"]);
       mockReadFileSync.mockReturnValueOnce(NO_SLUG_PROJECT_MD);
 
-      const projects = getAllProjectsMeta();
+      const projects = getAllProjectsMeta(TEST_LOCALE);
 
       expect(projects[0]!.slug).toBe("no-slug-project");
     });
@@ -225,7 +228,7 @@ describe("projects 数据层", () => {
       mockReaddirSync.mockReturnValue(["minimal.md"]);
       mockReadFileSync.mockReturnValueOnce(MINIMAL_PROJECT_MD);
 
-      const projects = getAllProjectsMeta();
+      const projects = getAllProjectsMeta(TEST_LOCALE);
 
       expect(projects[0]!.date).toBe("1970-01-01");
       expect(projects[0]!.tags).toEqual([]);
@@ -251,7 +254,7 @@ describe("projects 数据层", () => {
         .mockReturnValueOnce(VALID_PROJECT_MD)
         .mockReturnValueOnce(VALID_PROJECT_2_MD);
 
-      const featured = getFeaturedProjects();
+      const featured = getFeaturedProjects(TEST_LOCALE);
 
       expect(featured).toHaveLength(1);
       expect(featured[0]!.slug).toBe("test-project");
@@ -262,7 +265,7 @@ describe("projects 数据层", () => {
       mockReaddirSync.mockReturnValue(["another-project.md"]);
       mockReadFileSync.mockReturnValueOnce(VALID_PROJECT_2_MD);
 
-      const featured = getFeaturedProjects();
+      const featured = getFeaturedProjects(TEST_LOCALE);
 
       expect(featured).toEqual([]);
     });
@@ -270,9 +273,49 @@ describe("projects 数据层", () => {
     it("目录不存在时返回空数组", () => {
       mockExistsSync.mockReturnValue(false);
 
-      const featured = getFeaturedProjects();
+      const featured = getFeaturedProjects(TEST_LOCALE);
 
       expect(featured).toEqual([]);
+    });
+  });
+
+  // ==========================================================
+  // getProjectSlugs
+  // ==========================================================
+  describe("getProjectSlugs", () => {
+    it("返回所有已发布项目的 slug", () => {
+      mockExistsSync.mockReturnValue(true);
+      mockReaddirSync.mockReturnValue([
+        "test-project.md",
+        "another-project.md",
+      ]);
+      mockReadFileSync
+        .mockReturnValueOnce(VALID_PROJECT_MD)
+        .mockReturnValueOnce(VALID_PROJECT_2_MD);
+
+      const slugs = getProjectSlugs(TEST_LOCALE);
+
+      expect(slugs).toEqual(["another-project", "test-project"]);
+    });
+
+    it("过滤草稿项目的 slug", () => {
+      mockExistsSync.mockReturnValue(true);
+      mockReaddirSync.mockReturnValue(["test-project.md", "draft-project.md"]);
+      mockReadFileSync
+        .mockReturnValueOnce(VALID_PROJECT_MD)
+        .mockReturnValueOnce(DRAFT_PROJECT_MD);
+
+      const slugs = getProjectSlugs(TEST_LOCALE);
+
+      expect(slugs).toEqual(["test-project"]);
+    });
+
+    it("目录不存在时返回空数组", () => {
+      mockExistsSync.mockReturnValue(false);
+
+      const slugs = getProjectSlugs(TEST_LOCALE);
+
+      expect(slugs).toEqual([]);
     });
   });
 
@@ -285,7 +328,7 @@ describe("projects 数据层", () => {
       mockReaddirSync.mockReturnValue(["test-project.md"]);
       mockReadFileSync.mockReturnValueOnce(VALID_PROJECT_MD);
 
-      const project = await getProjectBySlug("test-project");
+      const project = await getProjectBySlug("test-project", TEST_LOCALE);
 
       expect(project).not.toBeNull();
       expect(project!.title).toBe("Test Project");
@@ -297,7 +340,7 @@ describe("projects 数据层", () => {
       mockReaddirSync.mockReturnValue(["test-project.md"]);
       mockReadFileSync.mockReturnValueOnce(VALID_PROJECT_MD);
 
-      const project = await getProjectBySlug("non-existent");
+      const project = await getProjectBySlug("non-existent", TEST_LOCALE);
 
       expect(project).toBeNull();
     });
@@ -307,7 +350,7 @@ describe("projects 数据层", () => {
       mockReaddirSync.mockReturnValue(["draft-project.md"]);
       mockReadFileSync.mockReturnValueOnce(DRAFT_PROJECT_MD);
 
-      const project = await getProjectBySlug("draft-project");
+      const project = await getProjectBySlug("draft-project", TEST_LOCALE);
 
       expect(project).toBeNull();
     });
@@ -315,7 +358,7 @@ describe("projects 数据层", () => {
     it("目录不存在时返回 null", async () => {
       mockExistsSync.mockReturnValue(false);
 
-      const project = await getProjectBySlug("any-slug");
+      const project = await getProjectBySlug("any-slug", TEST_LOCALE);
 
       expect(project).toBeNull();
     });
@@ -325,7 +368,7 @@ describe("projects 数据层", () => {
       mockReaddirSync.mockReturnValue(["no-slug-project.md"]);
       mockReadFileSync.mockReturnValueOnce(NO_SLUG_PROJECT_MD);
 
-      const project = await getProjectBySlug("no-slug-project");
+      const project = await getProjectBySlug("no-slug-project", TEST_LOCALE);
 
       expect(project).not.toBeNull();
       expect(project!.title).toBe("No Slug Project");

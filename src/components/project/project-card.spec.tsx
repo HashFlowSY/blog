@@ -33,6 +33,7 @@ const baseProject: ProjectMeta = {
   source: "https://github.com/example/repo",
   demo: "https://example.com",
   featured: false,
+  locale: "zh-CN",
 };
 
 describe("ProjectCard", () => {

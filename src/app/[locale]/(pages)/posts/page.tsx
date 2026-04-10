@@ -43,8 +43,8 @@ export default async function PostsPage({ params }: Props) {
   setRequestLocale(locale);
 
   const t = await getTranslations({ locale, namespace: "postPage" });
-  const posts = getAllPostsMeta();
-  const tags = getAllTags();
+  const posts = getAllPostsMeta(locale);
+  const tags = getAllTags(locale);
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-12">
@@ -54,6 +54,7 @@ export default async function PostsPage({ params }: Props) {
         tags={tags}
         emptyText={t("empty")}
         updatedLabel={t("updatedAt")}
+        minutesLabel={t("minutes")}
         locale={locale}
       />
     </div>

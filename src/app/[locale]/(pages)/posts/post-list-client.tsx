@@ -15,6 +15,7 @@ interface PostListClientProps {
   tags: string[];
   emptyText: string;
   updatedLabel?: string;
+  minutesLabel?: string;
   locale: string;
 }
 
@@ -23,6 +24,7 @@ export function PostListClient({
   tags,
   emptyText,
   updatedLabel,
+  minutesLabel,
   locale,
 }: PostListClientProps) {
   const t = useTranslations("common");
@@ -77,7 +79,8 @@ export function PostListClient({
               <FadeIn key={post.slug} delay={i * 50}>
                 <PostCard
                   post={post}
-                  {...(updatedLabel !== undefined && { updatedLabel })}
+                  {...(updatedLabel !== null && { updatedLabel })}
+                  {...(minutesLabel !== null && { minutesLabel })}
                 />
               </FadeIn>
             ))}

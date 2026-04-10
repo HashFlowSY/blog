@@ -40,7 +40,7 @@ describe("ShareButtons", () => {
     vi.stubGlobal("window", { open: openSpy });
 
     const { getByLabelText } = render(<ShareButtons {...props} />);
-    fireEvent.click(getByLabelText("Share on Twitter"));
+    fireEvent.click(getByLabelText("shareOnX"));
 
     expect(openSpy).toHaveBeenCalledWith(
       expect.stringContaining("twitter.com/intent/tweet"),
@@ -57,7 +57,7 @@ describe("ShareButtons", () => {
     });
 
     const { getByLabelText } = render(<ShareButtons {...props} />);
-    fireEvent.click(getByLabelText("Copy link"));
+    fireEvent.click(getByLabelText("copyLink"));
 
     expect(writeText).toHaveBeenCalledWith(props.url);
   });
@@ -70,12 +70,12 @@ describe("ShareButtons", () => {
     });
 
     const { getByLabelText } = render(<ShareButtons {...props} />);
-    const copyButton = getByLabelText("Copy link");
+    const copyButton = getByLabelText("copyLink");
     await act(async () => {
       fireEvent.click(copyButton);
     });
 
-    expect(copyButton).toHaveTextContent("Copied!");
+    expect(copyButton).toHaveTextContent("copied");
   });
 
   it("native share button calls navigator.share", async () => {
@@ -86,7 +86,7 @@ describe("ShareButtons", () => {
     });
 
     const { getByLabelText } = render(<ShareButtons {...props} />);
-    fireEvent.click(getByLabelText("Share"));
+    fireEvent.click(getByLabelText("share"));
 
     expect(share).toHaveBeenCalledWith({
       url: props.url,
@@ -102,6 +102,6 @@ describe("ShareButtons", () => {
     });
 
     const { getByLabelText } = render(<ShareButtons {...props} />);
-    expect(() => fireEvent.click(getByLabelText("Share"))).not.toThrow();
+    expect(() => fireEvent.click(getByLabelText("share"))).not.toThrow();
   });
 });

@@ -12,7 +12,7 @@ const FEED_CONFIG = {
 } as const;
 
 export async function GET() {
-  const posts = getAllPostsMeta();
+  const posts = getAllPostsMeta("en-US");
 
   const items = posts.map((post) => ({
     title: post.title,

@@ -29,6 +29,8 @@ test.describe("Post detail", () => {
   });
 
   test("table of contents exists", async ({ page }) => {
+    const zh = getText("zh-CN");
+
     await goToPosts(page);
 
     await Promise.all([
@@ -36,7 +38,7 @@ test.describe("Post detail", () => {
       page.locator("article a").first().click(),
     ]);
 
-    const toc = page.locator('nav[aria-label="Table of contents"]');
+    const toc = page.locator(`nav[aria-label="${zh.toc}"]`);
     await expect(toc).toBeAttached();
 
     const tocLinks = toc.locator("a");
@@ -57,6 +59,8 @@ test.describe("Post detail", () => {
   });
 
   test("copy link button works", async ({ page }) => {
+    const zh = getText("zh-CN");
+
     await goToPosts(page);
 
     await Promise.all([
@@ -64,12 +68,12 @@ test.describe("Post detail", () => {
       page.locator("article a").first().click(),
     ]);
 
-    const copyButton = page.getByRole("button", { name: "Copy link" });
+    const copyButton = page.getByRole("button", { name: zh.copyLink });
     await expect(copyButton).toBeVisible();
 
     await copyButton.click();
 
-    await expect(copyButton).not.toContainText("Copy link");
-    await expect(copyButton).toContainText("Copied");
+    await expect(copyButton).not.toContainText(zh.copyLink);
+    await expect(copyButton).toContainText(zh.copied);
   });
 });

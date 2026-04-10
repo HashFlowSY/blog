@@ -3,18 +3,17 @@
  *
  * Usage: pnpm generate:search
  *
- * Reads all published posts from content/posts/, extracts plaintext content,
+ * Reads all published posts from content/posts/{locale}/, extracts plaintext content,
  * and writes a JSON array to public/search-index.json.
  */
 
 import fs from "fs";
 import path from "path";
 
-import matter from "gray-matter";
+import { getAllPostsMeta } from "../lib/posts";
 
 import type { SearchIndexEntry } from "../lib/search/search-types";
 
-const POSTS_DIR = path.join(process.cwd(), "content/posts");
 const OUTPUT_PATH = path.join(process.cwd(), "public/search-index.json");
 const CONTENT_MAX_LENGTH = 2000;
 const LOCALES = ["zh-CN", "en-US"] as const;
@@ -48,45 +47,30 @@ function stripMarkdownSyntax(text: string): string {
 }
 
 function main(): void {
-  if (!fs.existsSync(POSTS_DIR)) {
-    console.error(`[search] Posts directory not found: ${POSTS_DIR}`);
-    process.exit(1);
-  }
-
-  const files = fs.readdirSync(POSTS_DIR).filter((f) => f.endsWith(".md"));
-
   const entries: SearchIndexEntry[] = [];
 
-  for (const file of files) {
-    const raw = fs.readFileSync(path.join(POSTS_DIR, file), "utf-8");
-    const { data, content } = matter(raw);
+  for (const locale of LOCALES) {
+    const posts = getAllPostsMeta(locale);
 
-    // Skip drafts
-    if (data["draft"] === true) continue;
+    for (const post of posts) {
+      // Read the raw markdown file to get content for search
+      const postsDir = path.join(process.cwd(), "content/posts", locale);
+      const filePath = path.join(postsDir, `${post.slug}.md`);
 
-    const slug =
-      typeof data["slug"] === "string"
-        ? data["slug"]
-        : file.replace(/\.md$/, "");
+      if (!fs.existsSync(filePath)) continue;
 
-    const title = typeof data["title"] === "string" ? data["title"] : slug;
-    const summary = typeof data["summary"] === "string" ? data["summary"] : "";
-    const tags = Array.isArray(data["tags"]) ? data["tags"] : [];
+      const raw = fs.readFileSync(filePath, "utf-8");
+      const plainContent = stripMarkdownSyntax(raw);
+      const truncatedContent =
+        plainContent.length > CONTENT_MAX_LENGTH
+          ? `${plainContent.slice(0, CONTENT_MAX_LENGTH)}…`
+          : plainContent;
 
-    // Strip markdown syntax and truncate for search index
-    const plainContent = stripMarkdownSyntax(content);
-    const truncatedContent =
-      plainContent.length > CONTENT_MAX_LENGTH
-        ? `${plainContent.slice(0, CONTENT_MAX_LENGTH)}…`
-        : plainContent;
-
-    // Create one entry per locale (content is the same, locale tag differs)
-    for (const locale of LOCALES) {
       entries.push({
-        slug,
-        title,
-        summary,
-        tags,
+        slug: post.slug,
+        title: post.title,
+        summary: post.summary,
+        tags: post.tags,
         content: truncatedContent,
         locale,
       });
@@ -103,7 +87,7 @@ function main(): void {
 
   // eslint-disable-next-line no-console -- build script output
   console.log(
-    `[search] Generated ${entries.length} entries (${entries.length / LOCALES.length} posts × ${LOCALES.length} locales) → ${OUTPUT_PATH}`,
+    `[search] Generated ${entries.length} entries across ${LOCALES.length} locales → ${OUTPUT_PATH}`,
   );
 }
 

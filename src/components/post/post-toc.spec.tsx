@@ -117,15 +117,15 @@ describe("PostToc", () => {
     expect(mockObserve).toHaveBeenCalled();
   });
 
-  it("renders toggle button with Table of Contents text", () => {
+  it("renders toggle button with toc text", () => {
     const { getByRole } = render(<PostToc headings={headings} />);
-    const button = getByRole("button", { name: /table of contents/i });
+    const button = getByRole("button", { name: /toc/i });
     expect(button).toBeInTheDocument();
   });
 
   it("toggle button has aria-expanded=false by default", () => {
     const { getByRole } = render(<PostToc headings={headings} />);
-    const button = getByRole("button", { name: /table of contents/i });
+    const button = getByRole("button", { name: /toc/i });
     expect(button).toHaveAttribute("aria-expanded", "false");
   });
 
@@ -137,7 +137,7 @@ describe("PostToc", () => {
 
   it("clicking toggle shows heading list", () => {
     const { getByRole, container } = render(<PostToc headings={headings} />);
-    const button = getByRole("button", { name: /table of contents/i });
+    const button = getByRole("button", { name: /toc/i });
     fireEvent.click(button);
 
     expect(button).toHaveAttribute("aria-expanded", "true");
@@ -148,7 +148,7 @@ describe("PostToc", () => {
 
   it("clicking toggle twice hides heading list again", () => {
     const { getByRole, container } = render(<PostToc headings={headings} />);
-    const button = getByRole("button", { name: /table of contents/i });
+    const button = getByRole("button", { name: /toc/i });
 
     fireEvent.click(button);
     expect(button).toHaveAttribute("aria-expanded", "true");
@@ -170,10 +170,10 @@ describe("PostToc - A11y (M4: Nav aria-label)", () => {
     document.body.innerHTML = "";
   });
 
-  it("nav has aria-label='Table of contents'", () => {
+  it("nav has aria-label from translation", () => {
     const { container } = render(<PostToc headings={headings} />);
     const nav = container.querySelector("nav");
-    expect(nav).toHaveAttribute("aria-label", "Table of contents");
+    expect(nav).toHaveAttribute("aria-label", "toc");
   });
 });
 

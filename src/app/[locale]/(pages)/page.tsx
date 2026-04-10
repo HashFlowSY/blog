@@ -45,8 +45,8 @@ export default async function HomePage({ params }: Props) {
     getTranslations({ locale, namespace: "projectPage" }),
   ]);
 
-  const recentPosts = getAllPostsMeta().slice(0, 6);
-  const featuredProjects = getFeaturedProjects().slice(0, 4);
+  const recentPosts = getAllPostsMeta(locale).slice(0, 6);
+  const featuredProjects = getFeaturedProjects(locale).slice(0, 4);
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -100,7 +100,11 @@ export default async function HomePage({ params }: Props) {
               {tPostPage("allPosts")} &rarr;
             </Link>
           </div>
-          <PostList posts={recentPosts} updatedLabel={tPostPage("updatedAt")} />
+          <PostList
+            posts={recentPosts}
+            updatedLabel={tPostPage("updatedAt")}
+            minutesLabel={tPostPage("minutes")}
+          />
         </section>
       )}
 

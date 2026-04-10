@@ -6,7 +6,7 @@ import { CodeBlockEnhancer } from "@/components/post/code-block";
 import { TagBadge } from "@/components/tag";
 import { Link } from "@/i18n/navigation";
 import { localeParamsWith } from "@/i18n/routing";
-import { getProjectBySlug, getAllProjectsMeta } from "@/lib/projects";
+import { getProjectBySlug, getAllProjectSlugs } from "@/lib/projects";
 import { siteUrl } from "@/lib/site";
 
 import type { Metadata } from "next";
@@ -16,14 +16,12 @@ interface Props {
 }
 
 export function generateStaticParams() {
-  return localeParamsWith(
-    getAllProjectsMeta().map((project) => ({ slug: project.slug })),
-  );
+  return localeParamsWith(getAllProjectSlugs().map((slug) => ({ slug })));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale, slug } = await params;
-  const project = await getProjectBySlug(slug);
+  const project = await getProjectBySlug(slug, locale);
   if (!project) return {};
 
   const canonical = siteUrl(`/${locale}/projects/${slug}/`);
@@ -55,7 +53,7 @@ export default async function ProjectDetailPage({ params }: Props) {
   const { locale, slug } = await params;
   setRequestLocale(locale);
 
-  const project = await getProjectBySlug(slug);
+  const project = await getProjectBySlug(slug, locale);
   if (!project) notFound();
 
   const t = await getTranslations({ locale, namespace: "projectPage" });

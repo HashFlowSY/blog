@@ -33,8 +33,9 @@ vi.mock("@/lib/projects", () => ({
     demo: "https://example.com",
     featured: true,
     content: "<p>Project content here.</p>",
+    locale: "zh-CN",
   }),
-  getAllProjectsMeta: () => [
+  getAllProjectsMeta: (_locale: string) => [
     {
       slug: "test-project",
       title: "Test Project",
@@ -45,6 +46,7 @@ vi.mock("@/lib/projects", () => ({
       source: "https://github.com/example/repo",
       demo: "https://example.com",
       featured: true,
+      locale: "zh-CN",
     },
   ],
 }));

@@ -101,6 +101,7 @@ const posts: PostMeta[] = [
     summary: "Learn React",
     cover: null,
     readingTime: 0,
+    locale: "zh-CN",
   },
   {
     slug: "post-2",
@@ -111,6 +112,7 @@ const posts: PostMeta[] = [
     summary: "Learn Rust",
     cover: null,
     readingTime: 0,
+    locale: "zh-CN",
   },
   {
     slug: "post-3",
@@ -121,6 +123,7 @@ const posts: PostMeta[] = [
     summary: "TS tips",
     cover: null,
     readingTime: 0,
+    locale: "zh-CN",
   },
 ];
 
@@ -130,6 +133,7 @@ const defaultProps = {
   posts,
   tags,
   emptyText: "No posts found",
+  minutesLabel: "min read",
   locale: "zh-CN",
 };
 

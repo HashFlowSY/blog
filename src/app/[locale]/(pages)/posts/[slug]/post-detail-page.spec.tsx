@@ -33,8 +33,9 @@ vi.mock("@/lib/posts", () => ({
     content:
       '<h1 id="intro">Introduction</h1><p>Content here.</p><h2 id="details">Details</h2><p>More details.</p>',
     readingTime: 1,
+    locale: "zh-CN",
   }),
-  getAllPostsMeta: () => [
+  getAllPostsMeta: (_locale: string) => [
     {
       slug: "test-post",
       title: "Test Post",
@@ -44,6 +45,7 @@ vi.mock("@/lib/posts", () => ({
       summary: "A test post summary",
       cover: null,
       readingTime: 1,
+      locale: "zh-CN",
     },
     {
       slug: "other-post",
@@ -54,9 +56,10 @@ vi.mock("@/lib/posts", () => ({
       summary: "Another post",
       cover: null,
       readingTime: 1,
+      locale: "zh-CN",
     },
   ],
-  getAdjacentPosts: () => ({
+  getAdjacentPosts: (_slug: string, _locale: string) => ({
     prev: { slug: "prev-post", title: "Previous Post" },
     next: { slug: "next-post", title: "Next Post" },
   }),

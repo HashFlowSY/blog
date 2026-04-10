@@ -21,6 +21,7 @@ const posts: PostMeta[] = [
     summary: "",
     cover: null,
     readingTime: 0,
+    locale: "zh-CN",
   },
   {
     slug: "post-2",
@@ -31,6 +32,7 @@ const posts: PostMeta[] = [
     summary: "",
     cover: null,
     readingTime: 0,
+    locale: "zh-CN",
   },
 ];
 
@@ -45,9 +47,9 @@ describe("PostList", () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it("passes updatedLabel to PostCard when provided", () => {
+  it("passes updatedLabel and minutesLabel to PostCard when provided", () => {
     const { container } = render(
-      <PostList posts={posts} updatedLabel="Updated" />,
+      <PostList posts={posts} updatedLabel="Updated" minutesLabel="min read" />,
     );
     expect(container.firstChild).not.toBeNull();
   });

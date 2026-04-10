@@ -9,7 +9,7 @@ import { TagBadge } from "@/components/tag";
 import { Link } from "@/i18n/navigation";
 import { localeParamsWith } from "@/i18n/routing";
 import { extractHeadings } from "@/lib/markdown";
-import { getPostBySlug, getAllPostsMeta, getAdjacentPosts } from "@/lib/posts";
+import { getPostBySlug, getAdjacentPosts, getAllPostSlugs } from "@/lib/posts";
 import { siteUrl } from "@/lib/site";
 
 import type { Metadata } from "next";
@@ -19,14 +19,12 @@ interface Props {
 }
 
 export function generateStaticParams() {
-  return localeParamsWith(
-    getAllPostsMeta().map((post) => ({ slug: post.slug })),
-  );
+  return localeParamsWith(getAllPostSlugs().map((slug) => ({ slug })));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale, slug } = await params;
-  const post = await getPostBySlug(slug);
+  const post = await getPostBySlug(slug, locale);
   if (!post) return {};
 
   const canonical = siteUrl(`/${locale}/posts/${slug}/`);
@@ -59,11 +57,11 @@ export default async function PostDetailPage({ params }: Props) {
   const { locale, slug } = await params;
   setRequestLocale(locale);
 
-  const post = await getPostBySlug(slug);
+  const post = await getPostBySlug(slug, locale);
   if (!post) notFound();
 
   const t = await getTranslations({ locale, namespace: "postPage" });
-  const { prev, next } = getAdjacentPosts(slug);
+  const { prev, next } = getAdjacentPosts(slug, locale);
   const headings = extractHeadings(post.content);
 
   const jsonLd = {

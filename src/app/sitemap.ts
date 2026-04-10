@@ -8,22 +8,21 @@ import type { MetadataRoute } from "next";
 export const dynamic = "force-static";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const posts = getAllPostsMeta();
-  const projects = getAllProjectsMeta();
-
-  const postEntries = posts.flatMap((post) =>
-    routing.locales.map((locale) => ({
+  const postEntries = routing.locales.flatMap((locale) => {
+    const posts = getAllPostsMeta(locale);
+    return posts.map((post) => ({
       url: siteUrl(`/${locale}/posts/${post.slug}/`),
       lastModified: new Date(post.updated),
-    })),
-  );
+    }));
+  });
 
-  const projectEntries = projects.flatMap((project) =>
-    routing.locales.map((locale) => ({
+  const projectEntries = routing.locales.flatMap((locale) => {
+    const projects = getAllProjectsMeta(locale);
+    return projects.map((project) => ({
       url: siteUrl(`/${locale}/projects/${project.slug}/`),
       lastModified: new Date(project.date),
-    })),
-  );
+    }));
+  });
 
   const staticPages = routing.locales.flatMap((locale) => [
     { url: siteUrl(`/${locale}/`), lastModified: new Date() },
