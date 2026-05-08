@@ -1,6 +1,5 @@
 "use client";
 
-import { useTranslations } from "next-intl";
 import { useEffect, useRef } from "react";
 
 interface CodeBlockEnhancerProps {
@@ -9,14 +8,13 @@ interface CodeBlockEnhancerProps {
 
 export function CodeBlockEnhancer({ children }: CodeBlockEnhancerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const t = useTranslations("postPage");
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    const copyLabel = t("copyCode");
-    const copiedLabel = t("copied");
+    const copyLabel = "复制代码";
+    const copiedLabel = "已复制";
 
     const blocks = container.querySelectorAll<HTMLElement>(".code-block");
     const cleanups: Array<() => void> = [];
@@ -25,6 +23,10 @@ export function CodeBlockEnhancer({ children }: CodeBlockEnhancerProps) {
       const header = block.querySelector<HTMLElement>(".code-block-header");
       const codeEl = block.querySelector<HTMLPreElement>("pre code");
       if (!codeEl) continue;
+
+      block
+        .querySelectorAll<HTMLButtonElement>(".code-block-copy")
+        .forEach((button) => button.remove());
 
       const text = codeEl.textContent ?? "";
 
@@ -67,12 +69,14 @@ export function CodeBlockEnhancer({ children }: CodeBlockEnhancerProps) {
 
       if (header) {
         header.appendChild(button);
+        cleanups.push(() => button.remove());
       } else {
         // No header — create one and prepend
         const newHeader = document.createElement("div");
         newHeader.className = "code-block-header";
         newHeader.appendChild(button);
         block.insertBefore(newHeader, block.firstChild);
+        cleanups.push(() => newHeader.remove());
       }
     }
 
@@ -81,7 +85,7 @@ export function CodeBlockEnhancer({ children }: CodeBlockEnhancerProps) {
         cleanup();
       }
     };
-  }, [t]);
+  }, []);
 
   return (
     <div ref={containerRef} className="contents">

@@ -14,38 +14,79 @@ concurrency:
   group: "pages"
 
 jobs:
-  build:
+  deployment-config:
+    name: Deployment Config
     runs-on: ubuntu-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    outputs:
+      base-path: ${{ steps.base-path.outputs.base_path }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: "pnpm"
-      - run: pnpm install --frozen-lockfile
+      - name: Validate required variables
+        env:
+          NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL }}
+        run: |
+          if [ -z "$NEXT_PUBLIC_SITE_URL" ]; then
+            echo "::error title=Missing NEXT_PUBLIC_SITE_URL::Set NEXT_PUBLIC_SITE_URL in Settings > Secrets and variables > Actions > Variables."
+            exit 1
+          fi
       - name: Determine base path
         id: base-path
         run: |
-          if [ "${{ github.repository }}" = "$(echo ${{ github.repository_owner }}.github.io)" ]; then
+          if [ "${{ github.event.repository.name }}" = "${{ github.repository_owner }}.github.io" ]; then
               echo "base_path=" >> "$GITHUB_OUTPUT"
           else
               echo "base_path=/${{ github.event.repository.name }}" >> "$GITHUB_OUTPUT"
           fi
+
+  quality-gate:
+    name: Quality Gate
+    needs: deployment-config
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11.0.8
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm tsc --noEmit
+      - run: pnpm test:coverage
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:e2e
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: deploy-playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+  build:
+    needs: [deployment-config, quality-gate]
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11.0.8
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
       - name: Build with Next.js
         run: pnpm build
         env:
-          BASE_PATH: ${{ steps.base-path.outputs.base_path }}
+          BASE_PATH: ${{ needs.deployment-config.outputs.base-path }}
           NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL }}
-          NEXT_PUBLIC_PLAUSIBLE_DOMAIN: ${{ vars.NEXT_PUBLIC_PLAUSIBLE_DOMAIN }}
-          NEXT_PUBLIC_UMAMI_ID: ${{ vars.NEXT_PUBLIC_UMAMI_ID }}
-          NEXT_PUBLIC_SEARCH_BASE_PATH: ${{ vars.NEXT_PUBLIC_SEARCH_BASE_PATH }}
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: ./out
 
@@ -58,4 +99,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

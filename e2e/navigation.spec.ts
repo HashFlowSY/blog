@@ -1,7 +1,7 @@
 import { expect, type Page } from "@playwright/test";
 
 import { test } from "./fixtures";
-import { goToHome, goToPosts, goToAbout, getText } from "./helpers/navigation";
+import { goToHome, goToPosts, getText } from "./helpers/navigation";
 
 /**
  * Click a navigation link and wait for the URL to change.
@@ -21,11 +21,11 @@ async function clickNavAndWait(
 }
 
 test.describe("Navigation", () => {
-  test("root path / redirects to /zh-CN/", async ({ page }) => {
+  test("root path / renders the Chinese home page", async ({ page }) => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
 
-    expect(page.url()).toMatch(/\/zh-CN\/$/);
+    expect(new URL(page.url()).pathname).toBe("/");
   });
 
   test("header navigation links navigate correctly on desktop", async ({
@@ -36,34 +36,38 @@ test.describe("Navigation", () => {
     await goToHome(page);
     await clickNavAndWait(
       page,
-      'nav[aria-label="Main navigation"]',
+      'nav[aria-label="主导航"]',
       zh.posts,
-      /\/zh-CN\/posts\//,
+      /\/posts\//,
     );
-    expect(page.url()).toContain("/zh-CN/posts/");
+    expect(page.url()).toContain("/posts/");
 
     await goToHome(page);
     await clickNavAndWait(
       page,
-      'nav[aria-label="Main navigation"]',
+      'nav[aria-label="主导航"]',
       zh.projects,
-      /\/zh-CN\/projects\//,
+      /\/projects\//,
     );
-    expect(page.url()).toContain("/zh-CN/projects/");
+    expect(page.url()).toContain("/projects/");
 
     await goToHome(page);
     await clickNavAndWait(
       page,
-      'nav[aria-label="Main navigation"]',
+      'nav[aria-label="主导航"]',
       zh.about,
-      /\/zh-CN\/about\//,
+      /\/about\//,
     );
-    expect(page.url()).toContain("/zh-CN/about/");
+    expect(page.url()).toContain("/about/");
 
     await goToHome(page);
-    const logoLink = page.locator("header a").first();
-    await Promise.all([page.waitForURL(/\/zh-CN\/$/), logoLink.click()]);
-    expect(page.url()).toMatch(/\/zh-CN\/$/);
+    await goToPosts(page);
+    const logoLink = page.getByRole("link", { name: "回到首页" });
+    await Promise.all([
+      page.waitForURL((url) => url.pathname === "/"),
+      logoLink.click(),
+    ]);
+    expect(new URL(page.url()).pathname).toBe("/");
   });
 
   test("header highlights active page link", async ({ page }) => {
@@ -71,15 +75,15 @@ test.describe("Navigation", () => {
 
     await goToPosts(page);
 
-    const nav = page.locator('nav[aria-label="Main navigation"]');
+    const nav = page.locator('nav[aria-label="主导航"]');
     const postsLink = nav.locator("a").filter({ hasText: zh.posts }).first();
-    await expect(postsLink).toHaveClass(/font-medium/);
+    await expect(postsLink).toHaveAttribute("aria-current", "page");
 
     const projectsLink = nav
       .locator("a")
       .filter({ hasText: zh.projects })
       .first();
-    await expect(projectsLink).toHaveClass(/text-muted-foreground/);
+    await expect(projectsLink).toHaveAttribute("aria-current", "false");
   });
 
   test("browser back/forward works correctly", async ({ page }) => {
@@ -88,30 +92,27 @@ test.describe("Navigation", () => {
     await goToHome(page);
     await clickNavAndWait(
       page,
-      'nav[aria-label="Main navigation"]',
+      'nav[aria-label="主导航"]',
       zh.posts,
-      /\/zh-CN\/posts\//,
+      /\/posts\//,
     );
-    expect(page.url()).toContain("/zh-CN/posts/");
+    expect(page.url()).toContain("/posts/");
 
     const firstPost = page.locator("article a").first();
-    await Promise.all([
-      page.waitForURL(/\/zh-CN\/posts\/.+\//),
-      firstPost.click(),
-    ]);
-    expect(page.url()).toMatch(/\/zh-CN\/posts\/.+\//);
+    await Promise.all([page.waitForURL(/\/posts\/.+\//), firstPost.click()]);
+    expect(page.url()).toMatch(/\/posts\/.+\//);
 
     await page.goBack();
-    await page.waitForURL(/\/zh-CN\/posts\//);
-    expect(page.url()).toContain("/zh-CN/posts/");
+    await page.waitForURL(/\/posts\//);
+    expect(page.url()).toContain("/posts/");
 
     await page.goBack();
-    await page.waitForURL(/\/zh-CN\/$/);
-    expect(page.url()).toMatch(/\/zh-CN\/$/);
+    await page.waitForURL((url) => url.pathname === "/");
+    expect(new URL(page.url()).pathname).toBe("/");
 
     await page.goForward();
-    await page.waitForURL(/\/zh-CN\/posts\//);
-    expect(page.url()).toContain("/zh-CN/posts/");
+    await page.waitForURL(/\/posts\//);
+    expect(page.url()).toContain("/posts/");
   });
 
   test("mobile hamburger menu opens and navigates", async ({ page }) => {
@@ -120,55 +121,19 @@ test.describe("Navigation", () => {
     await page.setViewportSize({ width: 375, height: 667 });
     await goToHome(page);
 
-    const menuButton = page.getByRole("button", { name: "Toggle menu" });
+    const menuButton = page.getByRole("button", { name: "菜单" });
     await menuButton.click();
 
     await expect(menuButton).toHaveAttribute("aria-expanded", "true");
 
-    const mobileNav = page.locator("#mobile-nav");
+    const mobileNav = page.locator("#site-nav");
     await expect(mobileNav).toBeVisible();
 
-    await clickNavAndWait(page, "#mobile-nav", zh.posts, /\/zh-CN\/posts\//);
+    await clickNavAndWait(page, "#site-nav", zh.posts, /\/posts\//);
 
-    expect(page.url()).toContain("/zh-CN/posts/");
+    expect(page.url()).toContain("/posts/");
 
     await expect(menuButton).toHaveAttribute("aria-expanded", "false");
-    await expect(mobileNav).toBeHidden();
-  });
-
-  test("switch from zh-CN to en-US", async ({ page }) => {
-    await goToPosts(page, "zh-CN");
-
-    await clickNavAndWait(
-      page,
-      'nav[aria-label="Main navigation"]',
-      "EN",
-      /\/en-US\/posts\//,
-    );
-
-    expect(page.url()).toContain("/en-US/posts/");
-
-    const en = getText("en-US");
-    await expect(
-      page.getByRole("heading", { name: en.allPosts }),
-    ).toBeVisible();
-  });
-
-  test("switch from en-US back to zh-CN", async ({ page }) => {
-    await goToAbout(page, "en-US");
-
-    await clickNavAndWait(
-      page,
-      'nav[aria-label="Main navigation"]',
-      "中文",
-      /\/zh-CN\/about\//,
-    );
-
-    expect(page.url()).toContain("/zh-CN/about/");
-
-    const zh = getText("zh-CN");
-    await expect(
-      page.getByRole("heading", { name: zh.aboutTitle }),
-    ).toBeVisible();
+    await expect(mobileNav).not.toBeVisible();
   });
 });

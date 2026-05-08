@@ -24,7 +24,6 @@ export default defineConfig({
         "src/**/types/**",
         "src/**/*.d.ts",
         "src/i18n/types.ts",
-        "src/components/tag/index.ts",
         // 配置文件
         "src/**/*.config.ts",
         // Next.js 服务端组件和特殊文件
@@ -42,10 +41,10 @@ export default defineConfig({
         "src/i18n/routing.ts",
         "src/i18n/request.ts",
         "src/i18n/navigation.ts",
-        // 第三方 shadcn/ui 组件（无自定义逻辑）
-        "src/components/ui/**",
         // 构建脚本
         "src/scripts/**",
+        // 测试辅助代码
+        "src/test-utils/**",
         // 测试文件自身
         "src/**/*.spec.{ts,tsx}",
         "src/**/*.test-utils.{ts,tsx}",

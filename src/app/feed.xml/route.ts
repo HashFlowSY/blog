@@ -5,9 +5,9 @@ import { siteUrl } from "@/lib/site";
 export const dynamic = "force-static";
 
 const FEED_CONFIG = {
-  title: "HashFlow's Blog",
+  title: "废料通信站",
   link: siteUrl("/"),
-  description: "Personal blog about web development and technology",
+  description: "个人网站，写文章，写项目",
   language: "zh-CN",
 } as const;
 
@@ -16,7 +16,7 @@ export async function GET() {
 
   const items = posts.map((post) => ({
     title: post.title,
-    link: siteUrl(`/zh-CN/posts/${post.slug}/`),
+    link: siteUrl(`/posts/${post.slug}/`),
     description: post.summary ?? "",
     pubDate: post.updated,
     categories: post.tags,

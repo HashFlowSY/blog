@@ -1,76 +1,48 @@
 import { expect } from "@playwright/test";
 
-import { LOCALES, test } from "./fixtures";
-import { goToPosts } from "./helpers/navigation";
+import { test } from "./fixtures";
+import { goToPosts, goToProjects } from "./helpers/navigation";
 
-test.describe("Search integration", () => {
-  test("typing search query shows matching results", async ({ page }) => {
+test.describe("Filter integration", () => {
+  test("article filter buttons narrow and restore the archive list", async ({
+    page,
+  }) => {
     await goToPosts(page, "zh-CN");
 
-    const searchInput = page.locator('input[role="combobox"]');
-    await expect(searchInput).toBeVisible();
+    const articles = page.locator(".article-list article");
+    const totalCount = await articles.count();
+    expect(totalCount).toBeGreaterThan(0);
 
-    // Get the title of the first post to use as a content-agnostic search query
-    const firstPostTitle = await page
-      .locator("article")
-      .first()
-      .getByRole("heading")
-      .textContent();
+    const filters = page.getByLabel("文章筛选").getByRole("button");
+    const filterCount = await filters.count();
+    expect(filterCount).toBeGreaterThan(0);
 
-    // Type the first word of the title
-    const firstWord = firstPostTitle?.split(/\s+/)[0] ?? "";
-    await searchInput.pressSequentially(firstWord, { delay: 100 });
+    if (filterCount > 1) {
+      await filters.nth(1).click();
+      expect(await articles.count()).toBeLessThanOrEqual(totalCount);
+      await expect(filters.nth(1)).toHaveAttribute("aria-pressed", "true");
+    }
 
-    const listbox = page.locator('[role="listbox"]');
-    await expect(listbox).toBeVisible();
-
-    const resultItems = listbox.locator('[role="option"]');
-    await expect(resultItems.first()).toContainText(firstPostTitle!);
+    await filters.first().click();
+    await expect(filters.first()).toHaveAttribute("aria-pressed", "true");
+    await expect(articles).toHaveCount(totalCount);
   });
 
-  test("no matching results shows empty state", async ({ page }) => {
-    await goToPosts(page, "zh-CN");
+  test("project filter buttons narrow the project board", async ({ page }) => {
+    await goToProjects(page, "zh-CN");
 
-    const searchInput = page.locator('input[role="combobox"]');
-    await expect(searchInput).toBeVisible();
+    const projects = page.locator(".project-grid article");
+    const totalCount = await projects.count();
+    expect(totalCount).toBeGreaterThan(0);
 
-    await searchInput.pressSequentially("xyznonexistent123", { delay: 100 });
+    const filters = page.getByLabel("项目筛选").getByRole("button");
+    const filterCount = await filters.count();
+    expect(filterCount).toBeGreaterThan(0);
 
-    const listbox = page.locator('[role="listbox"]');
-    await expect(listbox).toContainText(LOCALES["zh-CN"].noResults);
-
-    const resultItems = listbox.locator('[role="option"]');
-    await expect(resultItems).toHaveCount(0);
-  });
-
-  test("clearing search restores full article list", async ({ page }) => {
-    await goToPosts(page, "zh-CN");
-
-    const searchInput = page.locator('input[role="combobox"]');
-    await expect(searchInput).toBeVisible();
-
-    // Get the first post title for a content-agnostic search query
-    const firstPostTitle = await page
-      .locator("article")
-      .first()
-      .getByRole("heading")
-      .textContent();
-
-    const firstWord = firstPostTitle?.split(/\s+/)[0] ?? "";
-    await searchInput.pressSequentially(firstWord, { delay: 100 });
-
-    const listbox = page.locator('[role="listbox"]');
-    await expect(listbox).toBeVisible();
-
-    const clearButton = page.locator(
-      'button[aria-label="Clear search"], button[aria-label="清除搜索"]',
-    );
-    await expect(clearButton).toBeVisible();
-    await clearButton.click();
-
-    await expect(searchInput).toHaveValue("");
-
-    const postCards = page.locator("article");
-    await expect(postCards.first()).toBeVisible();
+    if (filterCount > 1) {
+      await filters.nth(1).click();
+      expect(await projects.count()).toBeLessThanOrEqual(totalCount);
+      await expect(filters.nth(1)).toHaveAttribute("aria-pressed", "true");
+    }
   });
 });

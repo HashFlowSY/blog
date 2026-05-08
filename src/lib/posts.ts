@@ -6,7 +6,6 @@ import { createContentLoader } from "./content-loader";
 import { estimateReadingTime } from "./reading-time";
 
 import type { ContentLoader } from "./content-loader";
-import type { Locale } from "@/i18n/routing";
 
 // ---------------------------------------------------------------------------
 // Schema
@@ -59,8 +58,11 @@ export interface PostMeta {
 // ---------------------------------------------------------------------------
 
 const POSTS_BASE_DIR = path.join(process.cwd(), "content/posts");
+const DEFAULT_CONTENT_LOCALE = "zh-CN";
 
-function createPostsLoader(locale: string): ContentLoader<PostMeta, Post> {
+function createPostsLoader(
+  locale = DEFAULT_CONTENT_LOCALE,
+): ContentLoader<PostMeta, Post> {
   const contentDir = path.join(POSTS_BASE_DIR, locale);
 
   return createContentLoader({
@@ -122,25 +124,27 @@ function getLoader(locale: string): ContentLoader<PostMeta, Post> {
 // ---------------------------------------------------------------------------
 
 /** 获取所有已发布文章的元信息（不含 content），包含阅读时间估算 */
-export function getAllPostsMeta(locale: string): PostMeta[] {
+export function getAllPostsMeta(locale = DEFAULT_CONTENT_LOCALE): PostMeta[] {
   return getLoader(locale).getAllMeta();
 }
 
 /** 获取所有已发布文章（含 content） */
-export async function getAllPosts(locale: string): Promise<Post[]> {
+export async function getAllPosts(
+  locale = DEFAULT_CONTENT_LOCALE,
+): Promise<Post[]> {
   return getLoader(locale).getAllFull();
 }
 
 /** 根据 slug 获取单篇文章 */
 export async function getPostBySlug(
   slug: string,
-  locale: string,
+  locale = DEFAULT_CONTENT_LOCALE,
 ): Promise<Post | null> {
   return getLoader(locale).getBySlug(slug);
 }
 
 /** 获取所有标签 */
-export function getAllTags(locale: string): string[] {
+export function getAllTags(locale = DEFAULT_CONTENT_LOCALE): string[] {
   const posts = getAllPostsMeta(locale);
   const tags = new Set<string>();
   posts.forEach((p) => p.tags.forEach((t) => tags.add(t)));
@@ -150,7 +154,7 @@ export function getAllTags(locale: string): string[] {
 /** 获取相邻文章（上一篇/下一篇） */
 export function getAdjacentPosts(
   slug: string,
-  locale: string,
+  locale = DEFAULT_CONTENT_LOCALE,
 ): {
   prev: PostMeta | null;
   next: PostMeta | null;
@@ -169,17 +173,11 @@ export function getAdjacentPosts(
 }
 
 /** 获取指定 locale 下可用的所有 slug（用于 generateStaticParams） */
-export function getPostSlugs(locale: string): string[] {
+export function getPostSlugs(locale = DEFAULT_CONTENT_LOCALE): string[] {
   return getAllPostsMeta(locale).map((p) => p.slug);
 }
 
 /** 获取所有 locale 下可用的 slug（含回退） */
 export function getAllPostSlugs(): string[] {
-  const slugs = new Set<string>();
-  for (const locale of ["zh-CN", "en-US"] as Locale[]) {
-    for (const slug of getPostSlugs(locale)) {
-      slugs.add(slug);
-    }
-  }
-  return Array.from(slugs);
+  return getPostSlugs(DEFAULT_CONTENT_LOCALE);
 }

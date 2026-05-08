@@ -9,17 +9,16 @@ describe("Footer", () => {
     expect(screen.getByRole("contentinfo")).toBeInTheDocument();
   });
 
-  it("displays current year", () => {
+  it("does not add dynamic year text to the pixel-reference footer", () => {
     render(<Footer />);
     expect(
-      screen.getByText(new RegExp(`${new Date().getFullYear()}`)),
-    ).toBeInTheDocument();
+      screen.queryByText(new RegExp(`${new Date().getFullYear()}`)),
+    ).toBeNull();
   });
 
-  it("renders rights and builtWith text", () => {
+  it("renders industrial prototype footer text", () => {
     const { container } = render(<Footer />);
-    // next-intl mock returns key: t("rights") → "rights", t("builtWith") → "builtWith"
-    expect(container.textContent).toContain("rights");
-    expect(container.textContent).toContain("builtWith");
+    expect(container.textContent).toContain("Scraplog");
+    expect(container.textContent).toContain("Built for readable visits");
   });
 });

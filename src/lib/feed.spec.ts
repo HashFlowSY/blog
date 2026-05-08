@@ -212,8 +212,8 @@ describe("buildRssXml", () => {
   it("uses current date when items array is empty", () => {
     const xml = buildRssXml(baseConfig);
     expect(xml).toContain("<lastBuildDate>");
-    // lastBuildDate is formatted as "02 Apr 2026" (RFC 822)
-    expect(xml).toMatch(/Apr 2026/);
+    // lastBuildDate uses the current test runtime date.
+    expect(xml).toMatch(/May 2026/);
   });
 
   it("single post produces exactly one item", () => {

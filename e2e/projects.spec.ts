@@ -30,13 +30,13 @@ test.describe("Projects", () => {
       .textContent();
 
     await Promise.all([
-      page.waitForURL(/\/zh-CN\/projects\/.+\/$/),
+      page.waitForURL(/\/projects\/.+\/$/),
       page.locator("article a").first().click(),
     ]);
 
-    await expect(
-      page.locator("header").getByRole("heading", { level: 1 }),
-    ).toContainText(firstProjectTitle!);
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(
+      firstProjectTitle!,
+    );
 
     const sourceLink = page.getByRole("link", { name: zh.source });
     await expect(sourceLink).toHaveAttribute("href", /github\.com/);

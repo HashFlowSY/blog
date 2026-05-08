@@ -16,7 +16,7 @@ test.describe("Post detail", () => {
       .textContent();
 
     await Promise.all([
-      page.waitForURL(/\/zh-CN\/posts\/.+\/$/),
+      page.waitForURL(/\/posts\/.+\/$/),
       page.locator("article a").first().click(),
     ]);
 
@@ -24,8 +24,9 @@ test.describe("Post detail", () => {
       firstPostTitle!,
     );
 
-    await expect(page.getByText(zh.publishedAt)).toBeVisible();
-    await expect(page.getByText(zh.minutes)).toBeVisible();
+    await expect(
+      page.locator(".detail-panel").getByText(new RegExp(`\\d+ ${zh.minutes}`)),
+    ).toBeVisible();
   });
 
   test("table of contents exists", async ({ page }) => {
@@ -34,7 +35,7 @@ test.describe("Post detail", () => {
     await goToPosts(page);
 
     await Promise.all([
-      page.waitForURL(/\/zh-CN\/posts\/.+\/$/),
+      page.waitForURL(/\/posts\/.+\/$/),
       page.locator("article a").first().click(),
     ]);
 
@@ -45,35 +46,46 @@ test.describe("Post detail", () => {
     await expect(tocLinks.first()).toBeVisible();
   });
 
-  test("previous and next post navigation exists", async ({ page }) => {
+  test("code blocks show one copy button", async ({ page }) => {
     await goToPosts(page);
 
     await Promise.all([
-      page.waitForURL(/\/zh-CN\/posts\/.+\/$/),
+      page.waitForURL(/\/posts\/.+\/$/),
       page.locator("article a").first().click(),
     ]);
 
+    const codeBlock = page.locator(".article-body .code-block").first();
+    await expect(codeBlock).toBeVisible();
     await expect(
-      page.locator('nav[aria-label="Post navigation"]'),
-    ).toBeAttached();
+      codeBlock.getByRole("button", { name: "复制代码" }),
+    ).toHaveCount(1);
   });
 
-  test("copy link button works", async ({ page }) => {
-    const zh = getText("zh-CN");
-
+  test("related reading section exists", async ({ page }) => {
     await goToPosts(page);
 
     await Promise.all([
-      page.waitForURL(/\/zh-CN\/posts\/.+\/$/),
+      page.waitForURL(/\/posts\/.+\/$/),
       page.locator("article a").first().click(),
     ]);
 
-    const copyButton = page.getByRole("button", { name: zh.copyLink });
-    await expect(copyButton).toBeVisible();
+    await expect(page.getByRole("heading", { name: "关联阅读" })).toBeVisible();
+    await expect(page.locator(".related-section")).toBeAttached();
+  });
 
-    await copyButton.click();
+  test("back link returns to the posts archive", async ({ page }) => {
+    await goToPosts(page);
 
-    await expect(copyButton).not.toContainText(zh.copyLink);
-    await expect(copyButton).toContainText(zh.copied);
+    await Promise.all([
+      page.waitForURL(/\/posts\/.+\/$/),
+      page.locator("article a").first().click(),
+    ]);
+
+    await Promise.all([
+      page.waitForURL(/\/posts\/$/),
+      page.getByRole("link", { name: "返回文章档案室" }).click(),
+    ]);
+
+    await expect(page.getByRole("heading", { name: "档案室" })).toBeVisible();
   });
 });

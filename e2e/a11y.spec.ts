@@ -10,14 +10,14 @@ test.describe("Accessibility", () => {
     const html = page.locator("html");
     await expect(html).toHaveAttribute("lang", "zh-CN");
 
-    const skipLink = page.locator('[data-testid="skip-link"]');
+    const skipLink = page.getByRole("link", { name: "跳到内容" });
     await expect(skipLink).toBeAttached();
-    await expect(skipLink).toHaveAttribute("href", "#main-content");
+    await expect(skipLink).toHaveAttribute("href", "#content");
 
-    const main = page.locator("main#main-content");
+    const main = page.locator("main#content");
     await expect(main).toBeAttached();
 
-    const mainNav = page.locator('nav[aria-label="Main navigation"]');
+    const mainNav = page.locator('nav[aria-label="主导航"]');
     await expect(mainNav).toBeAttached();
   });
 });

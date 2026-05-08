@@ -56,8 +56,8 @@ describe("ProjectList", () => {
     expect(screen.getAllByTestId("project-card")).toHaveLength(2);
   });
 
-  it("returns null when projects is empty", () => {
-    const { container } = render(<ProjectList projects={[]} />);
-    expect(container.firstChild).toBeNull();
+  it("renders an empty state when projects is empty", () => {
+    render(<ProjectList projects={[]} />);
+    expect(screen.getByText("暂无项目")).toBeInTheDocument();
   });
 });

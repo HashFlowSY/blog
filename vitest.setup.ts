@@ -37,10 +37,3 @@ vi.mock("next/link", () => ({
     return createElement("a", { href, ...props }, children);
   },
 }));
-
-// next-intl mock
-vi.mock("next-intl", () => ({
-  useTranslations: () => (key: string) => key,
-  useLocale: () => "zh",
-  getTranslations: vi.fn().mockResolvedValue((key: string) => key),
-}));

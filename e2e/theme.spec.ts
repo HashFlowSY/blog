@@ -3,58 +3,27 @@ import { expect } from "@playwright/test";
 import { test } from "./fixtures";
 import { goToHome } from "./helpers/navigation";
 
-test.describe("Theme toggle", () => {
-  test("switches between dark and light mode", async ({ page }) => {
+test.describe("Industrial shell behavior", () => {
+  test("uses the fixed industrial theme without a theme toggle", async ({
+    page,
+  }) => {
     await page.emulateMedia({ colorScheme: "light" });
     await goToHome(page, "zh-CN");
 
-    const html = page.locator("html");
-    const toggleButton = page.getByRole("button", { name: "Toggle theme" });
-    await expect(toggleButton).toBeEnabled();
-
-    const initialClasses = await html.getAttribute("class");
-    const initiallyDark = initialClasses?.includes("dark") ?? false;
-
-    await toggleButton.click();
-
-    const afterFirst = await html.getAttribute("class");
-    expect(afterFirst?.includes("dark")).toBe(!initiallyDark);
-
-    await toggleButton.click();
-
-    const afterSecond = await html.getAttribute("class");
-    expect(afterSecond?.includes("dark")).toBe(initiallyDark);
+    await expect(
+      page.getByRole("button", { name: "Toggle theme" }),
+    ).toHaveCount(0);
+    await expect(page.locator(".site-frame")).toBeVisible();
+    await expect(page.locator(".scrap-monument")).toBeVisible();
   });
 
-  test("persists theme preference after page reload", async ({ page }) => {
-    await page.emulateMedia({ colorScheme: "light" });
+  test("reveals the back-to-top control after scrolling", async ({ page }) => {
     await goToHome(page, "zh-CN");
 
-    const html = page.locator("html");
-    const toggleButton = page.getByRole("button", { name: "Toggle theme" });
-    await expect(toggleButton).toBeEnabled();
+    const backToTop = page.locator(".back-to-top");
+    await expect(backToTop).toHaveAttribute("aria-hidden", "true");
 
-    const initialClasses = await html.getAttribute("class");
-    const initiallyDark = initialClasses?.includes("dark") ?? false;
-
-    if (initiallyDark) {
-      await toggleButton.click();
-      await expect(html).not.toHaveClass(/dark/);
-      await toggleButton.click();
-    } else {
-      await toggleButton.click();
-    }
-
-    await expect(html).toHaveClass(/dark/);
-
-    await page.reload();
-    await page.waitForLoadState("networkidle");
-
-    await expect(html).toHaveClass(/dark/);
-
-    const storedTheme = await page.evaluate(() =>
-      localStorage.getItem("theme"),
-    );
-    expect(storedTheme).toBe("dark");
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await expect(backToTop).toHaveAttribute("aria-hidden", "false");
   });
 });

@@ -4,7 +4,9 @@ import { test } from "./fixtures";
 import { goToPosts, getText } from "./helpers/navigation";
 
 test.describe("Posts list", () => {
-  test("renders published articles with search and tags", async ({ page }) => {
+  test("renders published articles with the archive filters", async ({
+    page,
+  }) => {
     const zh = getText("zh-CN");
 
     await goToPosts(page);
@@ -13,15 +15,13 @@ test.describe("Posts list", () => {
       page.getByRole("heading", { name: zh.allPosts }),
     ).toBeVisible();
 
-    await expect(page.locator('input[role="combobox"]')).toBeVisible();
+    await expect(page.getByLabel("文章筛选")).toBeVisible();
 
-    const tagButtons = page.locator("button").filter({ hasText: zh.all });
+    const tagButtons = page.getByLabel("文章筛选").getByRole("button");
     await expect(tagButtons.first()).toBeVisible();
   });
 
   test("tag filtering works", async ({ page }) => {
-    const zh = getText("zh-CN");
-
     await goToPosts(page);
 
     const postCards = page.locator("article");
@@ -29,12 +29,12 @@ test.describe("Posts list", () => {
     expect(totalCount).toBeGreaterThan(0);
 
     // Click the last tag button (assumed to be a specific tag, not "All")
-    const allTagButtons = page.locator("button").filter({ hasText: zh.all });
-    const lastTag = allTagButtons.last();
+    const tagButtons = page.getByLabel("文章筛选").getByRole("button");
+    const lastTag = tagButtons.last();
 
     // If there's only one tag button ("All"), skip this test
-    const tagCount = await allTagButtons.count();
-    if (tagCount <= 1) return;
+    const tagCount = await tagButtons.count();
+    if (tagCount <= 1 || totalCount <= 1) return;
 
     await lastTag.click();
 
@@ -43,7 +43,7 @@ test.describe("Posts list", () => {
     expect(filteredCount).toBeLessThan(totalCount);
 
     // Reset by clicking "All"
-    await allTagButtons.first().click();
+    await tagButtons.first().click();
     await expect(postCards).toHaveCount(totalCount);
   });
 
@@ -51,11 +51,8 @@ test.describe("Posts list", () => {
     await goToPosts(page);
 
     const firstPost = page.locator("article a").first();
-    await Promise.all([
-      page.waitForURL(/\/zh-CN\/posts\/.+\/$/),
-      firstPost.click(),
-    ]);
+    await Promise.all([page.waitForURL(/\/posts\/.+\/$/), firstPost.click()]);
 
-    expect(page.url()).toMatch(/\/zh-CN\/posts\/.+\/$/);
+    expect(page.url()).toMatch(/\/posts\/.+\/$/);
   });
 });

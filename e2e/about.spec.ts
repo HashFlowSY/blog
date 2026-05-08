@@ -13,11 +13,9 @@ test.describe("About page", () => {
       page.getByRole("heading", { name: zh.aboutTitle }),
     ).toBeVisible();
 
-    await expect(page.getByText(zh.skills)).toBeVisible();
+    await expect(page.getByLabel(zh.skills)).toBeVisible();
+    await expect(page.locator(".skill-plate").first()).toBeVisible();
 
-    const progressBars = page.locator('[role="progressbar"]');
-    await expect(progressBars.first()).toBeVisible();
-
-    await expect(page.getByText(zh.experience)).toBeVisible();
+    await expect(page.getByLabel(zh.experience)).toBeVisible();
   });
 });

@@ -13,15 +13,12 @@ test.describe("Home page", () => {
     await expect(page.getByText(zh.viewProjects)).toBeVisible();
 
     const viewPostsLink = page.getByRole("link", { name: zh.viewPosts });
-    await expect(viewPostsLink).toHaveAttribute("href", /\/zh-CN\/posts\/$/);
+    await expect(viewPostsLink).toHaveAttribute("href", /\/posts\/$/);
 
     const viewProjectsLink = page.getByRole("link", {
       name: zh.viewProjects,
     });
-    await expect(viewProjectsLink).toHaveAttribute(
-      "href",
-      /\/zh-CN\/projects\/$/,
-    );
+    await expect(viewProjectsLink).toHaveAttribute("href", /\/projects\/$/);
   });
 
   test("shows recent posts section", async ({ page }) => {
@@ -29,12 +26,10 @@ test.describe("Home page", () => {
 
     await goToHome(page);
 
-    await expect(page.getByText(zh.recentPosts)).toBeVisible();
-
-    const postCards = page.locator("article a").first();
-    await expect(postCards).toBeVisible();
-
-    await expect(page.getByRole("link", { name: zh.allPosts })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: zh.recentPosts }),
+    ).toBeVisible();
+    await expect(page.locator(".signal-cell")).toHaveCount(3);
   });
 
   test("shows featured projects section", async ({ page }) => {
@@ -42,13 +37,9 @@ test.describe("Home page", () => {
 
     await goToHome(page);
 
-    await expect(page.getByText(zh.featuredProjects)).toBeVisible();
-
-    const projectCards = page.locator("article").first();
-    await expect(projectCards).toBeVisible();
-
     await expect(
-      page.getByRole("link", { name: zh.allProjects }),
+      page.getByRole("link", { name: zh.viewProjects }),
     ).toBeVisible();
+    await expect(page.locator(".scrap-monument")).toBeVisible();
   });
 });

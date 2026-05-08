@@ -11,6 +11,7 @@ import type { ContentLoader } from "./content-loader";
 // ---------------------------------------------------------------------------
 
 const PROJECTS_BASE_DIR = path.join(process.cwd(), "content/projects");
+const DEFAULT_CONTENT_LOCALE = "zh-CN";
 
 const projectFrontmatterSchema = z.object({
   title: z.string().min(1),
@@ -63,7 +64,7 @@ export interface ProjectMeta {
 // ---------------------------------------------------------------------------
 
 function createProjectsLoader(
-  locale: string,
+  locale = DEFAULT_CONTENT_LOCALE,
 ): ContentLoader<ProjectMeta, Project> {
   const contentDir = path.join(PROJECTS_BASE_DIR, locale);
 
@@ -132,7 +133,9 @@ function getLoader(locale: string): ContentLoader<ProjectMeta, Project> {
 // ---------------------------------------------------------------------------
 
 /** 获取所有项目元信息 */
-export function getAllProjectsMeta(locale: string): ProjectMeta[] {
+export function getAllProjectsMeta(
+  locale = DEFAULT_CONTENT_LOCALE,
+): ProjectMeta[] {
   return getLoader(locale).getAllMeta();
 }
 
@@ -144,23 +147,17 @@ export function getFeaturedProjects(locale: string): ProjectMeta[] {
 /** 根据 slug 获取单个项目 */
 export async function getProjectBySlug(
   slug: string,
-  locale: string,
+  locale = DEFAULT_CONTENT_LOCALE,
 ): Promise<Project | null> {
   return getLoader(locale).getBySlug(slug);
 }
 
 /** 获取指定 locale 下可用的所有 slug（用于 generateStaticParams） */
-export function getProjectSlugs(locale: string): string[] {
+export function getProjectSlugs(locale = DEFAULT_CONTENT_LOCALE): string[] {
   return getAllProjectsMeta(locale).map((p) => p.slug);
 }
 
 /** 获取所有 locale 下可用的 slug（含回退） */
 export function getAllProjectSlugs(): string[] {
-  const slugs = new Set<string>();
-  for (const locale of ["zh-CN", "en-US"] as const) {
-    for (const slug of getProjectSlugs(locale)) {
-      slugs.add(slug);
-    }
-  }
-  return Array.from(slugs);
+  return getProjectSlugs(DEFAULT_CONTENT_LOCALE);
 }

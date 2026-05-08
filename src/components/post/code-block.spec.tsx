@@ -1,5 +1,6 @@
 import { act, render, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { StrictMode } from "react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 import { CodeBlockEnhancer } from "./code-block";
@@ -22,7 +23,7 @@ describe("CodeBlockEnhancer", () => {
     );
     expect(container.querySelector("p")).toHaveTextContent("Just text");
     expect(
-      container.querySelector('button[aria-label="copyCode"]'),
+      container.querySelector('button[aria-label="复制代码"]'),
     ).not.toBeInTheDocument();
   });
 
@@ -45,8 +46,33 @@ describe("CodeBlockEnhancer", () => {
       await new Promise((r) => setTimeout(r, 0));
     });
 
-    const button = container.querySelector('button[aria-label="copyCode"]');
+    const button = container.querySelector('button[aria-label="复制代码"]');
     expect(button).toBeInTheDocument();
+  });
+
+  it("does not duplicate copy buttons when effects rerun in StrictMode", async () => {
+    const { container } = render(
+      <StrictMode>
+        <CodeBlockEnhancer>
+          <div
+            className="code-block"
+            data-language="typescript"
+            dangerouslySetInnerHTML={{
+              __html:
+                '<div class="code-block-header"><span class="code-block-lang">typescript</span></div><pre><code>const x = 1;</code></pre>',
+            }}
+          />
+        </CodeBlockEnhancer>
+      </StrictMode>,
+    );
+
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+
+    expect(
+      container.querySelectorAll('button[aria-label="复制代码"]'),
+    ).toHaveLength(1);
   });
 
   it("copy button click copies text content to clipboard", async () => {
@@ -78,7 +104,7 @@ describe("CodeBlockEnhancer", () => {
       configurable: true,
     });
 
-    const button = container.querySelector('button[aria-label="copyCode"]')!;
+    const button = container.querySelector('button[aria-label="复制代码"]')!;
     await user.click(button);
 
     expect(writeText).toHaveBeenCalledWith("const x = 1;");
@@ -108,7 +134,7 @@ describe("CodeBlockEnhancer", () => {
       await new Promise((r) => setTimeout(r, 0));
     });
 
-    const buttons = container.querySelectorAll('button[aria-label="copyCode"]');
+    const buttons = container.querySelectorAll('button[aria-label="复制代码"]');
     expect(buttons).toHaveLength(2);
   });
 
@@ -149,7 +175,7 @@ describe("CodeBlockEnhancer", () => {
     });
 
     expect(
-      container.querySelector('button[aria-label="copyCode"]'),
+      container.querySelector('button[aria-label="复制代码"]'),
     ).toBeInTheDocument();
 
     unmount();
@@ -174,7 +200,7 @@ describe("CodeBlockEnhancer", () => {
       await new Promise((r) => setTimeout(r, 0));
     });
 
-    const button = container.querySelector('button[aria-label="copyCode"]');
+    const button = container.querySelector('button[aria-label="复制代码"]');
     expect(button).toBeInTheDocument();
 
     const header = container.querySelector(".code-block-header");
@@ -209,11 +235,11 @@ describe("CodeBlockEnhancer", () => {
       await new Promise((r) => setTimeout(r, 0));
     });
 
-    const button = container.querySelector('button[aria-label="copyCode"]')!;
+    const button = container.querySelector('button[aria-label="复制代码"]')!;
     await user.click(button);
 
     // Button text should still say "Copy" (failure is silent)
-    expect(button.textContent).toBe("copyCode");
+    expect(button.textContent).toBe("复制代码");
   });
 
   it("shows Copied! feedback after successful copy", async () => {
@@ -243,7 +269,7 @@ describe("CodeBlockEnhancer", () => {
       await vi.advanceTimersByTimeAsync(0);
     });
 
-    const button = container.querySelector('button[aria-label="copyCode"]')!;
+    const button = container.querySelector('button[aria-label="复制代码"]')!;
 
     await act(async () => {
       fireEvent.click(button);
@@ -251,14 +277,14 @@ describe("CodeBlockEnhancer", () => {
       await vi.advanceTimersByTimeAsync(0);
     });
 
-    expect(button.textContent).toBe("copied");
+    expect(button.textContent).toBe("已复制");
 
     // Advance past the restore timeout (2000ms)
     await act(async () => {
       await vi.advanceTimersByTimeAsync(2500);
     });
 
-    expect(button.textContent).toBe("copyCode");
+    expect(button.textContent).toBe("复制代码");
 
     vi.useRealTimers();
   });

@@ -1,96 +1,70 @@
 # Blog
 
-A minimal, fast personal blog built with Next.js 16, deployed as a static site on GitHub Pages. Supports Chinese and English.
+An industrial-wasteland style Chinese personal blog built with Next.js 16 and deployed as a static site on GitHub Pages.
 
 ## Features
 
 - **Static Export** — Pure HTML/CSS/JS, no server required
+- **Industrial UI** — Scraplog-inspired dark grid, archive panels, workbench project cards, and shelter-style about page
 - **Markdown Writing** — Posts and projects with Zod-validated frontmatter
-- **i18n** — Chinese (zh-CN) / English (en-US), one-click switch
+- **Chinese-Only Routes** — Root, posts, projects, about, RSS, sitemap, and content all target Chinese
 - **Syntax Highlighting** — Code blocks with language labels, copy button, line highlighting
-- **Full-Text Search** — Client-side fuzzy search (Fuse.js), keyboard accessible
-- **Table of Contents** — Auto-generated from headings, collapsible on mobile, scroll-spy active state
-- **Share Buttons** — Web Share API, Twitter/X, clipboard link copy
-- **Dark Mode** — System-aware with manual toggle (next-themes)
-- **Scroll Animations** — FadeIn scroll-reveal, enhanced card hover effects
-- **SEO** — Sitemap, robots.txt, canonical URLs, hreflang, OG, Twitter, JSON-LD, noindex 404
-- **RSS Feed** — `/feed.xml` (zh-CN) + `/en-US/feed.xml` with autodiscovery
+- **Archive Filters** — Tag filters for posts and projects
+- **Article Detail Template** — Shared reading page template for every post
+- **SEO** — Sitemap, robots.txt, canonical URLs, OG, Twitter, noindex 404
+- **RSS Feed** — `/feed.xml` with autodiscovery
 - **Reading Time** — Word-count-based estimation on post cards and detail pages
-- **Analytics** — Privacy-first (Plausible / Umami), cookie-free, configurable via env vars
 - **XSS Safe** — All Markdown HTML sanitized via rehype-sanitize
 - **CI/CD** — Auto-deploy on push to `main` via GitHub Actions
 
 ## Tech Stack
 
-| Technology                                                | Purpose                               |
-| --------------------------------------------------------- | ------------------------------------- |
-| [Next.js 16](https://nextjs.org)                          | Framework (App Router, static export) |
-| [React 19](https://react.dev)                             | UI library                            |
-| [TypeScript 5](https://www.typescriptlang.org)            | Type safety (strict mode)             |
-| [Tailwind CSS 4](https://tailwindcss.com)                 | Styling                               |
-| [shadcn/ui](https://ui.shadcn.com)                        | Component primitives (@base-ui/react) |
-| [next-intl](https://next-intl.dev)                        | Internationalization                  |
-| [next-themes](https://github.com/pacocoursey/next-themes) | Dark mode                             |
-| [Fuse.js](https://www.fusejs.io)                          | Client-side fuzzy search              |
-| [Lucide React](https://lucide.dev)                        | Icons                                 |
-| [Zod 4](https://zod.dev)                                  | Frontmatter validation                |
-| [remark / rehype](https://github.com/remarkjs/remark)     | Markdown processing pipeline          |
-| [highlight.js](https://highlightjs.org)                   | Syntax highlighting                   |
-| [Vitest](https://vitest.dev)                              | Unit testing (421 tests)              |
-| [ESLint 9](https://eslint.org)                            | Linting (flat config)                 |
-| [Prettier 3](https://prettier.io)                         | Code formatting                       |
-| [husky](https://typicode.github.io/husky)                 | Git hooks                             |
-| [pnpm 10](https://pnpm.io)                                | Package manager                       |
+| Technology                                            | Purpose                               |
+| ----------------------------------------------------- | ------------------------------------- |
+| [Next.js 16](https://nextjs.org)                      | Framework (App Router, static export) |
+| [React 19](https://react.dev)                         | UI library                            |
+| [TypeScript 5](https://www.typescriptlang.org)        | Type safety (strict mode)             |
+| [Tailwind CSS 4](https://tailwindcss.com)             | Styling                               |
+| [Zod 4](https://zod.dev)                              | Frontmatter validation                |
+| [remark / rehype](https://github.com/remarkjs/remark) | Markdown processing pipeline          |
+| [highlight.js](https://highlightjs.org)               | Syntax highlighting                   |
+| [Vitest](https://vitest.dev)                          | Unit testing                          |
+| [Playwright](https://playwright.dev)                  | End-to-end testing                    |
+| [ESLint 9](https://eslint.org)                        | Linting (flat config)                 |
+| [Prettier 3](https://prettier.io)                     | Code formatting                       |
+| [husky](https://typicode.github.io/husky)             | Git hooks                             |
+| [pnpm 11](https://pnpm.io)                            | Package manager                       |
 
 ## Project Structure
 
 ```
 content/
-├── posts/                    # Blog posts (Markdown)
-└── projects/                 # Project entries (Markdown)
+├── posts/zh-CN/              # Chinese blog posts (Markdown)
+└── projects/zh-CN/           # Chinese project entries (Markdown)
 
 src/
 ├── app/
-│   ├── layout.tsx            # Root layout (html, body, fonts)
-│   ├── globals.css           # Global styles + design tokens
+│   ├── layout.tsx            # Root layout + site shell
+│   ├── globals.css           # Industrial UI styles + design tokens
+│   ├── page.tsx              # Home
+│   ├── about/                # About page
+│   ├── posts/                # Blog posts (list + detail)
+│   ├── projects/             # Projects (list + detail)
 │   ├── not-found.tsx         # 404 page
 │   ├── sitemap.ts            # Auto-generated sitemap
 │   ├── robots.ts             # robots.txt
-│   ├── feed.xml/             # RSS feed (zh-CN)
-│   ├── en-US/feed.xml/       # RSS feed (en-US)
-│   └── [locale]/             # Locale-prefixed routes
-│       ├── layout.tsx        # i18n provider, header, footer, analytics
-│       └── (pages)/
-│           ├── page.tsx      # Home
-│           ├── about/        # About me
-│           ├── posts/        # Blog posts (list + detail)
-│           └── projects/     # Projects (list + detail)
+│   └── feed.xml/             # RSS feed
 ├── components/
-│   ├── analytics/            # Plausible / Umami provider
-│   ├── layout/               # Header, footer, skip-link
-│   ├── motion/               # FadeIn scroll-reveal
-│   ├── post/                 # Post card, post list, TOC, code block
-│   ├── project/              # Project card, project list
-│   ├── search/               # SearchBar, useSearch hook
-│   ├── share/                # Share buttons
-│   ├── tag/                  # TagBadge, TagFilter
-│   ├── theme/                # ThemeProvider, toggle
-│   └── ui/                   # shadcn/ui base components
-├── hooks/                    # Custom React hooks
-├── i18n/                     # Locale routing & navigation
+│   ├── layout/               # Header, footer, site shell, back-to-top
+│   ├── post/                 # Post archive, detail template, card, code block
+│   └── project/              # Project board, card, list
 ├── lib/                      # Data layer, utilities
 │   ├── content-loader.ts     # Shared content loader factory
 │   ├── posts.ts              # Post loading & queries
 │   ├── projects.ts           # Project loading & queries
 │   ├── markdown.ts           # Markdown → HTML pipeline
 │   ├── site.ts               # Site URL config
-│   ├── feed.ts               # RSS XML builder
-│   └── search/               # Search index builder & types
-├── messages/
-│   ├── zh-CN/common.json     # Chinese translations
-│   └── en-US/common.json     # English translations
-├── scripts/
-│   └── generate-search-index.ts  # Prebuild search index
+│   └── feed.ts               # RSS XML builder
 └── test-utils/               # Shared test helpers
 ```
 
@@ -99,7 +73,7 @@ src/
 ### Prerequisites
 
 - Node.js >= 20
-- pnpm >= 10
+- pnpm >= 11
 
 ### Install
 
@@ -138,8 +112,7 @@ Static output is generated in the `out/` directory.
 ### Preview Build Output
 
 ```bash
-pnpm preview
-# or serve out/ with any static file server
+pnpm build
 npx serve out
 ```
 
@@ -147,7 +120,7 @@ npx serve out
 
 ### Blog Post
 
-Create a Markdown file in `content/posts/`:
+Create a Markdown file in `content/posts/zh-CN/`:
 
 ````markdown
 ---
@@ -169,7 +142,7 @@ console.log("Hello, World!");
 
 ### Project Entry
 
-Create a Markdown file in `content/projects/`:
+Create a Markdown file in `content/projects/zh-CN/`:
 
 ```markdown
 ---
@@ -217,17 +190,9 @@ Detailed project description in Markdown.
 | `cover`       | `string`   | No       | `null`       | Cover image path            |
 | `draft`       | `boolean`  | No       | `false`      | Set `true` to skip in build |
 
-## i18n
+## Chinese-Only Routing
 
-Translation files are at `src/messages/{locale}/common.json`. Both locales share the same key structure.
-
-To add or modify a translation:
-
-1. Edit `src/messages/zh-CN/common.json`
-2. Edit `src/messages/en-US/common.json` (same keys, English values)
-3. Use `t("namespace.key")` in components:
-   - Server Components: `const t = await getTranslations({ locale, namespace: "postPage" })`
-   - Client Components: `const t = useTranslations("postPage")`
+The site no longer uses locale-prefixed routes or translation files. Add Chinese content under `content/posts/zh-CN/` and `content/projects/zh-CN/`; public pages are served at `/`, `/posts/`, `/projects/`, `/about/`, and `/feed.xml`.
 
 ## Deployment
 
@@ -256,12 +221,10 @@ Set `NEXT_PUBLIC_SITE_URL` to your domain in GitHub Variables, and configure DNS
 
 ## Environment Variables
 
-| Variable                       | Required | Description                                      |
-| ------------------------------ | -------- | ------------------------------------------------ |
-| `NEXT_PUBLIC_SITE_URL`         | Yes      | Base URL for sitemap, robots, RSS, canonical, OG |
-| `BASE_PATH`                    | Yes      | URL prefix for project pages (auto-set by CI)    |
-| `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` | No       | Plausible Analytics domain (enables Plausible)   |
-| `NEXT_PUBLIC_UMAMI_ID`         | No       | Umami Analytics website ID (enables Umami)       |
+| Variable               | Required | Description                                      |
+| ---------------------- | -------- | ------------------------------------------------ |
+| `NEXT_PUBLIC_SITE_URL` | Yes      | Base URL for sitemap, robots, RSS, canonical, OG |
+| `BASE_PATH`            | Yes      | URL prefix for project pages (auto-set by CI)    |
 
 ### NEXT_PUBLIC_SITE_URL
 
@@ -295,30 +258,6 @@ The URL prefix for GitHub Pages project sites. Automatically computed by `deploy
 - `username.github.io` → `BASE_PATH=` (empty)
 - `username.github.io/repo-name` → `BASE_PATH=/repo-name`
 
-### NEXT_PUBLIC_PLAUSIBLE_DOMAIN
-
-Enable [Plausible Analytics](https://plausible.io/) by setting this to your registered site domain. No cookie, GDPR-friendly. Requires a Plausible account (self-hosted or cloud).
-
-```
-Name:  NEXT_PUBLIC_PLAUSIBLE_DOMAIN
-Value: your-domain.com
-```
-
-Leave empty to disable.
-
-### NEXT_PUBLIC_UMAMI_ID
-
-Enable [Umami Analytics](https://umami.is/) by setting this to your website ID from the Umami dashboard. No cookie, can be self-hosted.
-
-```
-Name:  NEXT_PUBLIC_UMAMI_ID
-Value: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-```
-
-Leave empty to disable.
-
-> **Note:** `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` and `NEXT_PUBLIC_UMAMI_ID` are mutually exclusive. If both are set, only Plausible is used.
-
 ### Local Development
 
 Create `.env.local` in the project root:
@@ -326,25 +265,21 @@ Create `.env.local` in the project root:
 ```env
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 BASE_PATH=
-# Optional — analytics (leave empty to disable)
-NEXT_PUBLIC_PLAUSIBLE_DOMAIN=
-NEXT_PUBLIC_UMAMI_ID=
 ```
 
 ## Scripts
 
-| Command                | Description                                            |
-| ---------------------- | ------------------------------------------------------ |
-| `pnpm dev`             | Start development server                               |
-| `pnpm build`           | Production build to `out/`                             |
-| `pnpm preview`         | Preview production build                               |
-| `pnpm lint`            | Run ESLint                                             |
-| `pnpm lint:fix`        | Run ESLint with auto-fix                               |
-| `pnpm format:check`    | Check Prettier formatting                              |
-| `pnpm test`            | Run unit tests (421 tests)                             |
-| `pnpm test:watch`      | Run tests in watch mode                                |
-| `pnpm test:coverage`   | Run tests with coverage report                         |
-| `pnpm generate:search` | Generate search index (runs automatically on prebuild) |
+| Command              | Description                    |
+| -------------------- | ------------------------------ |
+| `pnpm dev`           | Start development server       |
+| `pnpm build`         | Production build to `out/`     |
+| `pnpm preview`       | Preview production build       |
+| `pnpm lint`          | Run ESLint                     |
+| `pnpm lint:fix`      | Run ESLint with auto-fix       |
+| `pnpm format:check`  | Check Prettier formatting      |
+| `pnpm test`          | Run unit tests                 |
+| `pnpm test:watch`    | Run tests in watch mode        |
+| `pnpm test:coverage` | Run tests with coverage report |
 
 ## License
 

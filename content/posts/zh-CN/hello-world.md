@@ -1,37 +1,37 @@
 ---
-title: "Hello World"
+title: "第一篇记录"
 slug: "hello-world"
 date: "2026-04-02"
-tags: ["general"]
-summary: "My first blog post"
+tags: ["手记", "手记1"]
+summary: "这是一篇用于验证中文博客内容管线的开场记录。"
 draft: false
 ---
 
-# Hello World
+# 第一篇记录
 
-This is my first blog post. Welcome to my blog!
+这是我的第一篇博客文章。欢迎来到这个被重新整理过的中文个人站。
 
-## What is this blog about?
+## 这个博客会写什么？
 
-This blog is a personal space where I share my thoughts on web development, technology, and other topics I find interesting.
+这里会记录 Web 开发、界面设计、工具链和一些值得长期保存的工作方法。它既是写作空间，也是项目和思考的索引。
 
-## Tech Stack
+## 技术栈
 
-This blog is built with:
+这个博客当前使用：
 
-- **Next.js 15** - React framework with App Router
-- **TypeScript** - Type-safe JavaScript
-- **Tailwind CSS** - Utility-first CSS framework
-- **GitHub Pages** - Static hosting
+- **Next.js 16** - 基于 App Router 的 React 框架
+- **TypeScript** - 类型安全的 JavaScript
+- **Tailwind CSS** - 样式工具链
+- **静态部署** - 适合个人博客的低成本发布方式
 
 ```typescript
 const greeting = (name: string): string => {
-  return `Hello, ${name}!`;
+  return `你好，${name}!`;
 };
 
-console.log(greeting("World"));
+console.log(greeting("世界"));
 ```
 
-## Stay tuned
+## 后续
 
-More posts coming soon!
+更多文章会继续补上。

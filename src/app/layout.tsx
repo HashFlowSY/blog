@@ -1,41 +1,26 @@
 import "./globals.css";
 
-import { Geist, Geist_Mono } from "next/font/google";
+import { SiteShell } from "@/components/layout/site-shell";
 
-import { ThemeProvider } from "@/components/theme/theme-provider";
-import { routing, type Locale } from "@/i18n/routing";
+import type { Metadata } from "next";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+export const metadata: Metadata = {
+  title: {
+    default: "废料通信站",
+    template: "%s | 废料通信站",
+  },
+  description: "一个中文个人网站",
+};
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-export default async function RootLayout({
+export default function RootLayout({
   children,
-  params,
 }: {
   children: React.ReactNode;
-  params: Promise<{ locale?: string }>;
 }) {
-  const { locale } = await params;
-  const resolvedLocale =
-    locale && routing.locales.includes(locale as Locale)
-      ? locale
-      : routing.defaultLocale;
-
   return (
-    <html
-      lang={resolvedLocale}
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-      suppressHydrationWarning
-    >
-      <body className="min-h-full flex flex-col">
-        <ThemeProvider>{children}</ThemeProvider>
+    <html lang="zh-CN">
+      <body>
+        <SiteShell>{children}</SiteShell>
       </body>
     </html>
   );

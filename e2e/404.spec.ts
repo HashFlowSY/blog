@@ -16,7 +16,7 @@ test.describe("404 page", () => {
 
     // Visit a path that doesn't match any dynamic segment,
     // avoiding the generateStaticParams validation error
-    await page.goto("/zh-CN/nonexistent-page/");
+    await page.goto("/nonexistent-page/");
     await page.waitForLoadState("networkidle");
 
     // The page should not contain normal post content

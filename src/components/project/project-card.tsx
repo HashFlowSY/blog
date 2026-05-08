@@ -1,9 +1,4 @@
-"use client";
-
-import { useTranslations } from "next-intl";
-
-import { TagBadge } from "@/components/tag";
-import { Link } from "@/i18n/navigation";
+import Link from "next/link";
 
 import type { ProjectMeta } from "@/lib/projects";
 
@@ -12,41 +7,53 @@ interface ProjectCardProps {
 }
 
 export function ProjectCard({ project }: ProjectCardProps) {
-  const t = useTranslations("projectPage");
+  const status = project.featured ? "active" : "prototype";
+  const category = project.tags[0] ?? "Project";
 
   return (
-    <article className="group">
-      <Link href={`/projects/${project.slug}/`} className="block">
-        <div className="rounded-lg border border-border p-4 transition-all duration-200 hover:bg-accent hover:-translate-y-0.5 hover:shadow-sm">
-          <h2 className="text-lg font-semibold group-hover:opacity-80 transition-opacity">
-            {project.title}
-          </h2>
-          {project.description && (
-            <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
-              {project.description}
-            </p>
-          )}
-          {project.tags.length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-1">
-              {project.tags.map((tag) => (
-                <TagBadge key={tag} tag={tag} />
-              ))}
-            </div>
-          )}
-          <div className="mt-3 flex gap-3 text-xs text-muted-foreground">
-            {project.source && (
-              <span className="hover:text-foreground transition-colors">
-                {t("source")}
-              </span>
-            )}
-            {project.demo && (
-              <span className="hover:text-foreground transition-colors">
-                {t("demo")}
-              </span>
-            )}
-          </div>
+    <article className="project-card" data-filter-item={category}>
+      <div className="project-visual" aria-hidden="true" />
+      <p className="meta">
+        {category} / {status}
+      </p>
+      <h3>
+        <Link href={`/projects/${project.slug}/`}>{project.title}</Link>
+      </h3>
+      {project.description && <p>{project.description}</p>}
+      {project.tags.length > 0 && (
+        <div className="tags">
+          {project.tags.map((tag) => (
+            <span className="tag" key={tag}>
+              {tag}
+            </span>
+          ))}
         </div>
-      </Link>
+      )}
+      <div className="project-links">
+        <Link className="project-link" href={`/projects/${project.slug}/`}>
+          案例页
+        </Link>
+        {project.source && (
+          <a
+            className="project-link"
+            href={project.source}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            源代码
+          </a>
+        )}
+        {project.demo && (
+          <a
+            className="project-link"
+            href={project.demo}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            在线演示
+          </a>
+        )}
+      </div>
     </article>
   );
 }
