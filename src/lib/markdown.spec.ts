@@ -109,7 +109,9 @@ describe("markdownToHtml", () => {
       const document = new DOMParser().parseFromString(result, "text/html");
       const taskList = document.querySelector("ul.contains-task-list");
       const taskItems = document.querySelectorAll("li.task-list-item");
-      const inputs = document.querySelectorAll('input[type="checkbox"]');
+      const inputs = document.querySelectorAll<HTMLInputElement>(
+        'input[type="checkbox"]',
+      );
 
       expect(taskList).not.toBeNull();
       expect(taskItems).toHaveLength(2);
