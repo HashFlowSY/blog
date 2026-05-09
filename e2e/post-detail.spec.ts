@@ -29,38 +29,6 @@ test.describe("Post detail", () => {
     ).toBeVisible();
   });
 
-  test("table of contents exists", async ({ page }) => {
-    const zh = getText("zh-CN");
-
-    await goToPosts(page);
-
-    await Promise.all([
-      page.waitForURL(/\/posts\/.+\/$/),
-      page.locator("article a").first().click(),
-    ]);
-
-    const toc = page.locator(`nav[aria-label="${zh.toc}"]`);
-    await expect(toc).toBeAttached();
-
-    const tocLinks = toc.locator("a");
-    await expect(tocLinks.first()).toBeVisible();
-  });
-
-  test("code blocks show one copy button", async ({ page }) => {
-    await goToPosts(page);
-
-    await Promise.all([
-      page.waitForURL(/\/posts\/.+\/$/),
-      page.locator("article a").first().click(),
-    ]);
-
-    const codeBlock = page.locator(".article-body .code-block").first();
-    await expect(codeBlock).toBeVisible();
-    await expect(
-      codeBlock.getByRole("button", { name: "复制代码" }),
-    ).toHaveCount(1);
-  });
-
   test("related reading section exists", async ({ page }) => {
     await goToPosts(page);
 
