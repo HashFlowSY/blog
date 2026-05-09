@@ -3,6 +3,7 @@ import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import rehypeSlug from "rehype-slug";
 import rehypeStringify from "rehype-stringify";
 import { remark } from "remark";
+import remarkGfm from "remark-gfm";
 import remarkRehype from "remark-rehype";
 
 import rehypeCodeBlock from "./rehype-code-block";
@@ -21,28 +22,91 @@ const sanitizeSchema: typeof defaultSchema = {
   ...defaultSchema,
   attributes: {
     ...baseAttrs,
-    code: [...(baseAttrs["code"] || []), ["className"], ["data-meta"]],
+    a: [
+      ...(baseAttrs["a"] || []),
+      ["data-footnote-ref"],
+      ["data-footnote-backref"],
+      ["aria-describedby"],
+      ["aria-label"],
+    ],
+    code: [
+      ...(baseAttrs["code"] || []),
+      ["className", "hljs", /^language-./],
+      ["data-meta"],
+    ],
+    div: [
+      ...(baseAttrs["div"] || []),
+      ["className", "code-block", "code-block-header"],
+      ["data-language"],
+    ],
+    h2: [...(baseAttrs["h2"] || []), ["className", "sr-only"]],
+    input: [
+      ...(baseAttrs["input"] || []),
+      ["type", "checkbox"],
+      ["checked"],
+      ["disabled"],
+    ],
+    li: [...(baseAttrs["li"] || []), ["className", "task-list-item"]],
+    section: [
+      ...(baseAttrs["section"] || []),
+      ["className", "footnotes"],
+      ["data-footnotes"],
+    ],
     span: [
       ...(baseAttrs["span"] || []),
-      ["className"],
+      ["className", "code-block-lang", /^hljs-/],
       ["data-line"],
       ["data-highlighted"],
     ],
-    pre: [...(baseAttrs["pre"] || []), ["className"]],
-    div: [...(baseAttrs["div"] || []), ["className"], ["data-language"]],
+    td: [...(baseAttrs["td"] || []), ["align"]],
+    th: [...(baseAttrs["th"] || []), ["align"]],
+    ul: [...(baseAttrs["ul"] || []), ["className", "contains-task-list"]],
+    pre: [...(baseAttrs["pre"] || [])],
   },
 };
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type HastElement = any;
+
+const rehypeRemoveInvalidImages = () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (tree: any) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    function walk(node: any): void {
+      if (!node || typeof node !== "object") return;
+      if (!Array.isArray(node.children)) return;
+
+      for (let i = node.children.length - 1; i >= 0; i--) {
+        const child = node.children[i] as HastElement;
+        if (child?.tagName === "img" && !hasValidImageSrc(child)) {
+          node.children.splice(i, 1);
+          continue;
+        }
+        walk(child);
+      }
+    }
+
+    walk(tree);
+  };
+};
+
+function hasValidImageSrc(image: HastElement): boolean {
+  const src = image.properties?.src;
+  return typeof src === "string" && src.length > 0;
+}
 
 /** 将 Markdown 转换为安全的 HTML，自动为标题生成锚点 ID，代码块语法高亮 */
 export async function markdownToHtml(markdown: string, filename?: string) {
   try {
     const result = await remark()
+      .use(remarkGfm)
       .use(remarkCodeMeta)
       .use(remarkRehype)
       .use(rehypeSlug)
       .use(rehypeHighlight)
       .use(rehypeCodeBlock)
       .use(rehypeSanitize, sanitizeSchema)
+      .use(rehypeRemoveInvalidImages)
       .use(rehypeStringify)
       .process(markdown);
     return result.toString();

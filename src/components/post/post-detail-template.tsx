@@ -13,12 +13,6 @@ interface PostDetailTemplateProps {
   relatedPosts: PostMeta[];
 }
 
-const author = {
-  name: "陈砾",
-  role: "界面设计与前端原型",
-  bio: "关注复杂信息如何变得可读。这个示例作者可以替换为你的真实身份、履历和联系方式。",
-};
-
 export function formatDetailDate(date: string): string {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return date;
   return date.replaceAll("-", ".");
@@ -137,26 +131,13 @@ export function PostDetailTemplate({
                 dangerouslySetInnerHTML={{ __html: displayContent }}
               />
             </CodeBlockEnhancer>
-            <footer className="author-footer">
-              <span className="avatar" aria-hidden="true">
-                {author.name.slice(0, 1)}
-              </span>
-              <div>
-                <strong>
-                  {author.name} / {author.role}
-                </strong>
-                <p>{author.bio}</p>
-              </div>
-            </footer>
           </article>
         </div>
 
         <section className="related-section" aria-labelledby="related-title">
           <div className="related-header">
             <h2 id="related-title">关联阅读</h2>
-            <p>
-              详情页底部不再展开复杂推荐流，只给同系统文章，方便回到档案浏览路径。
-            </p>
+            <p></p>
           </div>
           {relatedPosts.length > 0 ? (
             <div className="related-grid" data-od-id="detail-related-grid">

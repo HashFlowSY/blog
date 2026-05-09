@@ -31,6 +31,17 @@ describe("markdownToHtml", () => {
       expect(result).toContain("example");
     });
 
+    it("将 Markdown 图片转换为安全 img 标签", async () => {
+      const result = await markdownToHtml(
+        '![示例图片](https://example.com/image.png "图片标题")',
+      );
+
+      expect(result).toContain("<img");
+      expect(result).toContain('src="https://example.com/image.png"');
+      expect(result).toContain('alt="示例图片"');
+      expect(result).toContain('title="图片标题"');
+    });
+
     it("将粗体和斜体转换为对应标签", async () => {
       const result = await markdownToHtml("**bold** and *italic*");
       expect(result).toContain("<strong>bold</strong>");
@@ -64,6 +75,60 @@ describe("markdownToHtml", () => {
       expect(result).toContain("const");
       expect(result).toContain("</code>");
       expect(result).toContain("</pre>");
+    });
+
+    it("将 GFM 管道表格转换为 table HTML", async () => {
+      const result = await markdownToHtml(
+        ["| 术语 | 说明 |", "| --- | --- |", "| Free | 免费版 |"].join("\n"),
+      );
+
+      expect(result).toContain("<table>");
+      expect(result).toContain("<thead>");
+      expect(result).toContain("<tbody>");
+      expect(result).toContain("<th>术语</th>");
+      expect(result).toContain("<td>免费版</td>");
+    });
+
+    it("将 GFM 删除线转换为 del 标签", async () => {
+      const result = await markdownToHtml("保留 ~~删除~~ 文本");
+
+      expect(result).toContain("<del>删除</del>");
+    });
+
+    it("将 GFM 自动链接转换为 a 标签", async () => {
+      const result = await markdownToHtml(
+        "访问 https://example.com/docs 获取信息",
+      );
+
+      expect(result).toContain('<a href="https://example.com/docs">');
+      expect(result).toContain("https://example.com/docs</a>");
+    });
+
+    it("将 GFM 任务列表转换为禁用 checkbox", async () => {
+      const result = await markdownToHtml("- [x] 已完成\n- [ ] 待处理");
+      const document = new DOMParser().parseFromString(result, "text/html");
+      const taskList = document.querySelector("ul.contains-task-list");
+      const taskItems = document.querySelectorAll("li.task-list-item");
+      const inputs = document.querySelectorAll('input[type="checkbox"]');
+
+      expect(taskList).not.toBeNull();
+      expect(taskItems).toHaveLength(2);
+      expect(inputs).toHaveLength(2);
+      expect(inputs[0]!.disabled).toBe(true);
+      expect(inputs[1]!.disabled).toBe(true);
+      expect(inputs[0]!.checked).toBe(true);
+      expect(inputs[1]!.checked).toBe(false);
+    });
+
+    it("将 GFM 脚注转换为脚注区域和回链", async () => {
+      const result = await markdownToHtml(
+        "带脚注的文本[^note]\n\n[^note]: 脚注内容",
+      );
+
+      expect(result).toContain("data-footnotes");
+      expect(result).toContain("footnotes");
+      expect(result).toContain("脚注内容");
+      expect(result).toContain("data-footnote-backref");
     });
   });
 
@@ -102,6 +167,21 @@ describe("markdownToHtml", () => {
       expect(result).toContain("<pre>");
       expect(result).toContain("const x = 1;");
     });
+
+    it("保留代码块行高亮 meta 并标记高亮行", async () => {
+      const result = await markdownToHtml(
+        "```ts {2}\nconst a = 1;\nconst b = 2;\n```",
+      );
+      const document = new DOMParser().parseFromString(result, "text/html");
+      const firstLine = document.querySelector('[data-line="1"]');
+      const secondLine = document.querySelector('[data-line="2"]');
+
+      expect(result).toContain('data-meta="{2}"');
+      expect(firstLine).not.toBeNull();
+      expect(firstLine?.getAttribute("data-highlighted")).not.toBe("true");
+      expect(secondLine).not.toBeNull();
+      expect(secondLine?.getAttribute("data-highlighted")).toBe("true");
+    });
   });
 
   describe("XSS 过滤", () => {
@@ -121,6 +201,20 @@ describe("markdownToHtml", () => {
     it("过滤 javascript: 协议链接", async () => {
       const result = await markdownToHtml("[click](javascript:alert(1))");
       expect(result).not.toContain("javascript:");
+    });
+
+    it("过滤 Markdown 图片中的 javascript 协议", async () => {
+      const result = await markdownToHtml("![bad](javascript:alert(1))");
+
+      expect(result).not.toContain("javascript:");
+      expect(result).not.toContain("<img");
+    });
+
+    it("不把原生 HTML 当作受支持内容能力保留", async () => {
+      const result = await markdownToHtml("<mark>highlight</mark>");
+
+      expect(result).not.toContain("<mark>");
+      expect(result).toContain("highlight");
     });
 
     it("Markdown 粗体语法正确渲染为 <strong>", async () => {

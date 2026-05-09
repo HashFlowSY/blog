@@ -160,6 +160,24 @@ draft: false
 Detailed project description in Markdown.
 ```
 
+### Markdown Support
+
+Posts and project entries use safe static Markdown. Supported authoring features:
+
+- CommonMark headings, paragraphs, emphasis, links, blockquotes, ordered lists, unordered lists, inline code, and fenced code blocks
+- GitHub Flavored Markdown tables, task lists, strikethrough, footnotes, and autolink literals
+- Markdown images with sanitized `src`, `alt`, and `title`
+- Automatic heading anchors for `h1` through `h6`
+- Syntax highlighting for fenced code blocks
+- Line highlighting with fenced code metadata such as `{1,3-5}` after the language name
+
+Intentional exclusions:
+
+- No MDX files
+- No embedded React components
+- No arbitrary raw HTML as a supported content feature
+- No iframe or script embeds
+
 ### Frontmatter Reference
 
 #### Post
