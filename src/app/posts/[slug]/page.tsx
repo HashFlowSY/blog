@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 
 import {
   PostDetailTemplate,
-  selectRelatedPosts,
+  selectRelatedReading,
 } from "@/components/post/post-detail-template";
 import { extractHeadings } from "@/lib/markdown";
 import { getAllPostsMeta, getAllPostSlugs, getPostBySlug } from "@/lib/posts";
@@ -38,14 +38,19 @@ export default async function PostDetailPage({ params }: Props) {
   if (!post) notFound();
 
   const headings = extractHeadings(post.content);
-  const relatedPosts = selectRelatedPosts(slug, getAllPostsMeta("zh-CN"), 3);
+  const relatedReading = selectRelatedReading(
+    slug,
+    getAllPostsMeta("zh-CN"),
+    3,
+  );
 
   return (
     <PostDetailTemplate
       contentHtml={post.content}
       headings={headings}
       post={post}
-      relatedPosts={relatedPosts}
+      relatedPosts={relatedReading.posts}
+      relatedTitle={relatedReading.title}
     />
   );
 }

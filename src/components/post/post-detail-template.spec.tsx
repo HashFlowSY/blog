@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   PostDetailTemplate,
   formatDetailDate,
+  selectRelatedReading,
   selectRelatedPosts,
   stripLeadingTitleHeading,
 } from "./post-detail-template";
@@ -44,6 +45,21 @@ const relatedPosts: PostMeta[] = [
   },
 ];
 
+function makePostMeta(overrides: Partial<PostMeta>): PostMeta {
+  return {
+    slug: "example",
+    title: "Example",
+    date: "2026-01-01",
+    updated: "2026-01-01",
+    tags: [],
+    summary: "Example summary",
+    cover: null,
+    readingTime: 4,
+    locale: "zh-CN",
+    ...overrides,
+  };
+}
+
 describe("post detail template helpers", () => {
   it("formats ISO dates as the detail record stamp", () => {
     expect(formatDetailDate("2026-04-02")).toBe("2026.04.02");
@@ -53,17 +69,63 @@ describe("post detail template helpers", () => {
     expect(formatDetailDate("not-a-date")).toBe("not-a-date");
   });
 
-  it("selects related posts by excluding the current slug and limiting results", () => {
+  it("selects related posts by shared tags first, then date proximity", () => {
     const posts: PostMeta[] = [
-      { ...relatedPosts[0]!, slug: "hello-world", title: "current" },
-      { ...relatedPosts[0]!, slug: "a", title: "A" },
-      { ...relatedPosts[0]!, slug: "b", title: "B" },
-      { ...relatedPosts[0]!, slug: "c", title: "C" },
+      makePostMeta({
+        slug: "hello-world",
+        date: "2026-04-10",
+        tags: ["AI", "Design"],
+      }),
+      makePostMeta({
+        slug: "unrelated-latest",
+        date: "2026-06-01",
+        tags: ["Archive"],
+      }),
+      makePostMeta({
+        slug: "one-shared-later",
+        date: "2026-05-01",
+        tags: ["Design"],
+      }),
+      makePostMeta({
+        slug: "two-shared-far",
+        date: "2025-01-01",
+        tags: ["AI", "Design"],
+      }),
+      makePostMeta({
+        slug: "one-shared-close",
+        date: "2026-04-11",
+        tags: ["AI"],
+      }),
     ];
 
     expect(
-      selectRelatedPosts("hello-world", posts, 2).map((item) => item.slug),
-    ).toEqual(["a", "b"]);
+      selectRelatedPosts("hello-world", posts, 3).map((item) => item.slug),
+    ).toEqual(["two-shared-far", "one-shared-close", "one-shared-later"]);
+  });
+
+  it("falls back to latest posts when no post shares tags", () => {
+    const posts: PostMeta[] = [
+      makePostMeta({
+        slug: "hello-world",
+        date: "2026-04-10",
+        tags: ["AI"],
+      }),
+      makePostMeta({
+        slug: "latest",
+        date: "2026-05-01",
+        tags: ["Archive"],
+      }),
+      makePostMeta({
+        slug: "older",
+        date: "2026-01-01",
+        tags: ["Design"],
+      }),
+    ];
+
+    expect(selectRelatedReading("hello-world", posts, 2)).toMatchObject({
+      title: "最新文章",
+      posts: [{ slug: "latest" }, { slug: "older" }],
+    });
   });
 
   it("removes a duplicate leading h1 that matches the post title", () => {
@@ -89,6 +151,7 @@ describe("PostDetailTemplate", () => {
         headings={headings}
         post={post}
         relatedPosts={relatedPosts}
+        relatedTitle="关联阅读"
       />,
     );
 
@@ -116,6 +179,7 @@ describe("PostDetailTemplate", () => {
         headings={headings}
         post={post}
         relatedPosts={relatedPosts}
+        relatedTitle="关联阅读"
       />,
     );
 
@@ -135,6 +199,7 @@ describe("PostDetailTemplate", () => {
         headings={headings}
         post={post}
         relatedPosts={relatedPosts}
+        relatedTitle="关联阅读"
       />,
     );
 
@@ -146,7 +211,7 @@ describe("PostDetailTemplate", () => {
   });
 
   it("uses an uncategorized tag when a post has no tags", () => {
-    const { getByText } = render(
+    const { container, getByText } = render(
       <PostDetailTemplate
         contentHtml={post.content}
         headings={headings}
@@ -156,6 +221,20 @@ describe("PostDetailTemplate", () => {
     );
 
     expect(getByText("未分类")).toBeInTheDocument();
-    expect(getByText("暂无关联阅读")).toBeInTheDocument();
+    expect(container.querySelector(".related-section")).not.toBeInTheDocument();
+  });
+
+  it("renders a latest-posts heading for fallback recommendations", () => {
+    const { getByRole } = render(
+      <PostDetailTemplate
+        contentHtml={post.content}
+        headings={headings}
+        post={post}
+        relatedPosts={relatedPosts}
+        relatedTitle="最新文章"
+      />,
+    );
+
+    expect(getByRole("heading", { name: "最新文章" })).toBeInTheDocument();
   });
 });

@@ -67,8 +67,8 @@ export function PostArchive({ posts, tags }: PostArchiveProps) {
         {posts.length > 0 && (
           <section className="section-block" aria-labelledby="related-title">
             <div className="section-heading">
-              <h2 id="related-title">关联阅读</h2>
-              <p>三张关联卡片保持报纸副刊式密度，用标题和摘要承担导航。</p>
+              <h2 id="related-title">最新阅读</h2>
+              <p>最近更新的记录放在手边。</p>
             </div>
             <div className="related-grid" data-od-id="related-grid">
               {posts.slice(0, 3).map((post) => (

@@ -31,7 +31,7 @@ const posts: PostMeta[] = [
 ];
 
 describe("PostArchive", () => {
-  it("renders archive filters, article cards, and related reading links", () => {
+  it("renders archive filters, article cards, and latest reading links", () => {
     const { container } = render(
       <PostArchive posts={posts} tags={["手记", "工程"]} />,
     );
@@ -47,7 +47,7 @@ describe("PostArchive", () => {
       "/posts/first/",
     );
     expect(
-      screen.getByRole("heading", { name: "关联阅读" }),
+      screen.getByRole("heading", { name: "最新阅读" }),
     ).toBeInTheDocument();
   });
 

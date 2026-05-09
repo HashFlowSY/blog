@@ -29,7 +29,7 @@ test.describe("Post detail", () => {
     ).toBeVisible();
   });
 
-  test("related reading section exists", async ({ page }) => {
+  test("recommendation section exists", async ({ page }) => {
     await goToPosts(page);
 
     await Promise.all([
@@ -37,7 +37,7 @@ test.describe("Post detail", () => {
       page.locator("article a").first().click(),
     ]);
 
-    await expect(page.getByRole("heading", { name: "关联阅读" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "最新文章" })).toBeVisible();
     await expect(page.locator(".related-section")).toBeAttached();
   });
 

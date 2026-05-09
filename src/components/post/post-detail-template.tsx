@@ -11,6 +11,12 @@ interface PostDetailTemplateProps {
   headings: TocItem[];
   post: Post;
   relatedPosts: PostMeta[];
+  relatedTitle?: string;
+}
+
+export interface RelatedReadingSelection {
+  posts: PostMeta[];
+  title: "关联阅读" | "最新文章";
 }
 
 export function formatDetailDate(date: string): string {
@@ -23,7 +29,55 @@ export function selectRelatedPosts(
   posts: PostMeta[],
   limit = 3,
 ): PostMeta[] {
-  return posts.filter((item) => item.slug !== currentSlug).slice(0, limit);
+  return selectRelatedReading(currentSlug, posts, limit).posts;
+}
+
+export function selectRelatedReading(
+  currentSlug: string,
+  posts: PostMeta[],
+  limit = 3,
+): RelatedReadingSelection {
+  const currentPost = posts.find((item) => item.slug === currentSlug);
+  const candidates = posts.filter((item) => item.slug !== currentSlug);
+
+  if (!currentPost || currentPost.tags.length === 0) {
+    return {
+      posts: [...candidates].sort(compareByLatestDate).slice(0, limit),
+      title: "最新文章",
+    };
+  }
+
+  const taggedCandidates = candidates
+    .map((candidate) => ({
+      post: candidate,
+      sharedTagCount: countSharedTags(currentPost, candidate),
+    }))
+    .filter((candidate) => candidate.sharedTagCount > 0);
+
+  if (taggedCandidates.length === 0) {
+    return {
+      posts: [...candidates].sort(compareByLatestDate).slice(0, limit),
+      title: "最新文章",
+    };
+  }
+
+  return {
+    posts: [...taggedCandidates]
+      .sort((a, b) => {
+        const sharedTagDelta = b.sharedTagCount - a.sharedTagCount;
+        if (sharedTagDelta !== 0) return sharedTagDelta;
+
+        const distanceDelta =
+          getDateDistance(a.post.date, currentPost.date) -
+          getDateDistance(b.post.date, currentPost.date);
+        if (distanceDelta !== 0) return distanceDelta;
+
+        return compareByLatestDate(a.post, b.post);
+      })
+      .map((candidate) => candidate.post)
+      .slice(0, limit),
+    title: "关联阅读",
+  };
 }
 
 export function stripLeadingTitleHeading(html: string, title: string): string {
@@ -40,11 +94,45 @@ function formatMetaLine(post: PostMeta): string {
   return `${formatDetailDate(post.date)} / ${post.tags[0] ?? "Archive"}`;
 }
 
+function compareByLatestDate(a: PostMeta, b: PostMeta): number {
+  const aTimestamp = getDateTimestamp(a.date) ?? Number.NEGATIVE_INFINITY;
+  const bTimestamp = getDateTimestamp(b.date) ?? Number.NEGATIVE_INFINITY;
+  const dateDelta = bTimestamp - aTimestamp;
+  if (dateDelta !== 0) return dateDelta;
+
+  return a.slug.localeCompare(b.slug);
+}
+
+function countSharedTags(currentPost: PostMeta, candidate: PostMeta): number {
+  const currentTags = new Set(currentPost.tags);
+  const sharedTags = new Set(
+    candidate.tags.filter((tag) => currentTags.has(tag)),
+  );
+
+  return sharedTags.size;
+}
+
+function getDateDistance(a: string, b: string): number {
+  const aTimestamp = getDateTimestamp(a);
+  const bTimestamp = getDateTimestamp(b);
+  if (aTimestamp === null || bTimestamp === null) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  return Math.abs(aTimestamp - bTimestamp);
+}
+
+function getDateTimestamp(date: string): number | null {
+  const timestamp = Date.parse(`${date}T00:00:00.000Z`);
+  return Number.isNaN(timestamp) ? null : timestamp;
+}
+
 export function PostDetailTemplate({
   contentHtml,
   headings,
   post,
   relatedPosts,
+  relatedTitle = "关联阅读",
 }: PostDetailTemplateProps) {
   const tags = post.tags.length > 0 ? post.tags : ["未分类"];
   const displayContent = stripLeadingTitleHeading(contentHtml, post.title);
@@ -134,12 +222,12 @@ export function PostDetailTemplate({
           </article>
         </div>
 
-        <section className="related-section" aria-labelledby="related-title">
-          <div className="related-header">
-            <h2 id="related-title">关联阅读</h2>
-            <p></p>
-          </div>
-          {relatedPosts.length > 0 ? (
+        {relatedPosts.length > 0 && (
+          <section className="related-section" aria-labelledby="related-title">
+            <div className="related-header">
+              <h2 id="related-title">{relatedTitle}</h2>
+              <p></p>
+            </div>
             <div className="related-grid" data-od-id="detail-related-grid">
               {relatedPosts.map((relatedPost) => (
                 <Link
@@ -154,10 +242,8 @@ export function PostDetailTemplate({
                 </Link>
               ))}
             </div>
-          ) : (
-            <p className="empty-state">暂无关联阅读</p>
-          )}
-        </section>
+          </section>
+        )}
       </div>
     </article>
   );
