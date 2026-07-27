@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { PostArchive } from "./post-archive";
@@ -31,48 +31,25 @@ const posts: PostMeta[] = [
 ];
 
 describe("PostArchive", () => {
-  it("renders archive filters, article cards, and latest reading links", () => {
+  it("renders topic context and one article list", () => {
     const { container } = render(
       <PostArchive posts={posts} tags={["手记", "工程"]} />,
     );
 
-    expect(screen.getByLabelText("文章筛选")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /全部 02/ })).toHaveAttribute(
-      "aria-pressed",
-      "true",
+    expect(screen.getByLabelText("当前写作主题")).toBeInTheDocument();
+    expect(screen.getByText("当前主题")).toBeInTheDocument();
+    expect(container.querySelectorAll(".portfolio-article-row")).toHaveLength(
+      2,
     );
-    expect(container.querySelectorAll(".article-card")).toHaveLength(2);
     expect(screen.getByRole("link", { name: "第一篇" })).toHaveAttribute(
       "href",
       "/posts/first/",
     );
-    expect(
-      screen.getByRole("heading", { name: "最新阅读" }),
-    ).toBeInTheDocument();
+    expect(screen.queryByText("最新阅读")).not.toBeInTheDocument();
   });
 
-  it("filters posts by tag and can reset to all posts", () => {
-    const { container } = render(
-      <PostArchive posts={posts} tags={["手记", "工程"]} />,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: /工程 01/ }));
-
-    expect(container.querySelectorAll(".article-card")).toHaveLength(1);
-    expect(screen.getByRole("link", { name: "第二篇" })).toBeInTheDocument();
-    expect(
-      screen.queryByRole("link", { name: "第一篇" }),
-    ).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: /全部 02/ }));
-
-    expect(container.querySelectorAll(".article-card")).toHaveLength(2);
-  });
-
-  it("renders an empty state when no post matches the selected tag", () => {
-    render(<PostArchive posts={posts} tags={["不存在"]} />);
-
-    fireEvent.click(screen.getByRole("button", { name: /不存在 00/ }));
+  it("renders an empty state when there are no posts", () => {
+    render(<PostArchive posts={[]} tags={[]} />);
 
     expect(screen.getByText("暂无文章")).toBeInTheDocument();
   });

@@ -144,7 +144,7 @@ describe("post detail template helpers", () => {
 });
 
 describe("PostDetailTemplate", () => {
-  it("renders the industrial reading template with dynamic post metadata", () => {
+  it("renders the portfolio reading template with dynamic post metadata", () => {
     const { container, getByRole, getByText } = render(
       <PostDetailTemplate
         contentHtml={post.content}
@@ -157,7 +157,9 @@ describe("PostDetailTemplate", () => {
 
     expect(container.querySelector(".article-shell")).toBeInTheDocument();
     expect(container.querySelector(".detail-hero")).toBeInTheDocument();
-    expect(container.querySelector(".detail-panel")).toBeInTheDocument();
+    expect(
+      container.querySelector(".portfolio-article-meta"),
+    ).toBeInTheDocument();
     expect(container.querySelector(".reader-card")).toBeInTheDocument();
     expect(container.querySelector(".article-body")).toBeInTheDocument();
     expect(container.querySelector(".related-section")).toBeInTheDocument();
@@ -222,6 +224,19 @@ describe("PostDetailTemplate", () => {
 
     expect(getByText("未分类")).toBeInTheDocument();
     expect(container.querySelector(".related-section")).not.toBeInTheDocument();
+  });
+
+  it("omits the table of contents for short articles", () => {
+    const { queryByLabelText } = render(
+      <PostDetailTemplate
+        contentHtml={post.content}
+        headings={[]}
+        post={post}
+        relatedPosts={[]}
+      />,
+    );
+
+    expect(queryByLabelText("文章目录")).not.toBeInTheDocument();
   });
 
   it("renders a latest-posts heading for fallback recommendations", () => {

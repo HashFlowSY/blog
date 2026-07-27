@@ -22,6 +22,10 @@ const projectFrontmatterSchema = z.object({
   cover: z.string().optional().nullable().default(null),
   source: z.string().optional().nullable().default(null),
   demo: z.string().optional().nullable().default(null),
+  role: z.string().optional().default("独立设计与开发"),
+  duration: z.string().optional().default("持续迭代"),
+  result: z.string().optional().default("项目结果待补充"),
+  template: z.boolean().optional().default(false),
   featured: z.boolean().optional().default(false),
   draft: z.boolean().optional().default(false),
 });
@@ -41,6 +45,10 @@ export interface Project {
   cover: string | null;
   source: string | null;
   demo: string | null;
+  role?: string;
+  duration?: string;
+  result?: string;
+  template?: boolean;
   featured: boolean;
   content: string;
   locale: string;
@@ -55,6 +63,10 @@ export interface ProjectMeta {
   cover: string | null;
   source: string | null;
   demo: string | null;
+  role?: string;
+  duration?: string;
+  result?: string;
+  template?: boolean;
   featured: boolean;
   locale: string;
 }
@@ -89,6 +101,10 @@ function createProjectsLoader(
         cover: data.cover,
         source: data.source,
         demo: data.demo,
+        role: data.role,
+        duration: data.duration,
+        result: data.result,
+        template: data.template,
         featured: data.featured,
         locale,
       };
@@ -108,6 +124,10 @@ function createProjectsLoader(
         cover: data.cover,
         source: data.source,
         demo: data.demo,
+        role: data.role,
+        duration: data.duration,
+        result: data.result,
+        template: data.template,
         featured: data.featured,
         content: html,
         locale,

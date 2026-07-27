@@ -237,6 +237,10 @@ describe("projects 数据层", () => {
       expect(projects[0]!.source).toBeNull();
       expect(projects[0]!.demo).toBeNull();
       expect(projects[0]!.featured).toBe(false);
+      expect(projects[0]!.role).toBe("独立设计与开发");
+      expect(projects[0]!.duration).toBe("持续迭代");
+      expect(projects[0]!.result).toBe("项目结果待补充");
+      expect(projects[0]!.template).toBe(false);
     });
   });
 

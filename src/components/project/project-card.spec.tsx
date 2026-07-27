@@ -15,18 +15,24 @@ const baseProject: ProjectMeta = {
   source: "https://github.com/example/repo",
   demo: "https://example.com",
   featured: true,
+  role: "独立设计与开发",
+  duration: "4 周",
+  result: "完成可运行版本",
+  template: false,
   locale: "zh-CN",
 };
 
 describe("ProjectCard", () => {
-  it("renders the industrial project plate", () => {
+  it("renders project positioning, facts, and tags", () => {
     render(<ProjectCard project={baseProject} />);
 
-    expect(screen.getByText("prototype / active")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { level: 3 })).toHaveTextContent(
+    expect(screen.getByText("真实项目")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent(
       "My Project",
     );
     expect(screen.getByText("A cool project")).toBeInTheDocument();
+    expect(screen.getByText("独立设计与开发")).toBeInTheDocument();
+    expect(screen.getByText("完成可运行版本")).toBeInTheDocument();
     expect(screen.getByText("prototype")).toBeInTheDocument();
     expect(screen.getByText("industrial")).toBeInTheDocument();
   });
@@ -38,7 +44,7 @@ describe("ProjectCard", () => {
       "href",
       "/projects/my-project/",
     );
-    expect(screen.getByRole("link", { name: "案例页" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "查看案例" })).toHaveAttribute(
       "href",
       "/projects/my-project/",
     );
@@ -50,5 +56,12 @@ describe("ProjectCard", () => {
       "href",
       "https://example.com",
     );
+  });
+
+  it("clearly labels template projects", () => {
+    render(<ProjectCard project={{ ...baseProject, template: true }} />);
+
+    expect(screen.getByText("示例案例")).toBeInTheDocument();
+    expect(screen.getByText("模板结果")).toBeInTheDocument();
   });
 });

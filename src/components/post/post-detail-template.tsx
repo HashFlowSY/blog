@@ -136,84 +136,70 @@ export function PostDetailTemplate({
 }: PostDetailTemplateProps) {
   const tags = post.tags.length > 0 ? post.tags : ["未分类"];
   const displayContent = stripLeadingTitleHeading(contentHtml, post.title);
+  const showToc = headings.length >= 2;
 
   return (
     <article
-      className="page article-shell is-active"
+      className="page article-shell portfolio-page portfolio-article-page is-active"
       data-route-page="articles"
       aria-labelledby="post-title"
     >
       <ReadingProgress />
-      <div className="container">
-        <Link className="back-link" href="/posts/">
-          返回文章档案室
+      <div className="portfolio-shell">
+        <Link className="portfolio-back-link" href="/posts/">
+          返回技术写作
         </Link>
 
-        <section className="detail-hero" aria-labelledby="post-title">
-          <div>
-            <p className="eyebrow">Interface / Reading record</p>
-            <h1 id="post-title" data-od-id="detail-headline">
-              {post.title}
-            </h1>
-            {post.summary && <p className="deck">{post.summary}</p>}
-          </div>
-
-          <aside className="detail-panel" aria-label="文章档案信息">
-            <div className="detail-grid">
-              <div className="detail-chip">
-                <span>Date</span>
-                <strong>{formatDetailDate(post.date)}</strong>
-              </div>
-              <div className="detail-chip">
-                <span>Read</span>
-                <strong>{post.readingTime} min</strong>
-              </div>
-              {post.updated !== post.date && (
-                <div className="detail-chip">
-                  <span>Update</span>
-                  <strong>{formatDetailDate(post.updated)}</strong>
-                </div>
-              )}
-              <div className="detail-chip detail-chip--tags">
-                <span>Tags</span>
-                <div className="tag-list" aria-label="文章标签">
-                  {tags.map((tag) => (
-                    <span className="tag" key={tag}>
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
+        <header
+          className="portfolio-article-hero detail-hero"
+          aria-labelledby="post-title"
+        >
+          <p className="portfolio-overline">Writing / engineering note</p>
+          <h1 id="post-title" data-od-id="detail-headline">
+            {post.title}
+          </h1>
+          {post.summary && <p className="portfolio-lede">{post.summary}</p>}
+          <div className="portfolio-article-meta" aria-label="文章信息">
+            <span>{formatDetailDate(post.date)}</span>
+            <span>{post.readingTime} min</span>
+            {post.updated !== post.date && (
+              <span>更新于 {formatDetailDate(post.updated)}</span>
+            )}
+            <div className="portfolio-tags" aria-label="文章标签">
+              {tags.map((tag) => (
+                <span key={tag}>{tag}</span>
+              ))}
             </div>
-          </aside>
-        </section>
+          </div>
+        </header>
 
-        <div className="article-layout">
-          <aside className="reader-index" aria-label="文章目录">
-            <section className="side-card">
-              <p className="side-card-title">Contents / quiet map</p>
-              {headings.length > 0 ? (
-                <nav className="toc-list" aria-label="文章章节">
-                  {headings.map((heading, index) => (
-                    <a
-                      className="toc-link"
-                      href={`#${heading.id}`}
-                      key={heading.id}
-                    >
-                      {String(index + 1).padStart(2, "0")} {heading.text}
-                    </a>
-                  ))}
-                </nav>
-              ) : (
-                <p className="side-card-empty">暂无目录</p>
-              )}
-            </section>
-          </aside>
+        <div
+          className={[
+            "portfolio-reader-layout",
+            showToc ? "has-toc" : "without-toc",
+          ].join(" ")}
+        >
+          {showToc && (
+            <aside className="portfolio-reader-index" aria-label="文章目录">
+              <p className="portfolio-overline">Contents</p>
+              <nav className="portfolio-toc-list" aria-label="文章章节">
+                {headings.map((heading, index) => (
+                  <a
+                    className="portfolio-toc-link"
+                    href={`#${heading.id}`}
+                    key={heading.id}
+                  >
+                    {String(index + 1).padStart(2, "0")} {heading.text}
+                  </a>
+                ))}
+              </nav>
+            </aside>
+          )}
 
-          <article className="reader-card">
+          <article className="portfolio-reader-card reader-card">
             <CodeBlockEnhancer>
               <div
-                className="article-body prose"
+                className="article-body portfolio-prose prose"
                 id="article-body"
                 data-od-id="detail-body"
                 dangerouslySetInnerHTML={{ __html: displayContent }}
@@ -223,27 +209,51 @@ export function PostDetailTemplate({
         </div>
 
         {relatedPosts.length > 0 && (
-          <section className="related-section" aria-labelledby="related-title">
-            <div className="related-header">
-              <h2 id="related-title">{relatedTitle}</h2>
-              <p></p>
+          <section
+            className="portfolio-related-section related-section"
+            aria-labelledby="related-title"
+          >
+            <div className="portfolio-section-heading">
+              <div>
+                <p className="portfolio-overline">Continue reading</p>
+                <h2 id="related-title">{relatedTitle}</h2>
+              </div>
             </div>
-            <div className="related-grid" data-od-id="detail-related-grid">
-              {relatedPosts.map((relatedPost) => (
+            <div
+              className="portfolio-related-list"
+              data-od-id="detail-related-grid"
+            >
+              {relatedPosts.map((relatedPost, index) => (
                 <Link
-                  className="related-card"
+                  className="portfolio-related-row"
                   href={`/posts/${relatedPost.slug}/`}
                   key={relatedPost.slug}
                 >
-                  <span className="related-thumb" aria-hidden="true" />
-                  <span className="meta">{formatMetaLine(relatedPost)}</span>
-                  <h3>{relatedPost.title}</h3>
-                  {relatedPost.summary && <p>{relatedPost.summary}</p>}
+                  <span>{String(index + 1).padStart(2, "0")}</span>
+                  <span>
+                    <small>{formatMetaLine(relatedPost)}</small>
+                    <strong>{relatedPost.title}</strong>
+                    {relatedPost.summary && <span>{relatedPost.summary}</span>}
+                  </span>
                 </Link>
               ))}
             </div>
           </section>
         )}
+
+        <section
+          className="portfolio-contact-band"
+          aria-labelledby="writing-contact-title"
+        >
+          <div>
+            <p className="portfolio-overline">Contact / discuss</p>
+            <h2 id="writing-contact-title">想继续讨论这个问题？</h2>
+            <p>可以通过占位邮箱联系，后续再替换成正式入口。</p>
+          </div>
+          <a className="portfolio-button" href="mailto:hello@example.com">
+            hello@example.com
+          </a>
+        </section>
       </div>
     </article>
   );

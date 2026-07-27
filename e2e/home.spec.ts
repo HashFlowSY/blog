@@ -9,16 +9,18 @@ test.describe("Home page", () => {
 
     await goToHome(page);
 
-    await expect(page.getByText(zh.viewPosts)).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: /Hashflow AI 全栈工程师/ }),
+    ).toBeVisible();
     await expect(page.getByText(zh.viewProjects)).toBeVisible();
-
-    const viewPostsLink = page.getByRole("link", { name: zh.viewPosts });
-    await expect(viewPostsLink).toHaveAttribute("href", /\/posts\/$/);
 
     const viewProjectsLink = page.getByRole("link", {
       name: zh.viewProjects,
     });
     await expect(viewProjectsLink).toHaveAttribute("href", /\/projects\/$/);
+
+    const contactLink = page.getByRole("link", { name: "联系我" }).first();
+    await expect(contactLink).toHaveAttribute("href", /\/about\/#contact$/);
   });
 
   test("shows recent posts section", async ({ page }) => {
@@ -29,7 +31,7 @@ test.describe("Home page", () => {
     await expect(
       page.getByRole("heading", { name: zh.recentPosts }),
     ).toBeVisible();
-    await expect(page.locator(".signal-cell")).toHaveCount(3);
+    await expect(page.locator(".writing-item")).toHaveCount(2);
   });
 
   test("shows featured projects section", async ({ page }) => {
@@ -38,8 +40,8 @@ test.describe("Home page", () => {
     await goToHome(page);
 
     await expect(
-      page.getByRole("link", { name: zh.viewProjects }),
+      page.getByRole("heading", { name: zh.featuredProjects }),
     ).toBeVisible();
-    await expect(page.locator(".scrap-monument")).toBeVisible();
+    await expect(page.locator(".featured-work")).toBeVisible();
   });
 });

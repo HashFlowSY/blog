@@ -7,19 +7,23 @@ tags:
   - typescript
   - tailwindcss
   - 中文博客
-  - industrial-ui
   - static-site
   - github-pages
-description: "基于 Next.js 16 静态导出的中文个人博客，工业废土 UI、泛型内容管线、CJK 阅读时间估算、标签感知推荐和完整测试验证。"
+description: "基于 Next.js 16 静态导出的中文个人作品站，包含类型安全的内容管线、CJK 阅读时间、标签感知推荐和完整测试验证。"
+cover: "/assets/personal-blog-home.jpg"
 source: "https://github.com/HashFlowSY/blog"
 demo: "https://hashflowsy.github.io/blog"
+role: "需求拆解、视觉重构、全栈开发"
+duration: "持续迭代"
+result: "静态部署、内容自动化与完整测试链路已落地"
+template: false
 featured: true
 draft: false
 ---
 
 ## 概述
 
-基于 Next.js 16 静态导出、部署至 GitHub Pages 的中文个人博客。它采用工业废土风格界面，把首页、文章、项目和关于四个模块重新组织成更有记忆点的浏览体验。核心特性包括泛型 Markdown 内容管线、CJK 感知阅读时间、标签感知的文章推荐和完整自动化验证。
+基于 Next.js 16 静态导出、部署至 GitHub Pages 的中文个人作品站。它把求职、项目合作和长期写作组织成一条清晰的浏览路径。核心特性包括泛型 Markdown 内容管线、CJK 感知阅读时间、标签感知的文章推荐和完整自动化验证。
 
 ## 内容管线
 
@@ -54,4 +58,4 @@ draft: false
 - **静态导出 vs SSR**：零成本部署到 GitHub Pages，代价是没有服务端运行时——RSS 在构建时生成。
 - **Markdown 中不支持 React 组件**：刻意收窄渲染面以消除 XSS 攻击面，白名单按最小权限原则设计。
 - **AST 级行高亮**：`rehype-code-block` 操作 HAST 树生成逐行 `<span>`，支持任意范围高亮，使客户端能按行做 hover 效果和点击复制，而非依赖 CSS line-clamp hack。
-- **固定工业暗色界面**：当前视觉系统不再提供主题切换，减少状态复杂度，把精力放在排版、材质、边框和可读性上。
+- **统一暖白工程台界面**：全站使用同一套排版、网格、颜色和交互反馈，让项目、文章与个人信息保持一致。

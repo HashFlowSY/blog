@@ -75,10 +75,10 @@ export function Header() {
       aria-label="站点头部"
     >
       <Link className="brand-lockup" href="/" aria-label="回到首页">
-        <span className="brand-mark">废</span>
+        <span className="brand-mark">H</span>
         <span className="brand-text">
-          <strong>Scraplog</strong>
-          <span>废料通信站</span>
+          <strong>Hashflow</strong>
+          <span>AI 全栈工程师</span>
         </span>
       </Link>
       <button
@@ -107,6 +107,13 @@ export function Header() {
             </Link>
           );
         })}
+        <Link
+          className="nav-contact"
+          href="/about/#contact"
+          onClick={closeMenu}
+        >
+          联系我
+        </Link>
       </nav>
     </header>
   );

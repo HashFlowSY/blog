@@ -25,7 +25,9 @@ test.describe("Post detail", () => {
     );
 
     await expect(
-      page.locator(".detail-panel").getByText(new RegExp(`\\d+ ${zh.minutes}`)),
+      page
+        .locator(".portfolio-article-meta")
+        .getByText(new RegExp(`\\d+ ${zh.minutes}`)),
     ).toBeVisible();
   });
 
@@ -37,7 +39,9 @@ test.describe("Post detail", () => {
       page.locator("article a").first().click(),
     ]);
 
-    await expect(page.getByRole("heading", { name: "最新文章" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: /关联阅读|最新文章/ }),
+    ).toBeVisible();
     await expect(page.locator(".related-section")).toBeAttached();
   });
 
@@ -51,9 +55,9 @@ test.describe("Post detail", () => {
 
     await Promise.all([
       page.waitForURL(/\/posts\/$/),
-      page.getByRole("link", { name: "返回文章档案室" }).click(),
+      page.getByRole("link", { name: "返回技术写作" }).click(),
     ]);
 
-    await expect(page.getByRole("heading", { name: "档案室" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "技术写作" })).toBeVisible();
   });
 });

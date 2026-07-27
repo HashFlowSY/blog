@@ -6,10 +6,11 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: {
-    default: "废料通信站",
-    template: "%s | 废料通信站",
+    default: "Hashflow｜AI 全栈工程师",
+    template: "%s | Hashflow",
   },
-  description: "一个中文个人网站",
+  description:
+    "Hashflow 的个人作品站：记录 AI 应用、后端系统、自动化交付和长期写作。",
 };
 
 export default function RootLayout({

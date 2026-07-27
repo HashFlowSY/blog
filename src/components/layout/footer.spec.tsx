@@ -16,9 +16,12 @@ describe("Footer", () => {
     ).toBeNull();
   });
 
-  it("renders industrial prototype footer text", () => {
+  it("renders portfolio footer text", () => {
     const { container } = render(<Footer />);
-    expect(container.textContent).toContain("Scraplog");
-    expect(container.textContent).toContain("Built for readable visits");
+    expect(container.textContent).toContain("Hashflow");
+    expect(container.textContent).toContain("求职或合作");
+    expect(
+      screen.getByRole("link", { name: "hello@example.com" }),
+    ).toHaveAttribute("href", "mailto:hello@example.com");
   });
 });

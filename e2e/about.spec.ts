@@ -14,8 +14,11 @@ test.describe("About page", () => {
     ).toBeVisible();
 
     await expect(page.getByLabel(zh.skills)).toBeVisible();
-    await expect(page.locator(".skill-plate").first()).toBeVisible();
+    await expect(page.locator(".portfolio-skill-card").first()).toBeVisible();
 
     await expect(page.getByLabel(zh.experience)).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "hello@example.com" }),
+    ).toHaveAttribute("href", "mailto:hello@example.com");
   });
 });

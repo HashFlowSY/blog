@@ -5,9 +5,9 @@ import { siteUrl } from "@/lib/site";
 export const dynamic = "force-static";
 
 const FEED_CONFIG = {
-  title: "废料通信站",
+  title: "Hashflow｜AI 全栈工程师",
   link: siteUrl("/"),
-  description: "个人网站，写文章，写项目",
+  description: "Hashflow 的个人作品站，记录 AI 应用、后端系统和长期写作。",
   language: "zh-CN",
 } as const;
 

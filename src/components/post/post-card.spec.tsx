@@ -18,12 +18,13 @@ const basePost: PostMeta = {
 };
 
 describe("PostCard", () => {
-  it("renders the industrial article card with date stamp and metadata", () => {
+  it("renders the article row with date stamp and metadata", () => {
     render(<PostCard post={basePost} />);
 
-    expect(screen.getByText(/2026\s*01\.15/)).toBeInTheDocument();
-    expect(screen.getByText("typescript / 5 min")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { level: 3 })).toHaveTextContent(
+    expect(
+      screen.getByText("2026.01.15 / typescript / 5 min"),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent(
       "Test Post",
     );
     expect(screen.getByText("A test summary")).toBeInTheDocument();
@@ -33,6 +34,10 @@ describe("PostCard", () => {
     render(<PostCard post={basePost} />);
 
     expect(screen.getByRole("link", { name: "Test Post" })).toHaveAttribute(
+      "href",
+      "/posts/test-post/",
+    );
+    expect(screen.getByRole("link", { name: "阅读Test Post" })).toHaveAttribute(
       "href",
       "/posts/test-post/",
     );

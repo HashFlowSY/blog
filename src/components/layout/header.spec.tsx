@@ -12,12 +12,12 @@ vi.mock("next/navigation", () => {
 });
 
 describe("Header", () => {
-  it("renders the industrial reference brand lockup without language switcher", () => {
+  it("renders the portfolio brand lockup without language switcher", () => {
     render(<Header />);
 
-    expect(screen.getByText("废")).toBeInTheDocument();
-    expect(screen.getByText("Scraplog")).toBeInTheDocument();
-    expect(screen.getByText("废料通信站")).toBeInTheDocument();
+    expect(screen.getByText("H")).toBeInTheDocument();
+    expect(screen.getByText("Hashflow")).toBeInTheDocument();
+    expect(screen.getByText("AI 全栈工程师")).toBeInTheDocument();
     expect(screen.queryByText("EN")).not.toBeInTheDocument();
     expect(screen.queryByText("中文")).not.toBeInTheDocument();
   });
@@ -40,6 +40,10 @@ describe("Header", () => {
     expect(screen.getByRole("link", { name: "关于" })).toHaveAttribute(
       "href",
       "/about/",
+    );
+    expect(screen.getByRole("link", { name: "联系我" })).toHaveAttribute(
+      "href",
+      "/about/#contact",
     );
   });
 
