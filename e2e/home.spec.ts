@@ -12,11 +12,12 @@ test.describe("Home page", () => {
     await expect(
       page.getByRole("heading", { name: /Hashflow AI 全栈工程师/ }),
     ).toBeVisible();
-    await expect(page.getByText(zh.viewProjects)).toBeVisible();
 
     const viewProjectsLink = page.getByRole("link", {
       name: zh.viewProjects,
+      exact: true,
     });
+    await expect(viewProjectsLink).toBeVisible();
     await expect(viewProjectsLink).toHaveAttribute("href", /\/projects\/$/);
 
     const contactLink = page.getByRole("link", { name: "联系我" }).first();

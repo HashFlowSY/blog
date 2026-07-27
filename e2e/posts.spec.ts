@@ -14,7 +14,7 @@ test.describe("Posts list", () => {
     ).toBeVisible();
 
     await expect(page.getByLabel("当前写作主题")).toBeVisible();
-    await expect(page.getByLabel("文章列表")).toBeVisible();
+    await expect(page.locator("section[aria-label='文章列表']")).toBeVisible();
     await expect(page.locator(".portfolio-article-row").first()).toBeVisible();
   });
 

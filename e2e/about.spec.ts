@@ -18,7 +18,9 @@ test.describe("About page", () => {
 
     await expect(page.getByLabel(zh.experience)).toBeVisible();
     await expect(
-      page.getByRole("link", { name: "hello@example.com" }),
+      page
+        .getByLabel(zh.aboutTitle)
+        .getByRole("link", { name: "hello@example.com" }),
     ).toHaveAttribute("href", "mailto:hello@example.com");
   });
 });
