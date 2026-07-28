@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { getAllPostsMeta } from "@/lib/posts";
 import { getFeaturedProjects } from "@/lib/projects";
+import { assetPath } from "@/lib/site";
 
 const capabilities = [
   {
@@ -84,7 +85,7 @@ export default function HomePage() {
 
             <figure className="workbench-hero-visual">
               <Image
-                src="/assets/workbench-hero.png"
+                src={assetPath("/assets/workbench-hero.png")}
                 alt="工程师工作台的蓝图插画"
                 fill
                 preload
@@ -112,9 +113,9 @@ export default function HomePage() {
               <article className="featured-work" data-od-id="featured-project">
                 <div className="featured-work-media">
                   <Image
-                    src={
-                      featuredProject.cover ?? "/assets/content-dashboard.png"
-                    }
+                    src={assetPath(
+                      featuredProject.cover ?? "/assets/content-dashboard.png",
+                    )}
                     alt={`${featuredProject.title}项目界面预览`}
                     fill
                     loading="eager"

@@ -6,6 +6,7 @@ describe("siteUrl", () => {
   beforeEach(() => {
     vi.resetModules();
     process.env = { ...originalEnv };
+    delete process.env["NEXT_PUBLIC_BASE_PATH"];
   });
 
   afterEach(() => {
@@ -78,5 +79,75 @@ describe("siteUrl", () => {
     delete process.env["BASE_PATH"];
     const { siteUrl } = await import("./site");
     expect(siteUrl("/posts/test/")).toBe("https://example.com/posts/test/");
+  });
+});
+
+describe("assetPath", () => {
+  const originalEnv = process.env;
+
+  beforeEach(() => {
+    vi.resetModules();
+    process.env = { ...originalEnv };
+    delete process.env["NEXT_PUBLIC_BASE_PATH"];
+  });
+
+  afterEach(() => {
+    process.env = originalEnv;
+  });
+
+  it("keeps a root-relative asset path during local development", async () => {
+    delete process.env["BASE_PATH"];
+    const { assetPath } = await import("./site");
+
+    expect(assetPath("/assets/workbench-hero.png")).toBe(
+      "/assets/workbench-hero.png",
+    );
+  });
+
+  it("prefixes root-relative asset paths for a GitHub Pages deployment", async () => {
+    process.env["BASE_PATH"] = "/blog";
+    const { assetPath } = await import("./site");
+
+    expect(assetPath("/assets/workbench-hero.png")).toBe(
+      "/blog/assets/workbench-hero.png",
+    );
+  });
+
+  it("uses the public base path when it is available to client components", async () => {
+    process.env["BASE_PATH"] = "/server-only";
+    process.env.NEXT_PUBLIC_BASE_PATH = "/blog";
+    const { assetPath, BASE_PATH } = await import("./site");
+
+    expect(BASE_PATH).toBe("/blog");
+    expect(assetPath("/assets/workbench-hero.png")).toBe(
+      "/blog/assets/workbench-hero.png",
+    );
+  });
+
+  it("leaves external asset URLs unchanged", async () => {
+    process.env["BASE_PATH"] = "/blog";
+    const { assetPath } = await import("./site");
+
+    expect(assetPath("https://example.com/image.png")).toBe(
+      "https://example.com/image.png",
+    );
+  });
+
+  it("leaves non-HTTP URI asset sources unchanged", async () => {
+    process.env["BASE_PATH"] = "/blog";
+    const { assetPath } = await import("./site");
+
+    expect(assetPath("data:image/svg+xml,%3Csvg%20/%3E")).toBe(
+      "data:image/svg+xml,%3Csvg%20/%3E",
+    );
+  });
+
+  it("does not add the base path twice", async () => {
+    process.env["BASE_PATH"] = "/blog";
+    const { assetPath } = await import("./site");
+
+    expect(assetPath("/blog/assets/workbench-hero.png")).toBe(
+      "/blog/assets/workbench-hero.png",
+    );
   });
 });

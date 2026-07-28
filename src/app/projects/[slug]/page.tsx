@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 
 import { CodeBlockEnhancer } from "@/components/post/code-block";
 import { getAllProjectSlugs, getProjectBySlug } from "@/lib/projects";
-import { siteUrl } from "@/lib/site";
+import { assetPath, siteUrl } from "@/lib/site";
 
 import type { Metadata } from "next";
 
@@ -105,7 +105,7 @@ export default async function ProjectDetailPage({ params }: Props) {
 
         <figure className="portfolio-case-cover">
           <Image
-            src={project.cover ?? "/assets/workbench-hero.png"}
+            src={assetPath(project.cover ?? "/assets/workbench-hero.png")}
             alt={`${project.title}项目界面预览`}
             fill
             preload

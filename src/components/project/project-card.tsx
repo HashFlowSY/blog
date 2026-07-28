@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { assetPath } from "@/lib/site";
+
 import type { ProjectMeta } from "@/lib/projects";
 
 interface ProjectCardProps {
@@ -8,7 +10,7 @@ interface ProjectCardProps {
 }
 
 export function ProjectCard({ project }: ProjectCardProps) {
-  const cover = project.cover ?? "/assets/workbench-hero.png";
+  const cover = assetPath(project.cover ?? "/assets/workbench-hero.png");
   const kind = project.template ? "示例案例" : "真实项目";
   const role = project.role ?? "独立设计与开发";
   const result = project.result ?? "项目结果待补充";

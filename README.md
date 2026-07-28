@@ -89,6 +89,7 @@ Create `.env.local` for local development:
 ```env
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 BASE_PATH=
+NEXT_PUBLIC_BASE_PATH=
 ```
 
 See [Environment Variables](#environment-variables) for the full list.
@@ -239,10 +240,11 @@ Set `NEXT_PUBLIC_SITE_URL` to your domain in GitHub Variables, and configure DNS
 
 ## Environment Variables
 
-| Variable               | Required | Description                                      |
-| ---------------------- | -------- | ------------------------------------------------ |
-| `NEXT_PUBLIC_SITE_URL` | Yes      | Base URL for sitemap, robots, RSS, canonical, OG |
-| `BASE_PATH`            | Yes      | URL prefix for project pages (auto-set by CI)    |
+| Variable                | Required | Description                                           |
+| ----------------------- | -------- | ----------------------------------------------------- |
+| `NEXT_PUBLIC_SITE_URL`  | Yes      | Base URL for sitemap, robots, RSS, canonical, OG      |
+| `BASE_PATH`             | Yes      | URL prefix for project pages (auto-set by CI)         |
+| `NEXT_PUBLIC_BASE_PATH` | No       | Client-visible mirror of `BASE_PATH` (auto-set by CI) |
 
 ### NEXT_PUBLIC_SITE_URL
 
@@ -276,6 +278,8 @@ The URL prefix for GitHub Pages project sites. Automatically computed by `deploy
 - `username.github.io` → `BASE_PATH=` (empty)
 - `username.github.io/repo-name` → `BASE_PATH=/repo-name`
 
+For a manual project-site build, set `NEXT_PUBLIC_BASE_PATH` to the same value so client components resolve public assets correctly. The GitHub Actions workflow sets both variables automatically.
+
 ### Local Development
 
 Create `.env.local` in the project root:
@@ -283,6 +287,7 @@ Create `.env.local` in the project root:
 ```env
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 BASE_PATH=
+NEXT_PUBLIC_BASE_PATH=
 ```
 
 ## Scripts
