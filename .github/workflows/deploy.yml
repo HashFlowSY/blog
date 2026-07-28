@@ -91,11 +91,11 @@ jobs:
         env:
           BASE_PATH: ${{ needs.deployment-config.outputs.base-path }}
         run: |
-          if rg -n 'src="/assets/' out -g '*.html'; then
+          if find out -type f -name '*.html' -exec grep -n 'src="/assets/' {} + | grep -q .; then
             echo "::error title=Unprefixed static asset URL::Public assets must include BASE_PATH when deploying to a project site."
             exit 1
           fi
-          rg -q "src=\"$BASE_PATH/assets/" out -g '*.html'
+          find out -type f -name '*.html' -exec grep -l "src=\"$BASE_PATH/assets/" {} + | grep -q .
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v5
         with:
