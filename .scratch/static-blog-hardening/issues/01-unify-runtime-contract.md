@@ -1,6 +1,6 @@
 # Unify the runtime contract
 
-Status: ready-for-agent
+Status: resolved
 
 ## Goal
 
@@ -26,3 +26,16 @@ Make Node 24 and pnpm 11.0.8 the single runtime contract used locally, in docume
 - Run formatting checks for edited documentation/configuration.
 - Run TypeScript or package metadata validation where applicable.
 - Search the repository for stale Node and pnpm version declarations.
+
+## Answer
+
+- Kept `.nvmrc` on Node 24 and constrained `package.json` to the Node 24 major line (`24.x`), allowing security patch releases within that major.
+- Kept pnpm pinned to `11.0.8` in package metadata, documentation, and every workflow setup step.
+- Updated every GitHub Actions `setup-node` invocation to read `.nvmrc`, eliminating duplicated Node literals in CI and deployment.
+- Updated README prerequisites to Node 24.x and pnpm 11.0.8, and removed the unsupported preview/`serve` instructions instead of adding a dependency.
+
+Verification completed:
+
+- `pnpm format:check`
+- `pnpm tsc --noEmit`
+- Repository search for stale runtime declarations

@@ -33,7 +33,7 @@ An industrial-wasteland style Chinese personal blog built with Next.js 16 and de
 | [ESLint 9](https://eslint.org)                        | Linting (flat config)                 |
 | [Prettier 3](https://prettier.io)                     | Code formatting                       |
 | [husky](https://typicode.github.io/husky)             | Git hooks                             |
-| [pnpm 11](https://pnpm.io)                            | Package manager                       |
+| [pnpm 11.0.8](https://pnpm.io)                        | Package manager                       |
 
 ## Project Structure
 
@@ -72,8 +72,8 @@ src/
 
 ### Prerequisites
 
-- Node.js >= 20
-- pnpm >= 11
+- Node.js 24.x (the latest patch release; `.nvmrc` selects this major)
+- pnpm 11.0.8
 
 ### Install
 
@@ -109,13 +109,6 @@ pnpm build
 ```
 
 Static output is generated in the `out/` directory.
-
-### Preview Build Output
-
-```bash
-pnpm build
-npx serve out
-```
 
 ## Writing Content
 
@@ -296,7 +289,6 @@ NEXT_PUBLIC_BASE_PATH=
 | -------------------- | ------------------------------ |
 | `pnpm dev`           | Start development server       |
 | `pnpm build`         | Production build to `out/`     |
-| `pnpm preview`       | Preview production build       |
 | `pnpm lint`          | Run ESLint                     |
 | `pnpm lint:fix`      | Run ESLint with auto-fix       |
 | `pnpm format:check`  | Check Prettier formatting      |
