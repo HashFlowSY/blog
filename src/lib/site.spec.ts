@@ -5,7 +5,7 @@ describe("siteUrl", () => {
 
   beforeEach(() => {
     vi.resetModules();
-    process.env = { ...originalEnv };
+    process.env = { ...originalEnv, NODE_ENV: "development" };
     delete process.env["NEXT_PUBLIC_BASE_PATH"];
   });
 
@@ -13,7 +13,8 @@ describe("siteUrl", () => {
     process.env = originalEnv;
   });
 
-  it("uses NEXT_PUBLIC_SITE_URL when set", async () => {
+  it("uses an HTTPS NEXT_PUBLIC_SITE_URL for a production build", async () => {
+    process.env = { ...process.env, NODE_ENV: "production" };
     process.env["NEXT_PUBLIC_SITE_URL"] = "https://example.com";
     process.env["BASE_PATH"] = "";
     const { siteUrl, BASE_URL } = await import("./site");
@@ -46,13 +47,13 @@ describe("siteUrl", () => {
     );
   });
 
-  it("does not prefix a base-path-qualified site URL twice", async () => {
+  it("prefixes a route whose first segment matches BASE_PATH", async () => {
     process.env["NEXT_PUBLIC_SITE_URL"] = "https://example.com";
-    process.env["BASE_PATH"] = "/blog";
+    process.env["BASE_PATH"] = "/posts";
     const { siteUrl } = await import("./site");
 
-    expect(siteUrl("/blog/posts/test/")).toBe(
-      "https://example.com/blog/posts/test/",
+    expect(siteUrl("/posts/test/")).toBe(
+      "https://example.com/posts/posts/test/",
     );
   });
 
@@ -100,12 +101,32 @@ describe("release configuration validation", () => {
 
   beforeEach(() => {
     vi.resetModules();
-    process.env = { ...originalEnv };
+    process.env = { ...originalEnv, NODE_ENV: "development" };
     delete process.env["NEXT_PUBLIC_BASE_PATH"];
   });
 
   afterEach(() => {
     process.env = originalEnv;
+  });
+
+  it("requires NEXT_PUBLIC_SITE_URL for a production build", async () => {
+    process.env = { ...process.env, NODE_ENV: "production" };
+    delete process.env["NEXT_PUBLIC_SITE_URL"];
+    process.env["BASE_PATH"] = "";
+
+    await expect(import("./site")).rejects.toThrow(
+      "NEXT_PUBLIC_SITE_URL is required in production",
+    );
+  });
+
+  it("rejects an HTTP localhost origin for a production build", async () => {
+    process.env = { ...process.env, NODE_ENV: "production" };
+    process.env["NEXT_PUBLIC_SITE_URL"] = "http://localhost:3000";
+    process.env["BASE_PATH"] = "";
+
+    await expect(import("./site")).rejects.toThrow(
+      "Invalid NEXT_PUBLIC_SITE_URL",
+    );
   });
 
   it.each([
@@ -124,6 +145,7 @@ describe("release configuration validation", () => {
   });
 
   it("accepts an HTTP localhost origin for local development", async () => {
+    process.env = { ...process.env, NODE_ENV: "development" };
     process.env["NEXT_PUBLIC_SITE_URL"] = "http://localhost:3000";
     process.env["BASE_PATH"] = "";
     const { siteUrl } = await import("./site");
@@ -157,7 +179,7 @@ describe("assetPath", () => {
 
   beforeEach(() => {
     vi.resetModules();
-    process.env = { ...originalEnv };
+    process.env = { ...originalEnv, NODE_ENV: "development" };
     delete process.env["NEXT_PUBLIC_BASE_PATH"];
   });
 
@@ -212,12 +234,12 @@ describe("assetPath", () => {
     );
   });
 
-  it("does not add the base path twice", async () => {
-    process.env["BASE_PATH"] = "/blog";
+  it("prefixes an asset path whose first segment matches BASE_PATH", async () => {
+    process.env["BASE_PATH"] = "/assets";
     const { assetPath } = await import("./site");
 
-    expect(assetPath("/blog/assets/workbench-hero.png")).toBe(
-      "/blog/assets/workbench-hero.png",
+    expect(assetPath("/assets/workbench-hero.png")).toBe(
+      "/assets/assets/workbench-hero.png",
     );
   });
 });

@@ -25,7 +25,13 @@ function isLocalhost(hostname: string): boolean {
 }
 
 function validateSiteOrigin(value: string | undefined): string | undefined {
-  if (value === undefined) return undefined;
+  if (value === undefined) {
+    if (process.env["NODE_ENV"] === "production") {
+      throw new Error("NEXT_PUBLIC_SITE_URL is required in production");
+    }
+
+    return undefined;
+  }
 
   let url: URL;
   try {
@@ -34,9 +40,11 @@ function validateSiteOrigin(value: string | undefined): string | undefined {
     return invalidConfiguration("NEXT_PUBLIC_SITE_URL", value);
   }
 
-  const isValidProtocol =
-    url.protocol === "https:" ||
-    (url.protocol === "http:" && isLocalhost(url.hostname));
+  const isLocalDevelopmentOrigin =
+    process.env["NODE_ENV"] !== "production" &&
+    url.protocol === "http:" &&
+    isLocalhost(url.hostname);
+  const isValidProtocol = url.protocol === "https:" || isLocalDevelopmentOrigin;
 
   if (!isValidProtocol || value !== url.origin) {
     return invalidConfiguration("NEXT_PUBLIC_SITE_URL", value);
@@ -113,13 +121,7 @@ function withBasePath(path: string): string {
   const pathUrl = new URL(path, URL_BASE);
   const rootRelativePath = getRootRelativeReference(pathUrl);
 
-  if (
-    !BASE_PATH ||
-    pathUrl.pathname === BASE_PATH ||
-    pathUrl.pathname.startsWith(`${BASE_PATH}/`)
-  ) {
-    return rootRelativePath;
-  }
+  if (!BASE_PATH) return rootRelativePath;
 
   const baseUrl = new URL(`${BASE_PATH}/`, URL_BASE);
   return getRootRelativeReference(new URL(rootRelativePath.slice(1), baseUrl));
