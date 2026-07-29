@@ -173,6 +173,24 @@ describe("strict content contracts", () => {
       expect(hasError(result, earlierUpdatedFile, "updated")).toBe(true);
     });
 
+    it("reports an outdated updated value alongside unrelated schema errors", () => {
+      const filePath = "content/posts/zh-CN/multiple-errors.md";
+      const result = validatePostContracts([
+        {
+          filePath,
+          frontmatter: {
+            ...publishedPost,
+            title: 42,
+            updated: "2026-03-11",
+          },
+          body: "# Post body",
+        },
+      ]);
+
+      expect(hasError(result, filePath, "title")).toBe(true);
+      expect(hasError(result, filePath, "updated")).toBe(true);
+    });
+
     it("rejects blank or duplicate tags and invalid field types", () => {
       const blankTagFile = "content/posts/zh-CN/blank-tag.md";
       const duplicateTagFile = "content/posts/zh-CN/duplicate-tag.md";

@@ -259,6 +259,8 @@ function updatedDateErrors(
   if (
     typeof date === "string" &&
     typeof updated === "string" &&
+    isRealCalendarDate(date) &&
+    isRealCalendarDate(updated) &&
     updated < date
   ) {
     return [
@@ -287,10 +289,6 @@ function validateContractVariant<TFrontmatter>(
       field: "body",
       reason: "Published content must contain a non-empty Markdown body.",
     });
-  }
-
-  if (parsed.success && isRecord(parsed.data)) {
-    errors.push(...updatedDateErrors(parsed.data, input.filePath));
   }
 
   if (parsed.success && errors.length === 0) {
@@ -479,7 +477,12 @@ function projectCoverErrors(
 export function validatePostContract(
   input: ContentContractInput,
 ): ContentContractResult<PostFrontmatter> {
-  return validateContentState(input, postStateSchemas);
+  const result = validateContentState(input, postStateSchemas);
+  const errors = isRecord(input.frontmatter)
+    ? updatedDateErrors(input.frontmatter, input.filePath)
+    : [];
+
+  return appendErrors(result, errors);
 }
 
 export function validateProjectCaseContract(
