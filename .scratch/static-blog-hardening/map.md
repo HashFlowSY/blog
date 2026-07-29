@@ -1,0 +1,34 @@
+# Static Blog Hardening Map
+
+Status: accepted
+
+Specification: [spec.md](./spec.md)
+
+## Phase 1 — Contracts and Content Cleanup
+
+1. [Unify the runtime contract](./issues/01-unify-runtime-contract.md) — ready
+2. [Centralize site configuration and URL validation](./issues/02-centralize-site-configuration.md) — blocked by 01
+3. [Define strict post and project contracts](./issues/03-define-strict-content-contracts.md) — blocked by 02
+4. [Remove public template cases and placeholder content](./issues/04-clean-public-content.md) — blocked by 03
+
+## Phase 2 — Content Architecture
+
+5. [Build the atomic Content Catalog](./issues/05-build-content-catalog.md) — blocked by 03, 04
+6. [Return structured Markdown output](./issues/06-structure-markdown-output.md) — blocked by 05
+7. [Remove unreachable legacy code](./issues/07-remove-legacy-code.md) — blocked by 05, 06
+
+## Phase 3 — Release Harness
+
+8. [Consolidate CI and deployment gates](./issues/08-consolidate-ci-gates.md) — blocked by 01, 02, 07
+9. [Test the generated static artifact](./issues/09-add-static-artifact-harness.md) — blocked by 08
+10. [Rewrite E2E around stable invariants](./issues/10-rewrite-e2e-invariants.md) — blocked by 09
+
+## Phase 4 — Quality and Documentation
+
+11. [Add accessibility enforcement](./issues/11-add-accessibility-gate.md) — blocked by 09, 10
+12. [Add focused visual regression](./issues/12-add-visual-regression.md) — blocked by 10, 11
+13. [Retire the stale site audit and complete verification](./issues/13-retire-stale-audit.md) — blocked by 01–12
+
+## Frontier
+
+The first open, unblocked ticket is issue 01.
