@@ -4,8 +4,8 @@ import {
   PostDetailTemplate,
   selectRelatedReading,
 } from "@/components/post/post-detail-template";
+import { getContentCatalog } from "@/lib/content-catalog";
 import { extractHeadings } from "@/lib/markdown";
-import { getAllPostsMeta, getAllPostSlugs, getPostBySlug } from "@/lib/posts";
 import { siteUrl } from "@/lib/site";
 
 import type { Metadata } from "next";
@@ -14,13 +14,15 @@ interface Props {
   params: Promise<{ slug: string }>;
 }
 
-export function generateStaticParams() {
-  return getAllPostSlugs().map((slug) => ({ slug }));
+export async function generateStaticParams() {
+  const catalog = await getContentCatalog();
+  return catalog.postSlugs.map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const post = await getPostBySlug(slug, "zh-CN");
+  const catalog = await getContentCatalog();
+  const post = catalog.getPostBySlug(slug);
   if (!post) return {};
 
   return {
@@ -34,15 +36,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function PostDetailPage({ params }: Props) {
   const { slug } = await params;
-  const post = await getPostBySlug(slug, "zh-CN");
+  const catalog = await getContentCatalog();
+  const post = catalog.getPostBySlug(slug);
   if (!post) notFound();
 
   const headings = extractHeadings(post.content);
-  const relatedReading = selectRelatedReading(
-    slug,
-    getAllPostsMeta("zh-CN"),
-    3,
-  );
+  const relatedReading = selectRelatedReading(slug, catalog.posts.slice(), 3);
 
   return (
     <PostDetailTemplate

@@ -13,8 +13,8 @@ Specification: [spec.md](./spec.md)
 
 ## Phase 2 — Content Architecture
 
-5. [Build the atomic Content Catalog](./issues/05-build-content-catalog.md) — ready
-6. [Return structured Markdown output](./issues/06-structure-markdown-output.md) — blocked by 05
+5. [Build the atomic Content Catalog](./issues/05-build-content-catalog.md) — resolved
+6. [Return structured Markdown output](./issues/06-structure-markdown-output.md) — ready
 7. [Remove unreachable legacy code](./issues/07-remove-legacy-code.md) — blocked by 05, 06
 
 ## Phase 3 — Release Harness
@@ -31,4 +31,4 @@ Specification: [spec.md](./spec.md)
 
 ## Frontier
 
-The first open, unblocked ticket is issue 05.
+The first open, unblocked ticket is issue 06.

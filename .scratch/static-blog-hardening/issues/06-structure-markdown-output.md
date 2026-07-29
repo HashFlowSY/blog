@@ -1,7 +1,6 @@
 # Return structured Markdown output
 
 Status: ready-for-agent
-Blocked by: 05
 
 ## Goal
 

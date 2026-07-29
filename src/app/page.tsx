@@ -1,8 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
-import { getAllPostsMeta } from "@/lib/posts";
-import { getFeaturedProjects } from "@/lib/projects";
+import { getContentCatalog } from "@/lib/content-catalog";
 import { assetPath, SITE } from "@/lib/site";
 
 const capabilities = [
@@ -27,9 +26,10 @@ function formatDate(date: string): string {
   return date.replaceAll("-", ".");
 }
 
-export default function HomePage() {
-  const recentPosts = getAllPostsMeta("zh-CN").slice(0, 3);
-  const featuredProject = getFeaturedProjects("zh-CN")[0] ?? null;
+export default async function HomePage() {
+  const catalog = await getContentCatalog();
+  const recentPosts = catalog.posts.slice(0, 3);
+  const featuredProject = catalog.featuredProjects[0] ?? null;
 
   return (
     <section

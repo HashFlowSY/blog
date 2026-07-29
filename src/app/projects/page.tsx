@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { ProjectList } from "@/components/project/project-list";
-import { getAllProjectsMeta } from "@/lib/projects";
+import { getContentCatalog } from "@/lib/content-catalog";
 import { SITE } from "@/lib/site";
 
 import type { Metadata } from "next";
@@ -11,8 +11,9 @@ export const metadata: Metadata = {
   description: `${SITE.name} 的项目案例：问题、角色、关键决策、实现过程与结果。`,
 };
 
-export default function ProjectsPage() {
-  const projects = getAllProjectsMeta("zh-CN");
+export default async function ProjectsPage() {
+  const catalog = await getContentCatalog();
+  const projects = catalog.projects.slice();
 
   return (
     <section

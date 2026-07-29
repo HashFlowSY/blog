@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { CodeBlockEnhancer } from "@/components/post/code-block";
-import { getAllProjectSlugs, getProjectBySlug } from "@/lib/projects";
+import { getContentCatalog } from "@/lib/content-catalog";
 import { assetPath, SITE, siteUrl } from "@/lib/site";
 
 import type { Metadata } from "next";
@@ -12,13 +12,15 @@ interface Props {
   params: Promise<{ slug: string }>;
 }
 
-export function generateStaticParams() {
-  return getAllProjectSlugs().map((slug) => ({ slug }));
+export async function generateStaticParams() {
+  const catalog = await getContentCatalog();
+  return catalog.projectSlugs.map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const project = await getProjectBySlug(slug, "zh-CN");
+  const catalog = await getContentCatalog();
+  const project = catalog.getProjectBySlug(slug);
   if (!project) return {};
 
   return {
@@ -32,7 +34,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ProjectDetailPage({ params }: Props) {
   const { slug } = await params;
-  const project = await getProjectBySlug(slug, "zh-CN");
+  const catalog = await getContentCatalog();
+  const project = catalog.getProjectBySlug(slug);
   if (!project) notFound();
 
   return (

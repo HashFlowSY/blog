@@ -1,18 +1,18 @@
-import { getAllPostsMeta } from "@/lib/posts";
-import { getAllProjectsMeta } from "@/lib/projects";
+import { getContentCatalog } from "@/lib/content-catalog";
 import { siteUrl } from "@/lib/site";
 
 import type { MetadataRoute } from "next";
 
 export const dynamic = "force-static";
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  const postEntries = getAllPostsMeta().map((post) => ({
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const catalog = await getContentCatalog();
+  const postEntries = catalog.posts.map((post) => ({
     url: siteUrl(`/posts/${post.slug}/`),
     lastModified: new Date(post.updated),
   }));
 
-  const projectEntries = getAllProjectsMeta().map((project) => ({
+  const projectEntries = catalog.projects.map((project) => ({
     url: siteUrl(`/projects/${project.slug}/`),
     lastModified: new Date(project.date),
   }));

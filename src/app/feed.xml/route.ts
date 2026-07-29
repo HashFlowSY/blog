@@ -1,5 +1,5 @@
+import { getContentCatalog } from "@/lib/content-catalog";
 import { buildRssXml } from "@/lib/feed";
-import { getAllPostsMeta } from "@/lib/posts";
 import { SITE, siteUrl } from "@/lib/site";
 
 export const dynamic = "force-static";
@@ -12,7 +12,8 @@ const FEED_CONFIG = {
 } as const;
 
 export async function GET() {
-  const posts = getAllPostsMeta("zh-CN");
+  const catalog = await getContentCatalog();
+  const posts = catalog.posts;
 
   const items = posts.map((post) => ({
     title: post.title,
