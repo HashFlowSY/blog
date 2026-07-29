@@ -48,17 +48,10 @@ export default async function ProjectDetailPage({ params }: Props) {
 
         <header className="portfolio-case-hero">
           <div>
-            <p className="portfolio-overline">
-              {project.template ? "Template case / 示例案例" : "Case study"}
-            </p>
+            <p className="portfolio-overline">项目案例</p>
             <h1 id="project-title">{project.title}</h1>
             {project.description && (
               <p className="portfolio-lede">{project.description}</p>
-            )}
-            {project.template && (
-              <p className="portfolio-template-notice">
-                这是用于完善作品集结构的示例案例，不代表真实客户或真实商业结果。
-              </p>
             )}
             <div className="portfolio-link-row">
               {project.source && (
@@ -84,22 +77,30 @@ export default async function ProjectDetailPage({ params }: Props) {
             </div>
           </div>
           <dl className="portfolio-case-facts">
-            <div>
-              <dt>我的角色</dt>
-              <dd>{project.role ?? "独立设计与开发"}</dd>
-            </div>
-            <div>
-              <dt>项目周期</dt>
-              <dd>{project.duration ?? "持续迭代"}</dd>
-            </div>
-            <div>
-              <dt>{project.template ? "模板结果" : "项目结果"}</dt>
-              <dd>{project.result ?? "项目结果待补充"}</dd>
-            </div>
-            <div>
-              <dt>技术标签</dt>
-              <dd>{project.tags.join(" · ")}</dd>
-            </div>
+            {project.role && (
+              <div>
+                <dt>我的角色</dt>
+                <dd>{project.role}</dd>
+              </div>
+            )}
+            {project.duration && (
+              <div>
+                <dt>项目周期</dt>
+                <dd>{project.duration}</dd>
+              </div>
+            )}
+            {project.result && (
+              <div>
+                <dt>项目结果</dt>
+                <dd>{project.result}</dd>
+              </div>
+            )}
+            {project.tags.length > 0 && (
+              <div>
+                <dt>技术标签</dt>
+                <dd>{project.tags.join(" · ")}</dd>
+              </div>
+            )}
           </dl>
         </header>
 
@@ -116,11 +117,7 @@ export default async function ProjectDetailPage({ params }: Props) {
         <div className="portfolio-case-body">
           <aside className="portfolio-case-aside">
             <p className="portfolio-overline">Project note</p>
-            <p>
-              {project.template
-                ? "把本页中的场景、角色、方案和验证方式替换成真实项目资料即可。"
-                : "以下内容记录项目中的关键实现、取舍和验证方式。"}
-            </p>
+            <p>以下内容记录项目中的关键实现、取舍和验证方式。</p>
           </aside>
           <CodeBlockEnhancer>
             <div

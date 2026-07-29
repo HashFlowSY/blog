@@ -127,21 +127,28 @@ export default function HomePage() {
                 </div>
                 <div className="featured-work-copy">
                   <p className="workbench-project-meta">
-                    {featuredProject.role ?? "独立设计与开发"} /{" "}
-                    {featuredProject.tags.slice(0, 3).join(" · ")}
+                    {[featuredProject.role, ...featuredProject.tags.slice(0, 3)]
+                      .filter(Boolean)
+                      .join(" / ")}
                   </p>
                   <h3>{featuredProject.title}</h3>
                   <p>{featuredProject.description}</p>
-                  <dl className="featured-work-details">
-                    <div>
-                      <dt>我的角色</dt>
-                      <dd>{featuredProject.role ?? "独立设计与开发"}</dd>
-                    </div>
-                    <div>
-                      <dt>项目结果</dt>
-                      <dd>{featuredProject.result ?? "项目结果待补充"}</dd>
-                    </div>
-                  </dl>
+                  {(featuredProject.role || featuredProject.result) && (
+                    <dl className="featured-work-details">
+                      {featuredProject.role && (
+                        <div>
+                          <dt>我的角色</dt>
+                          <dd>{featuredProject.role}</dd>
+                        </div>
+                      )}
+                      {featuredProject.result && (
+                        <div>
+                          <dt>项目结果</dt>
+                          <dd>{featuredProject.result}</dd>
+                        </div>
+                      )}
+                    </dl>
+                  )}
                   <div className="workbench-tags" aria-label="项目技术标签">
                     {featuredProject.tags.slice(0, 5).map((tag) => (
                       <span key={tag}>{tag}</span>

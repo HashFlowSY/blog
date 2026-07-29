@@ -18,7 +18,6 @@ const baseProject: ProjectMeta = {
   role: "独立设计与开发",
   duration: "4 周",
   result: "完成可运行版本",
-  template: false,
   locale: "zh-CN",
 };
 
@@ -26,7 +25,7 @@ describe("ProjectCard", () => {
   it("renders project positioning, facts, and tags", () => {
     render(<ProjectCard project={baseProject} />);
 
-    expect(screen.getByText("真实项目")).toBeInTheDocument();
+    expect(screen.getByText("项目案例")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent(
       "My Project",
     );
@@ -56,12 +55,5 @@ describe("ProjectCard", () => {
       "href",
       "https://example.com",
     );
-  });
-
-  it("clearly labels template projects", () => {
-    render(<ProjectCard project={{ ...baseProject, template: true }} />);
-
-    expect(screen.getByText("示例案例")).toBeInTheDocument();
-    expect(screen.getByText("模板结果")).toBeInTheDocument();
   });
 });

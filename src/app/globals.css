@@ -3352,10 +3352,6 @@ body:has(.portfolio-page) .back-to-top {
   line-height: 1;
 }
 
-.portfolio-project-card.is-template .portfolio-project-kind {
-  background: #fffef8;
-}
-
 .portfolio-project-copy {
   display: flex;
   flex-direction: column;
@@ -3446,17 +3442,6 @@ body:has(.portfolio-page) .back-to-top {
 
 .portfolio-case-hero .portfolio-lede {
   margin-bottom: 28px;
-}
-
-.portfolio-template-notice {
-  max-width: 660px;
-  margin: 0 0 28px;
-  padding: 14px 16px;
-  border-left: 4px solid #e0c600;
-  background: #fffce3;
-  color: #555954;
-  font-size: 13px;
-  line-height: 1.6;
 }
 
 .portfolio-case-facts {

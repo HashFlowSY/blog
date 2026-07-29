@@ -16,7 +16,6 @@ demo: "https://hashflowsy.github.io/blog"
 role: "需求拆解、视觉重构、全栈开发"
 duration: "持续迭代"
 result: "静态部署、内容自动化与完整测试链路已落地"
-template: false
 featured: true
 draft: false
 ---

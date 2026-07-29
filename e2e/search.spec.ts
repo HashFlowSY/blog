@@ -13,15 +13,19 @@ test.describe("Archive structure", () => {
     await expect(page.getByLabel("文章筛选")).toHaveCount(0);
   });
 
-  test("project archive clearly distinguishes real and template cases", async ({
+  test("project archive links the stable public Project Case", async ({
     page,
   }) => {
     await goToProjects(page, "zh-CN");
 
-    const projects = page.locator(".portfolio-project-grid article");
-    expect(await projects.count()).toBeGreaterThanOrEqual(3);
-    await expect(page.getByText("真实项目").first()).toBeVisible();
-    await expect(page.getByText("示例案例").first()).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "Personal Blog", exact: true }),
+    ).toHaveAttribute("href", "/projects/personal-blog/");
+    await expect(
+      page.locator(
+        'a[href="/projects/personal-blog/"] .portfolio-project-kind',
+      ),
+    ).toHaveText("项目案例");
     await expect(page.getByLabel("项目筛选")).toHaveCount(0);
   });
 });

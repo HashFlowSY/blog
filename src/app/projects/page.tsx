@@ -13,8 +13,6 @@ export const metadata: Metadata = {
 
 export default function ProjectsPage() {
   const projects = getAllProjectsMeta("zh-CN");
-  const templateCount = projects.filter((project) => project.template).length;
-  const realCount = projects.length - templateCount;
 
   return (
     <section
@@ -31,16 +29,6 @@ export default function ProjectsPage() {
               从问题、角色和关键决策出发，说明一个项目如何被推进到可用、可维护的状态。
             </p>
           </div>
-          <dl className="portfolio-page-stats">
-            <div>
-              <dt>真实项目</dt>
-              <dd>{realCount.toString().padStart(2, "0")}</dd>
-            </div>
-            <div>
-              <dt>示例模板</dt>
-              <dd>{templateCount.toString().padStart(2, "0")}</dd>
-            </div>
-          </dl>
         </header>
 
         <section

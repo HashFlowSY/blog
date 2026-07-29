@@ -1,7 +1,6 @@
 # Build the atomic Content Catalog
 
 Status: ready-for-agent
-Blocked by: 04
 
 ## Goal
 

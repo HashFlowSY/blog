@@ -2,6 +2,7 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 
+import matter from "gray-matter";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
@@ -29,6 +30,22 @@ function createPublicDirectory(): string {
   return publicDir;
 }
 
+function readCheckedInContent(directory: string) {
+  return fs
+    .readdirSync(directory)
+    .filter((fileName) => fileName.endsWith(".md"))
+    .map((fileName) => {
+      const absolutePath = path.join(directory, fileName);
+      const parsed = matter(fs.readFileSync(absolutePath, "utf8"));
+
+      return {
+        filePath: path.relative(process.cwd(), absolutePath),
+        frontmatter: parsed.data,
+        body: parsed.content,
+      };
+    });
+}
+
 function hasError(
   result: {
     errors: Array<{ filePath: string; field: string; reason: string }>;
@@ -50,6 +67,27 @@ describe("strict content contracts", () => {
     summary: "A complete published post.",
     draft: false,
   };
+
+  it("validates the checked-in public Posts and Project Cases", () => {
+    const posts = validatePostContracts(
+      readCheckedInContent(path.join(process.cwd(), "content/posts/zh-CN")),
+    );
+    const projects = validateProjectCaseContracts(
+      readCheckedInContent(path.join(process.cwd(), "content/projects/zh-CN")),
+      { publicDir: path.join(process.cwd(), "public") },
+    );
+
+    expect(posts.errors).toEqual([]);
+    expect(projects.errors).toEqual([]);
+    expect(posts.entries.map((entry) => entry.frontmatter.slug)).toEqual(
+      expect.arrayContaining(["2026-04-30", "2026-05-02"]),
+    );
+    expect(
+      projects.entries.some(
+        (entry) => entry.frontmatter.slug === "personal-blog",
+      ),
+    ).toBe(true);
+  });
 
   describe("Post drafts", () => {
     it("allows an explicit draft to omit publication fields and Markdown body", () => {
