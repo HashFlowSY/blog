@@ -1,9 +1,20 @@
+import { SITE } from "@/lib/site";
+
 export function Footer() {
   return (
     <footer className="site-footer">
-      <span>Hashflow / AI 全栈工程师</span>
       <span>
-        求职或合作 / <a href="mailto:hello@example.com">hello@example.com</a>
+        {SITE.name} / {SITE.role}
+      </span>
+      <span>
+        求职或合作 /{" "}
+        <a
+          href={SITE.githubProfile.url}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {SITE.githubProfile.label}
+        </a>
       </span>
     </footer>
   );

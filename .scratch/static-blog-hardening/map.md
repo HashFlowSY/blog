@@ -7,8 +7,8 @@ Specification: [spec.md](./spec.md)
 ## Phase 1 — Contracts and Content Cleanup
 
 1. [Unify the runtime contract](./issues/01-unify-runtime-contract.md) — resolved
-2. [Centralize site configuration and URL validation](./issues/02-centralize-site-configuration.md) — ready
-3. [Define strict post and project contracts](./issues/03-define-strict-content-contracts.md) — blocked by 02
+2. [Centralize site configuration and URL validation](./issues/02-centralize-site-configuration.md) — resolved
+3. [Define strict post and project contracts](./issues/03-define-strict-content-contracts.md) — ready
 4. [Remove public template cases and placeholder content](./issues/04-clean-public-content.md) — blocked by 03
 
 ## Phase 2 — Content Architecture
@@ -31,4 +31,4 @@ Specification: [spec.md](./spec.md)
 
 ## Frontier
 
-The first open, unblocked ticket is issue 02.
+The first open, unblocked ticket is issue 03.

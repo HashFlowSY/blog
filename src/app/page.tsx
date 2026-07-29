@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import { getAllPostsMeta } from "@/lib/posts";
 import { getFeaturedProjects } from "@/lib/projects";
-import { assetPath } from "@/lib/site";
+import { assetPath, SITE } from "@/lib/site";
 
 const capabilities = [
   {
@@ -48,7 +48,9 @@ export default function HomePage() {
 
         <div className="workbench-content">
           <div className="workbench-kicker">
-            <span>Hashflow / AI 全栈工程师</span>
+            <span>
+              {SITE.name} / {SITE.role}
+            </span>
             <span>AI 应用 · 后端系统 · 自动化交付</span>
           </div>
 
@@ -56,8 +58,8 @@ export default function HomePage() {
             <div className="workbench-hero-copy">
               <p className="workbench-overline">Home / profile 01</p>
               <h1 id="home-title" data-od-id="home-headline">
-                Hashflow
-                <span>AI 全栈工程师</span>
+                {SITE.name}
+                <span>{SITE.role}</span>
               </h1>
               <p className="workbench-lede">
                 把复杂需求拆成可上线、可维护的系统。

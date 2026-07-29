@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 
 import { CodeBlockEnhancer } from "@/components/post/code-block";
 import { getAllProjectSlugs, getProjectBySlug } from "@/lib/projects";
-import { assetPath, siteUrl } from "@/lib/site";
+import { assetPath, SITE, siteUrl } from "@/lib/site";
 
 import type { Metadata } from "next";
 
@@ -139,8 +139,13 @@ export default async function ProjectDetailPage({ params }: Props) {
             <h2 id="case-contact-title">希望把类似需求推进到上线？</h2>
             <p>欢迎带着背景、约束或现有系统来聊。</p>
           </div>
-          <a className="portfolio-button" href="mailto:hello@example.com">
-            hello@example.com
+          <a
+            className="portfolio-button"
+            href={SITE.githubProfile.url}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {SITE.githubProfile.label}
           </a>
         </section>
       </div>

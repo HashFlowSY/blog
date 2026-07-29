@@ -1,6 +1,6 @@
 # Centralize site configuration and URL validation
 
-Status: ready-for-agent
+Status: resolved
 Blocked by: 01
 
 ## Goal
@@ -27,3 +27,19 @@ Create one validated source for public site identity, GitHub contact, origin, an
 - Run the site configuration unit tests.
 - Run repository searches for `hello@example.com`, placeholder contact copy, and direct GitHub contact literals.
 - Run lint and typecheck.
+
+## Answer
+
+- Centralized the public site identity and the HashFlowSY GitHub profile in `src/lib/site.ts`, then replaced duplicated identity and contact literals across the layout, pages, RSS, and contact bands.
+- Replaced placeholder email contact copy with the existing GitHub profile as the only rendered contact channel.
+- Validated `NEXT_PUBLIC_SITE_URL` as an HTTPS origin (with HTTP localhost allowed only for local development) and validated matching, normalized base paths. `siteUrl` and `assetPath` now compose paths with URL-aware helpers without double prefixes or double slashes.
+- Routed `next.config.ts` through the validated base path and documented the environment-variable contract in the README.
+
+Verification completed:
+
+- `node_modules/.bin/vitest run src/lib/site.spec.ts` — 28 tests passed.
+- `node_modules/.bin/vitest run` — 24 files / 259 tests passed.
+- `node_modules/.bin/eslint .`
+- `node_modules/.bin/tsc --noEmit`
+- `node_modules/.bin/prettier --check` on all changed TypeScript/TSX/Markdown files.
+- Repository searches found no placeholder contact copy in `src`, `e2e`, `content`, or `README.md`; no direct HashFlowSY contact URL remains in `src/app` or `src/components`.

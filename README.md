@@ -243,6 +243,10 @@ Set `NEXT_PUBLIC_SITE_URL` to your domain in GitHub Variables, and configure DNS
 
 The base URL of your site. Used to generate sitemap, robots.txt, RSS feed URLs, canonical links, and Open Graph metadata.
 
+For releases, it must be a bare HTTPS origin: no path, query, hash, or
+trailing slash. `http://localhost` is allowed only for local development. Put
+any repository path in `BASE_PATH`, not in this value.
+
 **Local development:**
 
 ```env
@@ -267,6 +271,10 @@ Value: https://your-domain.com
 ### BASE_PATH
 
 The URL prefix for GitHub Pages project sites. Automatically computed by `deploy.yml`, no manual configuration needed.
+
+Use either an empty value or a normalized root-relative path without a trailing
+slash (for example, `/blog`). It cannot contain an origin, query, or hash. When
+`NEXT_PUBLIC_BASE_PATH` is set, it must exactly match `BASE_PATH`.
 
 - `username.github.io` → `BASE_PATH=` (empty)
 - `username.github.io/repo-name` → `BASE_PATH=/repo-name`

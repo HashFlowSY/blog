@@ -20,7 +20,7 @@ test.describe("About page", () => {
     await expect(
       page
         .getByLabel(zh.aboutTitle)
-        .getByRole("link", { name: "hello@example.com" }),
-    ).toHaveAttribute("href", "mailto:hello@example.com");
+        .getByRole("link", { name: "GitHub / HashFlowSY" }),
+    ).toHaveAttribute("href", "https://github.com/HashFlowSY");
   });
 });

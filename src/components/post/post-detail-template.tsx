@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { SITE } from "@/lib/site";
+
 import { CodeBlockEnhancer } from "./code-block";
 import { ReadingProgress } from "./reading-progress";
 
@@ -248,10 +250,15 @@ export function PostDetailTemplate({
           <div>
             <p className="portfolio-overline">Contact / discuss</p>
             <h2 id="writing-contact-title">想继续讨论这个问题？</h2>
-            <p>可以通过占位邮箱联系，后续再替换成正式入口。</p>
+            <p>欢迎通过 GitHub 继续讨论。</p>
           </div>
-          <a className="portfolio-button" href="mailto:hello@example.com">
-            hello@example.com
+          <a
+            className="portfolio-button"
+            href={SITE.githubProfile.url}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {SITE.githubProfile.label}
           </a>
         </section>
       </div>
