@@ -8,12 +8,12 @@ Specification: [spec.md](./spec.md)
 
 1. [Unify the runtime contract](./issues/01-unify-runtime-contract.md) — resolved
 2. [Centralize site configuration and URL validation](./issues/02-centralize-site-configuration.md) — resolved
-3. [Define strict post and project contracts](./issues/03-define-strict-content-contracts.md) — ready
-4. [Remove public template cases and placeholder content](./issues/04-clean-public-content.md) — blocked by 03
+3. [Define strict post and project contracts](./issues/03-define-strict-content-contracts.md) — resolved
+4. [Remove public template cases and placeholder content](./issues/04-clean-public-content.md) — ready
 
 ## Phase 2 — Content Architecture
 
-5. [Build the atomic Content Catalog](./issues/05-build-content-catalog.md) — blocked by 03, 04
+5. [Build the atomic Content Catalog](./issues/05-build-content-catalog.md) — blocked by 04
 6. [Return structured Markdown output](./issues/06-structure-markdown-output.md) — blocked by 05
 7. [Remove unreachable legacy code](./issues/07-remove-legacy-code.md) — blocked by 05, 06
 
@@ -31,4 +31,4 @@ Specification: [spec.md](./spec.md)
 
 ## Frontier
 
-The first open, unblocked ticket is issue 03.
+The first open, unblocked ticket is issue 04.

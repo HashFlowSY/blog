@@ -1,7 +1,6 @@
 # Remove public template cases and placeholder content
 
 Status: ready-for-agent
-Blocked by: 03
 
 ## Goal
 
