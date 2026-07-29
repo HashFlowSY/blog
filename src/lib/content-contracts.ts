@@ -112,36 +112,39 @@ const absoluteHttpsUrlSchema = z
     }
   });
 
-const postFields = {
+function createContentStateSchemas<const TShape extends z.ZodRawShape>(
+  fields: TShape,
+) {
+  const fieldsSchema = z.object(fields);
+
+  return {
+    draft: fieldsSchema
+      .partial()
+      .extend({ draft: z.literal(true) })
+      .strict(),
+    published: fieldsSchema.extend({ draft: z.literal(false) }).strict(),
+    providedFields: fieldsSchema
+      .partial()
+      .extend({ draft: z.boolean().optional() })
+      .strict(),
+  };
+}
+
+const sharedContentFields = {
   title: nonBlankTextSchema,
   slug: slugSchema,
   date: calendarDateSchema,
-  updated: calendarDateSchema.optional(),
   tags: tagsSchema,
+};
+
+const postFields = {
+  ...sharedContentFields,
+  updated: calendarDateSchema.optional(),
   summary: nonBlankTextSchema,
 };
 
-const postDraftSchema = z
-  .object(postFields)
-  .partial()
-  .extend({ draft: z.literal(true) })
-  .strict();
-
-const postPublishedSchema = z
-  .object({ ...postFields, draft: z.literal(false) })
-  .strict();
-
-const postProvidedFieldsSchema = z
-  .object(postFields)
-  .partial()
-  .extend({ draft: z.boolean().optional() })
-  .strict();
-
 const projectFields = {
-  title: nonBlankTextSchema,
-  slug: slugSchema,
-  date: calendarDateSchema,
-  tags: tagsSchema,
+  ...sharedContentFields,
   description: nonBlankTextSchema,
   cover: coverPathSchema,
   role: nonBlankTextSchema,
@@ -152,33 +155,30 @@ const projectFields = {
   featured: z.boolean(),
 };
 
-const projectDraftSchema = z
-  .object(projectFields)
-  .partial()
-  .extend({ draft: z.literal(true) })
-  .strict();
+const postStateSchemas = createContentStateSchemas(postFields);
+const projectStateSchemas = createContentStateSchemas(projectFields);
 
-const projectPublishedSchema = z
-  .object({ ...projectFields, draft: z.literal(false) })
-  .strict();
-
-const projectProvidedFieldsSchema = z
-  .object(projectFields)
-  .partial()
-  .extend({ draft: z.boolean().optional() })
-  .strict();
-
-export type DraftPostFrontmatter = z.infer<typeof postDraftSchema>;
-export type PublishedPostFrontmatter = z.infer<typeof postPublishedSchema>;
+export type DraftPostFrontmatter = z.infer<typeof postStateSchemas.draft>;
+export type PublishedPostFrontmatter = z.infer<
+  typeof postStateSchemas.published
+>;
 export type PostFrontmatter = DraftPostFrontmatter | PublishedPostFrontmatter;
 
-export type DraftProjectCaseFrontmatter = z.infer<typeof projectDraftSchema>;
+export type DraftProjectCaseFrontmatter = z.infer<
+  typeof projectStateSchemas.draft
+>;
 export type PublishedProjectCaseFrontmatter = z.infer<
-  typeof projectPublishedSchema
+  typeof projectStateSchemas.published
 >;
 export type ProjectCaseFrontmatter =
   | DraftProjectCaseFrontmatter
   | PublishedProjectCaseFrontmatter;
+
+interface ContentStateSchemas<TDraftFrontmatter, TPublishedFrontmatter> {
+  draft: z.ZodType<TDraftFrontmatter>;
+  published: z.ZodType<TPublishedFrontmatter>;
+  providedFields: z.ZodType;
+}
 
 function isRealCalendarDate(value: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
@@ -273,7 +273,7 @@ function updatedDateErrors(
   return [];
 }
 
-function schemaResult<TFrontmatter>(
+function validateContractVariant<TFrontmatter>(
   input: ContentContractInput,
   schema: z.ZodType<TFrontmatter>,
   requiresMarkdownBody: boolean,
@@ -308,7 +308,7 @@ function schemaResult<TFrontmatter>(
   return { success: false, entry: null, errors };
 }
 
-function invalidStateResult(
+function validateUnresolvedDraftState(
   input: ContentContractInput,
   schema: z.ZodType,
 ): ContentContractResult<never> {
@@ -344,6 +344,25 @@ function invalidStateResult(
   }
 
   return { success: false, entry: null, errors };
+}
+
+function validateContentState<TDraftFrontmatter, TPublishedFrontmatter>(
+  input: ContentContractInput,
+  schemas: ContentStateSchemas<TDraftFrontmatter, TPublishedFrontmatter>,
+): ContentContractResult<TDraftFrontmatter | TPublishedFrontmatter> {
+  if (!isRecord(input.frontmatter)) {
+    return validateUnresolvedDraftState(input, schemas.providedFields);
+  }
+
+  if (input.frontmatter["draft"] === true) {
+    return validateContractVariant(input, schemas.draft, false);
+  }
+
+  if (input.frontmatter["draft"] === false) {
+    return validateContractVariant(input, schemas.published, true);
+  }
+
+  return validateUnresolvedDraftState(input, schemas.providedFields);
 }
 
 function appendErrors<TFrontmatter>(
@@ -460,36 +479,14 @@ function projectCoverErrors(
 export function validatePostContract(
   input: ContentContractInput,
 ): ContentContractResult<PostFrontmatter> {
-  if (!isRecord(input.frontmatter)) {
-    return invalidStateResult(input, postProvidedFieldsSchema);
-  }
-
-  if (input.frontmatter["draft"] === true) {
-    return schemaResult(input, postDraftSchema, false);
-  }
-
-  if (input.frontmatter["draft"] === false) {
-    return schemaResult(input, postPublishedSchema, true);
-  }
-
-  return invalidStateResult(input, postProvidedFieldsSchema);
+  return validateContentState(input, postStateSchemas);
 }
 
 export function validateProjectCaseContract(
   input: ContentContractInput,
   options: ProjectContractOptions = DEFAULT_PROJECT_CONTRACT_OPTIONS,
 ): ContentContractResult<ProjectCaseFrontmatter> {
-  let result: ContentContractResult<ProjectCaseFrontmatter>;
-
-  if (!isRecord(input.frontmatter)) {
-    result = invalidStateResult(input, projectProvidedFieldsSchema);
-  } else if (input.frontmatter["draft"] === true) {
-    result = schemaResult(input, projectDraftSchema, false);
-  } else if (input.frontmatter["draft"] === false) {
-    result = schemaResult(input, projectPublishedSchema, true);
-  } else {
-    result = invalidStateResult(input, projectProvidedFieldsSchema);
-  }
+  const result = validateContentState(input, projectStateSchemas);
 
   return appendErrors(result, projectCoverErrors(input, options));
 }
