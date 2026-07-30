@@ -35,33 +35,46 @@ Implemented `src/lib/content-catalog.ts` as the single build-time Content
 Catalog. It discovers the Chinese Posts and Project Cases, parses every file,
 uses the strict Issue 03 contracts, aggregates stable structured errors, and
 only renders, sorts, freezes, and indexes published content after every file
-validates. It exposes published collections, slug lookups and lists, featured
-Project Cases, Post tags, and Post adjacency from one immutable snapshot.
+validates. It exposes `projectCases`, `projectCaseSlugs`,
+`featuredProjectCases`, and `getProjectCaseBySlug`, alongside the published
+Post collection, tag, slug, and adjacency queries.
 
-The catalog uses fresh reads in development so edits, additions, and deletions
-are visible on the next request. Production callers share one cached validated
-snapshot and retry a build after a failed cache fill. Pages, static params,
-metadata, RSS, and sitemap now use this Catalog directly; legacy loader exports
-remain without production callers for Issue 07.
+The Catalog owns its output types instead of importing legacy loader types or
+exposing `locale`. Its Published contracts express the validated guarantees:
+Posts do not expose `cover`; Project Cases have required `cover`, `role`,
+`duration`, and `result`; and both collections use non-empty tags. Production
+components consume those guarantees directly, while `source` and `demo` remain
+nullable because they are genuinely optional.
 
-Added real temporary-filesystem integration tests for successful snapshots,
+Development reads a fresh snapshot on every request, so edits, additions, and
+deletions are visible immediately. Production callers share one validated
+snapshot. If the first production fill rejects, its cached rejection is cleared
+and a corrected filesystem can be rebuilt successfully on the next call.
+Pages, static params, metadata, RSS, and sitemap use this Catalog directly;
+legacy loader exports remain without production callers for Issue 07.
+
+Added real temporary-filesystem integration coverage for successful snapshots,
 malformed YAML, strict multi-field and multi-file errors, missing/invalid and
-duplicate slugs, cover absence/absolute-path/path-traversal/symlink escape, Draft handling,
-error formatting, immutability, and development/production cache behavior.
+duplicate slugs, cover absence/absolute-path/path-traversal/symlink escape,
+Draft handling, stable error formatting, immutability, development/production
+cache behavior, and failed-production-cache retry after content repair.
+
+Default production directories are statically scoped beneath `process.cwd()`.
+The test-only configurable root and untrusted cover filesystem paths use Next's
+`turbopackIgnore` annotation, retaining real filesystem validation without
+tracing the entire project.
 
 Verified successfully:
 
 - `pnpm exec vitest run src/lib/content-catalog.spec.ts --reporter=verbose` —
-  8 passed
-- focused content tests — 6 files, 145 passed
-- `pnpm test` — 26 files, 287 passed
+  11 passed
+- `pnpm exec vitest run src/lib/content-contracts.spec.ts src/lib/content-catalog.spec.ts --reporter=verbose` — 31 passed
+- `pnpm test` — 26 files, 289 passed
 - `pnpm lint`
 - `pnpm exec tsc --noEmit`
 - scoped `pnpm exec prettier --check ...`
-- `NEXT_PUBLIC_SITE_URL=https://example.com BASE_PATH=/blog
-NEXT_PUBLIC_BASE_PATH=/blog pnpm build` — passed; emitted only
-  `2026-04-30`, `2026-05-02`, and `personal-blog` content routes
+- `NEXT_PUBLIC_SITE_URL=https://example.com BASE_PATH=/blog NEXT_PUBLIC_BASE_PATH=/blog pnpm build` — passed without a Turbopack tracing warning; emitted only `2026-04-30`, `2026-05-02`, and `personal-blog` content routes
 - `git diff --check`
 
-The successful production build emitted one non-failing Turbopack file-tracing
-warning for the deliberate build-time filesystem reads.
+Implemented in commits `b6d8e0e feat: build atomic content catalog` and
+`c701f09 fix: harden content catalog contracts`.
