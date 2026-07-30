@@ -1,6 +1,6 @@
 import { PostCard } from "./post-card";
 
-import type { PostMeta } from "@/lib/posts";
+import type { PostMeta } from "@/lib/content-catalog";
 
 interface PostArchiveProps {
   posts: PostMeta[];

@@ -21,32 +21,36 @@ import { describe, it, expect } from "vitest";
 
 import { ProjectList } from "./project-list";
 
-import type { ProjectMeta } from "@/lib/projects";
+import type { ProjectCaseMeta } from "@/lib/content-catalog";
 
-const projects: ProjectMeta[] = [
+const projects: ProjectCaseMeta[] = [
   {
     slug: "project-1",
     title: "Project One",
     date: "2026-01-15",
-    description: "",
-    tags: [],
-    cover: null,
+    description: "The first complete Project Case.",
+    tags: ["Testing"],
+    cover: "/assets/project.png",
     source: null,
     demo: null,
+    role: "Development",
+    duration: "One week",
+    result: "Published",
     featured: false,
-    locale: "zh-CN",
   },
   {
     slug: "project-2",
     title: "Project Two",
     date: "2026-02-20",
-    description: "",
-    tags: [],
-    cover: null,
+    description: "The second complete Project Case.",
+    tags: ["Catalog"],
+    cover: "/assets/project.png",
     source: null,
     demo: null,
+    role: "Development",
+    duration: "Two weeks",
+    result: "Published",
     featured: false,
-    locale: "zh-CN",
   },
 ];
 

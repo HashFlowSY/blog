@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 
 export default async function ProjectsPage() {
   const catalog = await getContentCatalog();
-  const projects = catalog.projects.slice();
+  const projectCases = catalog.projectCases.slice();
 
   return (
     <section
@@ -36,7 +36,7 @@ export default async function ProjectsPage() {
           className="portfolio-section portfolio-projects-section"
           aria-label="项目案例列表"
         >
-          <ProjectList projects={projects} />
+          <ProjectList projects={projectCases} />
         </section>
 
         <section

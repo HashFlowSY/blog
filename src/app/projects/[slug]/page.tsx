@@ -14,18 +14,18 @@ interface Props {
 
 export async function generateStaticParams() {
   const catalog = await getContentCatalog();
-  return catalog.projectSlugs.map((slug) => ({ slug }));
+  return catalog.projectCaseSlugs.map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const catalog = await getContentCatalog();
-  const project = catalog.getProjectBySlug(slug);
-  if (!project) return {};
+  const projectCase = catalog.getProjectCaseBySlug(slug);
+  if (!projectCase) return {};
 
   return {
-    title: project.title,
-    description: project.description,
+    title: projectCase.title,
+    description: projectCase.description,
     alternates: {
       canonical: siteUrl(`/projects/${slug}/`),
     },
@@ -35,8 +35,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function ProjectDetailPage({ params }: Props) {
   const { slug } = await params;
   const catalog = await getContentCatalog();
-  const project = catalog.getProjectBySlug(slug);
-  if (!project) notFound();
+  const projectCase = catalog.getProjectCaseBySlug(slug);
+  if (!projectCase) notFound();
 
   return (
     <article
@@ -52,25 +52,23 @@ export default async function ProjectDetailPage({ params }: Props) {
         <header className="portfolio-case-hero">
           <div>
             <p className="portfolio-overline">项目案例</p>
-            <h1 id="project-title">{project.title}</h1>
-            {project.description && (
-              <p className="portfolio-lede">{project.description}</p>
-            )}
+            <h1 id="project-title">{projectCase.title}</h1>
+            <p className="portfolio-lede">{projectCase.description}</p>
             <div className="portfolio-link-row">
-              {project.source && (
+              {projectCase.source && (
                 <a
                   className="portfolio-button portfolio-button-primary"
-                  href={project.source}
+                  href={projectCase.source}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
                   查看源代码
                 </a>
               )}
-              {project.demo && (
+              {projectCase.demo && (
                 <a
                   className="portfolio-button"
-                  href={project.demo}
+                  href={projectCase.demo}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -80,37 +78,29 @@ export default async function ProjectDetailPage({ params }: Props) {
             </div>
           </div>
           <dl className="portfolio-case-facts">
-            {project.role && (
-              <div>
-                <dt>我的角色</dt>
-                <dd>{project.role}</dd>
-              </div>
-            )}
-            {project.duration && (
-              <div>
-                <dt>项目周期</dt>
-                <dd>{project.duration}</dd>
-              </div>
-            )}
-            {project.result && (
-              <div>
-                <dt>项目结果</dt>
-                <dd>{project.result}</dd>
-              </div>
-            )}
-            {project.tags.length > 0 && (
-              <div>
-                <dt>技术标签</dt>
-                <dd>{project.tags.join(" · ")}</dd>
-              </div>
-            )}
+            <div>
+              <dt>我的角色</dt>
+              <dd>{projectCase.role}</dd>
+            </div>
+            <div>
+              <dt>项目周期</dt>
+              <dd>{projectCase.duration}</dd>
+            </div>
+            <div>
+              <dt>项目结果</dt>
+              <dd>{projectCase.result}</dd>
+            </div>
+            <div>
+              <dt>技术标签</dt>
+              <dd>{projectCase.tags.join(" · ")}</dd>
+            </div>
           </dl>
         </header>
 
         <figure className="portfolio-case-cover">
           <Image
-            src={assetPath(project.cover ?? "/assets/workbench-hero.png")}
-            alt={`${project.title}项目界面预览`}
+            src={assetPath(projectCase.cover)}
+            alt={`${projectCase.title}项目界面预览`}
             fill
             preload
             sizes="(max-width: 760px) 100vw, 1200px"
@@ -125,7 +115,7 @@ export default async function ProjectDetailPage({ params }: Props) {
           <CodeBlockEnhancer>
             <div
               className="portfolio-prose prose"
-              dangerouslySetInnerHTML={{ __html: project.content }}
+              dangerouslySetInnerHTML={{ __html: projectCase.content }}
             />
           </CodeBlockEnhancer>
         </div>

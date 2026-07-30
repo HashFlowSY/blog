@@ -17,20 +17,49 @@ import type {
   ProjectCaseFrontmatter,
   ValidatedContentEntry,
 } from "./content-contracts";
-import type { Post } from "./posts";
-import type { Project } from "./projects";
 
-const CONTENT_LOCALE = "zh-CN";
+export interface Post {
+  slug: string;
+  title: string;
+  date: string;
+  updated: string;
+  tags: NonEmptyTags;
+  summary: string;
+  content: string;
+  readingTime: number;
+}
+
+export type PostMeta = Omit<Post, "content">;
+
+export type NonEmptyTags = readonly [string, ...string[]];
+
+export interface ProjectCase {
+  slug: string;
+  title: string;
+  description: string;
+  date: string;
+  tags: NonEmptyTags;
+  cover: string;
+  source: string | null;
+  demo: string | null;
+  role: string;
+  duration: string;
+  result: string;
+  featured: boolean;
+  content: string;
+}
+
+export type ProjectCaseMeta = Omit<ProjectCase, "content">;
 
 export interface ContentCatalog {
   readonly posts: readonly Post[];
-  readonly projects: readonly Project[];
+  readonly projectCases: readonly ProjectCase[];
   readonly postSlugs: readonly string[];
-  readonly projectSlugs: readonly string[];
-  readonly featuredProjects: readonly Project[];
+  readonly projectCaseSlugs: readonly string[];
+  readonly featuredProjectCases: readonly ProjectCase[];
   readonly tags: readonly string[];
   getPostBySlug(slug: string): Post | null;
-  getProjectBySlug(slug: string): Project | null;
+  getProjectCaseBySlug(slug: string): ProjectCase | null;
   getAdjacentPosts(slug: string): {
     readonly prev: Post | null;
     readonly next: Post | null;
@@ -39,9 +68,6 @@ export interface ContentCatalog {
 
 export interface ContentCatalogOptions {
   rootDir?: string;
-  postsDir?: string;
-  projectsDir?: string;
-  publicDir?: string;
 }
 
 export type ContentCatalogCacheMode = "development" | "production";
@@ -75,9 +101,16 @@ export class ContentCatalogError extends Error {
 interface ContentDirectories {
   rootDir: string;
   postsDir: string;
-  projectsDir: string;
+  projectCasesDir: string;
   publicDir: string;
 }
+
+const defaultContentDirectories: ContentDirectories = {
+  rootDir: process.cwd(),
+  postsDir: path.join(process.cwd(), "content/posts/zh-CN"),
+  projectCasesDir: path.join(process.cwd(), "content/projects/zh-CN"),
+  publicDir: path.join(process.cwd(), "public"),
+};
 
 function freezeErrors(
   errors: readonly ContentValidationError[],
@@ -97,17 +130,23 @@ function freezeErrors(
 function resolveDirectories(
   options: ContentCatalogOptions,
 ): ContentDirectories {
-  const rootDir = path.resolve(options.rootDir ?? process.cwd());
+  if (options.rootDir === undefined) {
+    return defaultContentDirectories;
+  }
+
+  const rootDir = path.resolve(/* turbopackIgnore: true */ options.rootDir);
 
   return {
     rootDir,
-    postsDir: path.resolve(
-      options.postsDir ?? path.join(rootDir, "content/posts/zh-CN"),
+    postsDir: path.join(
+      /* turbopackIgnore: true */ rootDir,
+      "content/posts/zh-CN",
     ),
-    projectsDir: path.resolve(
-      options.projectsDir ?? path.join(rootDir, "content/projects/zh-CN"),
+    projectCasesDir: path.join(
+      /* turbopackIgnore: true */ rootDir,
+      "content/projects/zh-CN",
     ),
-    publicDir: path.resolve(options.publicDir ?? path.join(rootDir, "public")),
+    publicDir: path.join(/* turbopackIgnore: true */ rootDir, "public"),
   };
 }
 
@@ -154,16 +193,22 @@ function parseFiles(files: readonly string[], rootDir: string): ParsedFiles {
   return { inputs, errors };
 }
 
-function publishedPosts(
-  entries: readonly ValidatedContentEntry<PostFrontmatter>[],
-): ValidatedContentEntry<PostFrontmatter>[] {
+function publishedEntries<TFrontmatter extends { draft: boolean }>(
+  entries: readonly ValidatedContentEntry<TFrontmatter>[],
+): ValidatedContentEntry<TFrontmatter>[] {
   return entries.filter((entry) => entry.frontmatter.draft === false);
 }
 
-function publishedProjects(
-  entries: readonly ValidatedContentEntry<ProjectCaseFrontmatter>[],
-): ValidatedContentEntry<ProjectCaseFrontmatter>[] {
-  return entries.filter((entry) => entry.frontmatter.draft === false);
+function toNonEmptyTags(tags: readonly string[]): NonEmptyTags {
+  const [firstTag, ...remainingTags] = tags;
+
+  if (firstTag === undefined) {
+    throw new Error(
+      "Cannot render published content without at least one tag.",
+    );
+  }
+
+  return [firstTag, ...remainingTags];
 }
 
 async function renderPost(
@@ -181,18 +226,16 @@ async function renderPost(
     title: frontmatter.title,
     date: frontmatter.date,
     updated: frontmatter.updated ?? frontmatter.date,
-    tags: frontmatter.tags,
+    tags: toNonEmptyTags(frontmatter.tags),
     summary: frontmatter.summary,
-    cover: null,
     content,
     readingTime: estimateReadingTime(entry.body),
-    locale: CONTENT_LOCALE,
   };
 }
 
-async function renderProject(
+async function renderProjectCase(
   entry: ValidatedContentEntry<ProjectCaseFrontmatter>,
-): Promise<Project> {
+): Promise<ProjectCase> {
   if (entry.frontmatter.draft) {
     throw new Error("Cannot render a Draft as a published Project Case.");
   }
@@ -205,7 +248,7 @@ async function renderProject(
     title: frontmatter.title,
     description: frontmatter.description,
     date: frontmatter.date,
-    tags: frontmatter.tags,
+    tags: toNonEmptyTags(frontmatter.tags),
     cover: frontmatter.cover,
     source: frontmatter.source ?? null,
     demo: frontmatter.demo ?? null,
@@ -214,7 +257,6 @@ async function renderProject(
     result: frontmatter.result,
     featured: frontmatter.featured,
     content,
-    locale: CONTENT_LOCALE,
   };
 }
 
@@ -228,31 +270,30 @@ function sortByDateDescending<T extends { date: string; slug: string }>(
   );
 }
 
-function freezePost(post: Post): Post {
-  Object.freeze(post.tags);
-  Object.freeze(post);
-  return post;
+function freezeSortedEntries<
+  TEntry extends { date: string; slug: string; tags: readonly string[] },
+>(entries: TEntry[]): readonly TEntry[] {
+  return Object.freeze(
+    sortByDateDescending(entries).map((entry) => {
+      Object.freeze(entry.tags);
+      Object.freeze(entry);
+      return entry;
+    }),
+  );
 }
 
-function freezeProject(project: Project): Project {
-  Object.freeze(project.tags);
-  Object.freeze(project);
-  return project;
-}
-
-function createCatalog(posts: Post[], projects: Project[]): ContentCatalog {
-  const publishedPosts = Object.freeze(
-    sortByDateDescending(posts).map(freezePost),
-  );
-  const publishedProjects = Object.freeze(
-    sortByDateDescending(projects).map(freezeProject),
-  );
+function createCatalog(
+  posts: Post[],
+  projectCases: ProjectCase[],
+): ContentCatalog {
+  const publishedPosts = freezeSortedEntries(posts);
+  const publishedProjectCases = freezeSortedEntries(projectCases);
   const postSlugs = Object.freeze(publishedPosts.map((post) => post.slug));
-  const projectSlugs = Object.freeze(
-    publishedProjects.map((project) => project.slug),
+  const projectCaseSlugs = Object.freeze(
+    publishedProjectCases.map((projectCase) => projectCase.slug),
   );
-  const featuredProjects = Object.freeze(
-    publishedProjects.filter((project) => project.featured),
+  const featuredProjectCases = Object.freeze(
+    publishedProjectCases.filter((projectCase) => projectCase.featured),
   );
   const tags = Object.freeze(
     Array.from(new Set(publishedPosts.flatMap((post) => post.tags))).sort(),
@@ -260,22 +301,24 @@ function createCatalog(posts: Post[], projects: Project[]): ContentCatalog {
   const postsBySlug = new Map(
     publishedPosts.map((post) => [post.slug, post] as const),
   );
-  const projectsBySlug = new Map(
-    publishedProjects.map((project) => [project.slug, project] as const),
+  const projectCasesBySlug = new Map(
+    publishedProjectCases.map(
+      (projectCase) => [projectCase.slug, projectCase] as const,
+    ),
   );
 
   return Object.freeze({
     posts: publishedPosts,
-    projects: publishedProjects,
+    projectCases: publishedProjectCases,
     postSlugs,
-    projectSlugs,
-    featuredProjects,
+    projectCaseSlugs,
+    featuredProjectCases,
     tags,
     getPostBySlug(slug: string): Post | null {
       return postsBySlug.get(slug) ?? null;
     },
-    getProjectBySlug(slug: string): Project | null {
-      return projectsBySlug.get(slug) ?? null;
+    getProjectCaseBySlug(slug: string): ProjectCase | null {
+      return projectCasesBySlug.get(slug) ?? null;
     },
     getAdjacentPosts(slug: string) {
       const index = postSlugs.indexOf(slug);
@@ -299,13 +342,13 @@ export async function buildContentCatalog(
     discoverMarkdownFiles(directories.postsDir),
     directories.rootDir,
   );
-  const projectParsing = parseFiles(
-    discoverMarkdownFiles(directories.projectsDir),
+  const projectCaseParsing = parseFiles(
+    discoverMarkdownFiles(directories.projectCasesDir),
     directories.rootDir,
   );
   const postValidation = validatePostContracts(postParsing.inputs);
-  const projectValidation = validateProjectCaseContracts(
-    projectParsing.inputs,
+  const projectCaseValidation = validateProjectCaseContracts(
+    projectCaseParsing.inputs,
     {
       publicDir: directories.publicDir,
     },
@@ -313,8 +356,8 @@ export async function buildContentCatalog(
   const errors = [
     ...postParsing.errors,
     ...postValidation.errors,
-    ...projectParsing.errors,
-    ...projectValidation.errors,
+    ...projectCaseParsing.errors,
+    ...projectCaseValidation.errors,
   ];
 
   if (errors.length > 0) {
@@ -322,13 +365,13 @@ export async function buildContentCatalog(
   }
 
   const posts = await Promise.all(
-    publishedPosts(postValidation.entries).map(renderPost),
+    publishedEntries(postValidation.entries).map(renderPost),
   );
-  const projects = await Promise.all(
-    publishedProjects(projectValidation.entries).map(renderProject),
+  const projectCases = await Promise.all(
+    publishedEntries(projectCaseValidation.entries).map(renderProjectCase),
   );
 
-  return createCatalog(posts, projects);
+  return createCatalog(posts, projectCases);
 }
 
 export function createContentCatalogReader(

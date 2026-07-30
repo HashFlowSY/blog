@@ -20,7 +20,7 @@ export async function GET() {
     link: siteUrl(`/posts/${post.slug}/`),
     description: post.summary ?? "",
     pubDate: post.updated,
-    categories: post.tags,
+    categories: [...post.tags],
   }));
 
   const xml = buildRssXml({ ...FEED_CONFIG, items });

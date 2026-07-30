@@ -5,8 +5,8 @@ import { SITE } from "@/lib/site";
 import { CodeBlockEnhancer } from "./code-block";
 import { ReadingProgress } from "./reading-progress";
 
+import type { Post, PostMeta } from "@/lib/content-catalog";
 import type { TocItem } from "@/lib/markdown";
-import type { Post, PostMeta } from "@/lib/posts";
 
 interface PostDetailTemplateProps {
   contentHtml: string;
@@ -42,7 +42,7 @@ export function selectRelatedReading(
   const currentPost = posts.find((item) => item.slug === currentSlug);
   const candidates = posts.filter((item) => item.slug !== currentSlug);
 
-  if (!currentPost || currentPost.tags.length === 0) {
+  if (!currentPost) {
     return {
       posts: [...candidates].sort(compareByLatestDate).slice(0, limit),
       title: "最新文章",
@@ -93,7 +93,7 @@ export function stripLeadingTitleHeading(html: string, title: string): string {
 }
 
 function formatMetaLine(post: PostMeta): string {
-  return `${formatDetailDate(post.date)} / ${post.tags[0] ?? "Archive"}`;
+  return `${formatDetailDate(post.date)} / ${post.tags[0]}`;
 }
 
 function compareByLatestDate(a: PostMeta, b: PostMeta): number {
@@ -136,7 +136,7 @@ export function PostDetailTemplate({
   relatedPosts,
   relatedTitle = "关联阅读",
 }: PostDetailTemplateProps) {
-  const tags = post.tags.length > 0 ? post.tags : ["未分类"];
+  const tags = post.tags;
   const displayContent = stripLeadingTitleHeading(contentHtml, post.title);
   const showToc = headings.length >= 2;
 
@@ -160,7 +160,7 @@ export function PostDetailTemplate({
           <h1 id="post-title" data-od-id="detail-headline">
             {post.title}
           </h1>
-          {post.summary && <p className="portfolio-lede">{post.summary}</p>}
+          <p className="portfolio-lede">{post.summary}</p>
           <div className="portfolio-article-meta" aria-label="文章信息">
             <span>{formatDetailDate(post.date)}</span>
             <span>{post.readingTime} min</span>
@@ -235,7 +235,7 @@ export function PostDetailTemplate({
                   <span>
                     <small>{formatMetaLine(relatedPost)}</small>
                     <strong>{relatedPost.title}</strong>
-                    {relatedPost.summary && <span>{relatedPost.summary}</span>}
+                    <span>{relatedPost.summary}</span>
                   </span>
                 </Link>
               ))}

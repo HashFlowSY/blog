@@ -8,6 +8,9 @@ import {
   buildContentCatalog,
   ContentCatalogError,
   createContentCatalogReader,
+  type ContentCatalogOptions,
+  type Post,
+  type ProjectCase,
 } from "./content-catalog";
 
 const temporaryDirectories: string[] = [];
@@ -21,11 +24,11 @@ afterEach(() => {
 function createFixtureRoot(): string {
   const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), "blog-catalog-"));
   const postsDir = path.join(rootDir, "content/posts/zh-CN");
-  const projectsDir = path.join(rootDir, "content/projects/zh-CN");
+  const projectCasesDir = path.join(rootDir, "content/projects/zh-CN");
   const assetsDir = path.join(rootDir, "public/assets");
 
   fs.mkdirSync(postsDir, { recursive: true });
-  fs.mkdirSync(projectsDir, { recursive: true });
+  fs.mkdirSync(projectCasesDir, { recursive: true });
   fs.mkdirSync(assetsDir, { recursive: true });
   fs.writeFileSync(path.join(assetsDir, "project.png"), "project cover");
   temporaryDirectories.push(rootDir);
@@ -45,7 +48,7 @@ function writePost(
   );
 }
 
-function writeProject(
+function writeProjectCase(
   rootDir: string,
   fileName: string,
   frontmatter: string,
@@ -70,6 +73,63 @@ featured: true
 draft: false`;
 
 describe("Content Catalog", () => {
+  it("exports only complete Published entry contracts", () => {
+    type PostExposesCover = "cover" extends keyof Post ? true : false;
+    type ProjectCaseCoverAllowsNull = null extends ProjectCase["cover"]
+      ? true
+      : false;
+    type ProjectCaseRoleIsOptional =
+      object extends Pick<ProjectCase, "role"> ? true : false;
+    type ProjectCaseDurationIsOptional =
+      object extends Pick<ProjectCase, "duration"> ? true : false;
+    type ProjectCaseResultIsOptional =
+      object extends Pick<ProjectCase, "result"> ? true : false;
+    type PostTagsAllowEmpty = [] extends Post["tags"] ? true : false;
+    type ProjectCaseTagsAllowEmpty = [] extends ProjectCase["tags"]
+      ? true
+      : false;
+
+    // @ts-expect-error Published Posts never expose a cover field.
+    const postExposesCover: PostExposesCover = true;
+    // @ts-expect-error Published Project Case covers are always present.
+    const projectCaseCoverAllowsNull: ProjectCaseCoverAllowsNull = true;
+    // @ts-expect-error Published Project Case roles are always present.
+    const projectCaseRoleIsOptional: ProjectCaseRoleIsOptional = true;
+    // @ts-expect-error Published Project Case durations are always present.
+    const projectCaseDurationIsOptional: ProjectCaseDurationIsOptional = true;
+    // @ts-expect-error Published Project Case results are always present.
+    const projectCaseResultIsOptional: ProjectCaseResultIsOptional = true;
+    // @ts-expect-error Published Posts always have at least one tag.
+    const postTagsAllowEmpty: PostTagsAllowEmpty = true;
+    // @ts-expect-error Published Project Cases always have at least one tag.
+    const projectCaseTagsAllowEmpty: ProjectCaseTagsAllowEmpty = true;
+
+    void postExposesCover;
+    void projectCaseCoverAllowsNull;
+    void projectCaseRoleIsOptional;
+    void projectCaseDurationIsOptional;
+    void projectCaseResultIsOptional;
+    void postTagsAllowEmpty;
+    void projectCaseTagsAllowEmpty;
+  });
+
+  it("keeps collection paths internal to the Catalog API", () => {
+    const rootOnlyOptions: ContentCatalogOptions = { rootDir: "/fixture" };
+
+    expect(rootOnlyOptions).toEqual({ rootDir: "/fixture" });
+
+    // @ts-expect-error Collection paths are derived from the Catalog root.
+    const invalidPostsOption: ContentCatalogOptions = { postsDir: "." };
+    // @ts-expect-error Collection paths are derived from the Catalog root.
+    const badProjects: ContentCatalogOptions = { projectsDir: "." };
+    // @ts-expect-error Collection paths are derived from the Catalog root.
+    const invalidPublicOption: ContentCatalogOptions = { publicDir: "." };
+
+    void invalidPostsOption;
+    void badProjects;
+    void invalidPublicOption;
+  });
+
   it("builds one published snapshot from representative Post and Project Case files", async () => {
     const rootDir = createFixtureRoot();
     writePost(
@@ -93,7 +153,7 @@ summary: "The newer entry."
 draft: false`,
     );
     writePost(rootDir, "idea.md", "draft: true", "");
-    writeProject(rootDir, "catalog-project.md", completeProjectFrontmatter);
+    writeProjectCase(rootDir, "catalog-project.md", completeProjectFrontmatter);
 
     const catalog = await buildContentCatalog({ rootDir });
 
@@ -101,9 +161,18 @@ draft: false`,
       "newer-post",
       "older-post",
     ]);
-    expect(catalog.projects.map((project) => project.slug)).toEqual([
-      "catalog-project",
-    ]);
+    expect(catalog.projectCases.map((projectCase) => projectCase.slug)).toEqual(
+      ["catalog-project"],
+    );
+    expect(catalog.posts[0]).not.toHaveProperty("cover");
+    expect(catalog.projectCases[0]).toMatchObject({
+      cover: "/assets/project.png",
+      role: "Development",
+      duration: "Two weeks",
+      result: "Published successfully.",
+    });
+    expect(catalog.posts[0]).not.toHaveProperty("locale");
+    expect(catalog.projectCases[0]).not.toHaveProperty("locale");
   });
 
   it("reports malformed YAML and every strict field error together instead of returning a partial Catalog", async () => {
@@ -177,7 +246,7 @@ draft: false`,
       path.join(rootDir, "public/assets/escape.png"),
     );
 
-    writeProject(
+    writeProjectCase(
       rootDir,
       "missing.md",
       completeProjectFrontmatter.replace(
@@ -185,7 +254,7 @@ draft: false`,
         'cover: "/assets/missing.png"',
       ),
     );
-    writeProject(
+    writeProjectCase(
       rootDir,
       "traversal.md",
       completeProjectFrontmatter
@@ -195,7 +264,7 @@ draft: false`,
           'cover: "/../outside/cover.png"',
         ),
     );
-    writeProject(
+    writeProjectCase(
       rootDir,
       "absolute.md",
       completeProjectFrontmatter
@@ -205,7 +274,7 @@ draft: false`,
           `cover: "${path.join(outsideDir, "cover.png")}"`,
         ),
     );
-    writeProject(
+    writeProjectCase(
       rootDir,
       "symlink.md",
       completeProjectFrontmatter
@@ -268,18 +337,20 @@ summary: "The newer entry."
 draft: false`,
     );
     writePost(rootDir, "unpublished-idea.md", "draft: true", "");
-    writeProject(rootDir, "catalog-project.md", completeProjectFrontmatter);
+    writeProjectCase(rootDir, "catalog-project.md", completeProjectFrontmatter);
 
     const catalog = await buildContentCatalog({ rootDir });
 
     expect(catalog.postSlugs).toEqual(["newer-post", "older-post"]);
-    expect(catalog.projectSlugs).toEqual(["catalog-project"]);
+    expect(catalog.projectCaseSlugs).toEqual(["catalog-project"]);
     expect(catalog.getPostBySlug("newer-post")?.title).toBe("Newer Post");
     expect(catalog.getPostBySlug("unpublished-idea")).toBeNull();
-    expect(catalog.getProjectBySlug("catalog-project")?.featured).toBe(true);
-    expect(catalog.featuredProjects.map((project) => project.slug)).toEqual([
-      "catalog-project",
-    ]);
+    expect(catalog.getProjectCaseBySlug("catalog-project")?.featured).toBe(
+      true,
+    );
+    expect(
+      catalog.featuredProjectCases.map((projectCase) => projectCase.slug),
+    ).toEqual(["catalog-project"]);
     expect(catalog.tags).toEqual(["Catalog", "Shared", "Testing"]);
     expect(catalog.getAdjacentPosts("newer-post")).toMatchObject({
       prev: null,
@@ -334,7 +405,7 @@ tags: ["Testing"]
 summary: "The second duplicate."
 draft: false`,
     );
-    writeProject(
+    writeProjectCase(
       rootDir,
       "duplicate-project-one.md",
       completeProjectFrontmatter.replace(
@@ -342,7 +413,7 @@ draft: false`,
         'slug: "same-project"',
       ),
     );
-    writeProject(
+    writeProjectCase(
       rootDir,
       "duplicate-project-two.md",
       completeProjectFrontmatter
@@ -455,6 +526,44 @@ draft: false`,
 
     expect(secondProductionCatalog).toBe(firstProductionCatalog);
     expect(secondProductionCatalog.postSlugs).toEqual(["second-post"]);
+  });
+
+  it("retries a failed production snapshot after invalid content is fixed", async () => {
+    const rootDir = createFixtureRoot();
+    writePost(
+      rootDir,
+      "retry.md",
+      `title: "Needs a slug before publishing"
+date: "2026-06-01"
+tags: ["Testing"]
+summary: "The first production build must fail."
+draft: false`,
+    );
+    const production = createContentCatalogReader({
+      rootDir,
+      cacheMode: "production",
+    });
+
+    await expect(production.getCatalog()).rejects.toBeInstanceOf(
+      ContentCatalogError,
+    );
+
+    writePost(
+      rootDir,
+      "retry.md",
+      `title: "Recovered post"
+slug: "recovered-post"
+date: "2026-06-01"
+tags: ["Testing"]
+summary: "The corrected production build succeeds."
+draft: false`,
+    );
+
+    const recoveredCatalog = await production.getCatalog();
+    const reusedCatalog = await production.getCatalog();
+
+    expect(recoveredCatalog.postSlugs).toEqual(["recovered-post"]);
+    expect(reusedCatalog).toBe(recoveredCatalog);
   });
 
   it("formats every aggregate error in a stable, readable order", async () => {

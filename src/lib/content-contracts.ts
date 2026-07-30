@@ -379,7 +379,10 @@ function appendErrors<TFrontmatter>(
 }
 
 function isPathWithin(root: string, candidate: string): boolean {
-  const relativePath = path.relative(root, candidate);
+  const relativePath = path.relative(
+    /* turbopackIgnore: true */ root,
+    candidate,
+  );
 
   return (
     relativePath === "" ||
@@ -415,8 +418,11 @@ function projectCoverErrors(
     ];
   }
 
-  const publicDir = path.resolve(options.publicDir);
-  const coverPath = path.resolve(publicDir, `.${cover}`);
+  const publicDir = path.resolve(/* turbopackIgnore: true */ options.publicDir);
+  const coverPath = path.resolve(
+    /* turbopackIgnore: true */ publicDir,
+    `.${cover}`,
+  );
 
   if (!isPathWithin(publicDir, coverPath)) {
     return [
@@ -428,7 +434,7 @@ function projectCoverErrors(
     ];
   }
 
-  if (!fs.existsSync(coverPath)) {
+  if (!fs.existsSync(/* turbopackIgnore: true */ coverPath)) {
     return [
       {
         filePath: input.filePath,
@@ -439,7 +445,7 @@ function projectCoverErrors(
   }
 
   try {
-    if (!fs.statSync(coverPath).isFile()) {
+    if (!fs.statSync(/* turbopackIgnore: true */ coverPath).isFile()) {
       return [
         {
           filePath: input.filePath,
@@ -449,8 +455,12 @@ function projectCoverErrors(
       ];
     }
 
-    const realPublicDir = fs.realpathSync(publicDir);
-    const realCoverPath = fs.realpathSync(coverPath);
+    const realPublicDir = fs.realpathSync(
+      /* turbopackIgnore: true */ publicDir,
+    );
+    const realCoverPath = fs.realpathSync(
+      /* turbopackIgnore: true */ coverPath,
+    );
     if (!isPathWithin(realPublicDir, realCoverPath)) {
       return [
         {

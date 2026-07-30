@@ -3,14 +3,14 @@ import Link from "next/link";
 
 import { assetPath } from "@/lib/site";
 
-import type { ProjectMeta } from "@/lib/projects";
+import type { ProjectCaseMeta } from "@/lib/content-catalog";
 
 interface ProjectCardProps {
-  project: ProjectMeta;
+  project: ProjectCaseMeta;
 }
 
 export function ProjectCard({ project }: ProjectCardProps) {
-  const cover = assetPath(project.cover ?? "/assets/workbench-hero.png");
+  const cover = assetPath(project.cover);
 
   return (
     <article
@@ -20,7 +20,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
       ]
         .filter(Boolean)
         .join(" ")}
-      data-filter-item={project.tags[0] ?? "Project"}
+      data-filter-item={project.tags[0]}
     >
       <Link
         className="portfolio-project-media"
@@ -49,32 +49,22 @@ export function ProjectCard({ project }: ProjectCardProps) {
         <h2>
           <Link href={`/projects/${project.slug}/`}>{project.title}</Link>
         </h2>
-        {project.description && (
-          <p className="portfolio-project-description">{project.description}</p>
-        )}
-        {(project.role || project.result) && (
-          <dl className="portfolio-project-facts">
-            {project.role && (
-              <div>
-                <dt>我的角色</dt>
-                <dd>{project.role}</dd>
-              </div>
-            )}
-            {project.result && (
-              <div>
-                <dt>项目结果</dt>
-                <dd>{project.result}</dd>
-              </div>
-            )}
-          </dl>
-        )}
-        {project.tags.length > 0 && (
-          <div className="portfolio-tags" aria-label="项目标签">
-            {project.tags.slice(0, 5).map((tag) => (
-              <span key={tag}>{tag}</span>
-            ))}
+        <p className="portfolio-project-description">{project.description}</p>
+        <dl className="portfolio-project-facts">
+          <div>
+            <dt>我的角色</dt>
+            <dd>{project.role}</dd>
           </div>
-        )}
+          <div>
+            <dt>项目结果</dt>
+            <dd>{project.result}</dd>
+          </div>
+        </dl>
+        <div className="portfolio-tags" aria-label="项目标签">
+          {project.tags.slice(0, 5).map((tag) => (
+            <span key={tag}>{tag}</span>
+          ))}
+        </div>
         <div className="portfolio-link-row">
           <Link
             className="portfolio-button portfolio-button-primary"

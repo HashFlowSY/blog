@@ -3,22 +3,21 @@ import { describe, expect, it } from "vitest";
 
 import { ProjectCard } from "./project-card";
 
-import type { ProjectMeta } from "@/lib/projects";
+import type { ProjectCaseMeta } from "@/lib/content-catalog";
 
-const baseProject: ProjectMeta = {
+const baseProject: ProjectCaseMeta = {
   slug: "my-project",
   title: "My Project",
   description: "A cool project",
   date: "2026-02-01",
   tags: ["prototype", "industrial"],
-  cover: null,
+  cover: "/assets/project.png",
   source: "https://github.com/example/repo",
   demo: "https://example.com",
   featured: true,
   role: "独立设计与开发",
   duration: "4 周",
   result: "完成可运行版本",
-  locale: "zh-CN",
 };
 
 describe("ProjectCard", () => {

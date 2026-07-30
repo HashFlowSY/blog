@@ -12,9 +12,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     lastModified: new Date(post.updated),
   }));
 
-  const projectEntries = catalog.projects.map((project) => ({
-    url: siteUrl(`/projects/${project.slug}/`),
-    lastModified: new Date(project.date),
+  const projectCaseEntries = catalog.projectCases.map((projectCase) => ({
+    url: siteUrl(`/projects/${projectCase.slug}/`),
+    lastModified: new Date(projectCase.date),
   }));
 
   const staticPages = [
@@ -24,5 +24,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: siteUrl("/about/"), lastModified: new Date() },
   ];
 
-  return [...staticPages, ...postEntries, ...projectEntries];
+  return [...staticPages, ...postEntries, ...projectCaseEntries];
 }

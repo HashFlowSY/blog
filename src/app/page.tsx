@@ -29,7 +29,7 @@ function formatDate(date: string): string {
 export default async function HomePage() {
   const catalog = await getContentCatalog();
   const recentPosts = catalog.posts.slice(0, 3);
-  const featuredProject = catalog.featuredProjects[0] ?? null;
+  const featuredProjectCase = catalog.featuredProjectCases[0] ?? null;
 
   return (
     <section
@@ -111,14 +111,12 @@ export default async function HomePage() {
               </Link>
             </div>
 
-            {featuredProject ? (
+            {featuredProjectCase ? (
               <article className="featured-work" data-od-id="featured-project">
                 <div className="featured-work-media">
                   <Image
-                    src={assetPath(
-                      featuredProject.cover ?? "/assets/content-dashboard.png",
-                    )}
-                    alt={`${featuredProject.title}项目界面预览`}
+                    src={assetPath(featuredProjectCase.cover)}
+                    alt={`${featuredProjectCase.title}项目界面预览`}
                     fill
                     loading="eager"
                     sizes="(max-width: 800px) 100vw, 58vw"
@@ -127,36 +125,31 @@ export default async function HomePage() {
                 </div>
                 <div className="featured-work-copy">
                   <p className="workbench-project-meta">
-                    {[featuredProject.role, ...featuredProject.tags.slice(0, 3)]
-                      .filter(Boolean)
-                      .join(" / ")}
+                    {[
+                      featuredProjectCase.role,
+                      ...featuredProjectCase.tags.slice(0, 3),
+                    ].join(" / ")}
                   </p>
-                  <h3>{featuredProject.title}</h3>
-                  <p>{featuredProject.description}</p>
-                  {(featuredProject.role || featuredProject.result) && (
-                    <dl className="featured-work-details">
-                      {featuredProject.role && (
-                        <div>
-                          <dt>我的角色</dt>
-                          <dd>{featuredProject.role}</dd>
-                        </div>
-                      )}
-                      {featuredProject.result && (
-                        <div>
-                          <dt>项目结果</dt>
-                          <dd>{featuredProject.result}</dd>
-                        </div>
-                      )}
-                    </dl>
-                  )}
+                  <h3>{featuredProjectCase.title}</h3>
+                  <p>{featuredProjectCase.description}</p>
+                  <dl className="featured-work-details">
+                    <div>
+                      <dt>我的角色</dt>
+                      <dd>{featuredProjectCase.role}</dd>
+                    </div>
+                    <div>
+                      <dt>项目结果</dt>
+                      <dd>{featuredProjectCase.result}</dd>
+                    </div>
+                  </dl>
                   <div className="workbench-tags" aria-label="项目技术标签">
-                    {featuredProject.tags.slice(0, 5).map((tag) => (
+                    {featuredProjectCase.tags.slice(0, 5).map((tag) => (
                       <span key={tag}>{tag}</span>
                     ))}
                   </div>
                   <Link
                     className="workbench-text-link"
-                    href={`/projects/${featuredProject.slug}/`}
+                    href={`/projects/${featuredProjectCase.slug}/`}
                   >
                     查看项目详情 <span aria-hidden="true">→</span>
                   </Link>
@@ -214,10 +207,10 @@ export default async function HomePage() {
                     </span>
                     <span className="writing-copy">
                       <span className="writing-meta">
-                        {formatDate(post.date)} · {post.tags[0] ?? "记录"}
+                        {formatDate(post.date)} · {post.tags[0]}
                       </span>
                       <strong>{post.title}</strong>
-                      {post.summary && <span>{post.summary}</span>}
+                      <span>{post.summary}</span>
                     </span>
                     <span className="writing-arrow" aria-hidden="true">
                       ↗

@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { PostCard } from "./post-card";
 
-import type { PostMeta } from "@/lib/posts";
+import type { PostMeta } from "@/lib/content-catalog";
 
 const basePost: PostMeta = {
   slug: "test-post",
@@ -12,9 +12,7 @@ const basePost: PostMeta = {
   updated: "2026-01-15",
   tags: ["typescript", "react"],
   summary: "A test summary",
-  cover: null,
   readingTime: 5,
-  locale: "zh-CN",
 };
 
 describe("PostCard", () => {

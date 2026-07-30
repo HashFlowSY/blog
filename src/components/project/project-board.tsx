@@ -4,10 +4,10 @@ import { useMemo, useState } from "react";
 
 import { ProjectList } from "./project-list";
 
-import type { ProjectMeta } from "@/lib/projects";
+import type { ProjectCaseMeta } from "@/lib/content-catalog";
 
 interface ProjectBoardProps {
-  projects: ProjectMeta[];
+  projects: ProjectCaseMeta[];
   tags: string[];
 }
 

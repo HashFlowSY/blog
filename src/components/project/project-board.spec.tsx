@@ -3,20 +3,22 @@ import { describe, expect, it } from "vitest";
 
 import { ProjectBoard } from "./project-board";
 
-import type { ProjectMeta } from "@/lib/projects";
+import type { ProjectCaseMeta } from "@/lib/content-catalog";
 
-const projects: ProjectMeta[] = [
+const projects: ProjectCaseMeta[] = [
   {
     slug: "first-project",
     title: "第一个项目",
     date: "2026-01-01",
     description: "项目摘要",
     tags: ["Next.js"],
-    cover: null,
+    cover: "/assets/project.png",
     source: null,
     demo: null,
+    role: "Development",
+    duration: "One week",
+    result: "Published",
     featured: true,
-    locale: "zh-CN",
   },
   {
     slug: "second-project",
@@ -24,11 +26,13 @@ const projects: ProjectMeta[] = [
     date: "2026-02-01",
     description: "另一个项目摘要",
     tags: ["Design"],
-    cover: null,
+    cover: "/assets/project.png",
     source: null,
     demo: null,
+    role: "Design",
+    duration: "Two weeks",
+    result: "Published",
     featured: false,
-    locale: "zh-CN",
   },
 ];
 

@@ -9,8 +9,8 @@ import {
   stripLeadingTitleHeading,
 } from "./post-detail-template";
 
+import type { Post, PostMeta } from "@/lib/content-catalog";
 import type { TocItem } from "@/lib/markdown";
-import type { Post, PostMeta } from "@/lib/posts";
 
 const post: Post = {
   slug: "hello-world",
@@ -19,9 +19,7 @@ const post: Post = {
   updated: "2026-04-02",
   tags: ["手记", "工具链"],
   summary: "这是一篇用于验证中文博客内容管线的开场记录。",
-  cover: null,
   readingTime: 6,
-  locale: "zh-CN",
   content:
     '<p>欢迎来到这个被重新整理过的中文个人站。</p><h2 id="topic">这个博客会写什么？</h2><p>这里会记录 Web 开发。</p>',
 };
@@ -39,9 +37,7 @@ const relatedPosts: PostMeta[] = [
     updated: "2026-03-29",
     tags: ["Interface"],
     summary: "用边界、纹理和比例建立风格。",
-    cover: null,
     readingTime: 4,
-    locale: "zh-CN",
   },
 ];
 
@@ -51,11 +47,9 @@ function makePostMeta(overrides: Partial<PostMeta>): PostMeta {
     title: "Example",
     date: "2026-01-01",
     updated: "2026-01-01",
-    tags: [],
+    tags: ["Testing"],
     summary: "Example summary",
-    cover: null,
     readingTime: 4,
-    locale: "zh-CN",
     ...overrides,
   };
 }
@@ -210,20 +204,6 @@ describe("PostDetailTemplate", () => {
       "/posts/interface-notes/",
     );
     expect(getByText("2026.03.29 / Interface")).toBeInTheDocument();
-  });
-
-  it("uses an uncategorized tag when a post has no tags", () => {
-    const { container, getByText } = render(
-      <PostDetailTemplate
-        contentHtml={post.content}
-        headings={headings}
-        post={{ ...post, tags: [] }}
-        relatedPosts={[]}
-      />,
-    );
-
-    expect(getByText("未分类")).toBeInTheDocument();
-    expect(container.querySelector(".related-section")).not.toBeInTheDocument();
   });
 
   it("omits the table of contents for short articles", () => {
