@@ -63,3 +63,12 @@ source-file search found no matching files. Re-ran the complete coverage suite
 (24 files, 186 tests; statements 93.19%, branches 82.19%, functions 97.15%,
 lines 95.00%), lint, non-incremental typecheck, format check, and the `/blog`
 production build successfully.
+
+### Public content follow-up
+
+Replaced the obsolete “generic Markdown content pipeline” claim in the public
+Personal Blog Project Case with the current atomic Content Catalog. Confirmed
+the obsolete phrase and `createContentLoader` no longer appear in public
+content, then re-ran the complete coverage suite (24 files, 186 tests;
+statements 93.19%, branches 82.19%, functions 97.15%, lines 95.00%), lint,
+non-incremental typecheck, format check, and the `/blog` production build.
