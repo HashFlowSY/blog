@@ -5,7 +5,6 @@ import {
   selectRelatedReading,
 } from "@/components/post/post-detail-template";
 import { getContentCatalog } from "@/lib/content-catalog";
-import { extractHeadings } from "@/lib/markdown";
 import { siteUrl } from "@/lib/site";
 
 import type { Metadata } from "next";
@@ -40,13 +39,10 @@ export default async function PostDetailPage({ params }: Props) {
   const post = catalog.getPostBySlug(slug);
   if (!post) notFound();
 
-  const headings = extractHeadings(post.content);
   const relatedReading = selectRelatedReading(slug, catalog.posts.slice(), 3);
 
   return (
     <PostDetailTemplate
-      contentHtml={post.content}
-      headings={headings}
       post={post}
       relatedPosts={relatedReading.posts}
       relatedTitle={relatedReading.title}

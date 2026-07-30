@@ -75,7 +75,13 @@ draft: false`;
 describe("Content Catalog", () => {
   it("exports only complete Published entry contracts", () => {
     type PostExposesCover = "cover" extends keyof Post ? true : false;
+    type PostExposesLegacyContent = "content" extends keyof Post ? true : false;
+    type PostRenderedContentIsOptional =
+      object extends Pick<Post, "renderedContent"> ? true : false;
     type ProjectCaseCoverAllowsNull = null extends ProjectCase["cover"]
+      ? true
+      : false;
+    type ProjectCaseExposesLegacyContent = "content" extends keyof ProjectCase
       ? true
       : false;
     type ProjectCaseRoleIsOptional =
@@ -91,8 +97,14 @@ describe("Content Catalog", () => {
 
     // @ts-expect-error Published Posts never expose a cover field.
     const postExposesCover: PostExposesCover = true;
+    // @ts-expect-error Published Posts expose a structured rendered result instead of legacy HTML content.
+    const postExposesLegacyContent: PostExposesLegacyContent = true;
+    // @ts-expect-error Published Posts always have a structured rendered result.
+    const postRenderedContentIsOptional: PostRenderedContentIsOptional = true;
     // @ts-expect-error Published Project Case covers are always present.
     const projectCaseCoverAllowsNull: ProjectCaseCoverAllowsNull = true;
+    // @ts-expect-error Published Project Cases expose a structured rendered result instead of legacy HTML content.
+    const projectCaseExposesLegacyContent: ProjectCaseExposesLegacyContent = true;
     // @ts-expect-error Published Project Case roles are always present.
     const projectCaseRoleIsOptional: ProjectCaseRoleIsOptional = true;
     // @ts-expect-error Published Project Case durations are always present.
@@ -105,7 +117,10 @@ describe("Content Catalog", () => {
     const projectCaseTagsAllowEmpty: ProjectCaseTagsAllowEmpty = true;
 
     void postExposesCover;
+    void postExposesLegacyContent;
+    void postRenderedContentIsOptional;
     void projectCaseCoverAllowsNull;
+    void projectCaseExposesLegacyContent;
     void projectCaseRoleIsOptional;
     void projectCaseDurationIsOptional;
     void projectCaseResultIsOptional;
@@ -173,6 +188,56 @@ draft: false`,
     });
     expect(catalog.posts[0]).not.toHaveProperty("locale");
     expect(catalog.projectCases[0]).not.toHaveProperty("locale");
+  });
+
+  it("stores immutable structured Markdown results for Posts and Project Cases", async () => {
+    const rootDir = createFixtureRoot();
+    writePost(
+      rootDir,
+      "structured-post.md",
+      `title: "Structured Post"
+slug: "structured-post"
+date: "2026-05-04"
+tags: ["Catalog"]
+summary: "A structured Markdown result."
+draft: false`,
+      "# Structured Post\n\n## Post section",
+    );
+    writeProjectCase(
+      rootDir,
+      "structured-project.md",
+      completeProjectFrontmatter,
+      "# Catalog Project\n\n## Project section",
+    );
+
+    const catalog = await buildContentCatalog({ rootDir });
+    const post = catalog.getPostBySlug("structured-post");
+    const projectCase = catalog.getProjectCaseBySlug("catalog-project");
+
+    expect(post).not.toBeNull();
+    expect(projectCase).not.toBeNull();
+    expect(post!.renderedContent).toMatchObject({
+      headings: [{ id: expect.any(String), level: 2, text: "Post section" }],
+    });
+    expect(post!.renderedContent.html).not.toContain("<h1");
+    expect(projectCase!.renderedContent).toMatchObject({
+      headings: [{ id: expect.any(String), level: 2, text: "Project section" }],
+    });
+    expect(projectCase!.renderedContent.html).not.toContain("<h1");
+    expect(Object.isFrozen(post!.renderedContent)).toBe(true);
+    expect(Object.isFrozen(post!.renderedContent.headings)).toBe(true);
+    expect(Object.isFrozen(post!.renderedContent.headings[0])).toBe(true);
+    expect(() => {
+      (
+        post!.renderedContent.headings as unknown as {
+          push: (heading: unknown) => void;
+        }
+      ).push({ id: "changed", level: 2, text: "Changed" });
+    }).toThrow();
+    expect(() => {
+      (post!.renderedContent.headings[0] as unknown as { text: string }).text =
+        "Changed";
+    }).toThrow();
   });
 
   it("reports malformed YAML and every strict field error together instead of returning a partial Catalog", async () => {

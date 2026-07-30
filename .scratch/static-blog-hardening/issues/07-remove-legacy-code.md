@@ -1,7 +1,6 @@
 # Remove unreachable legacy code
 
 Status: ready-for-agent
-Blocked by: 05, 06
 
 ## Goal
 

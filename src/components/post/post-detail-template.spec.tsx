@@ -6,11 +6,9 @@ import {
   formatDetailDate,
   selectRelatedReading,
   selectRelatedPosts,
-  stripLeadingTitleHeading,
 } from "./post-detail-template";
 
 import type { Post, PostMeta } from "@/lib/content-catalog";
-import type { TocItem } from "@/lib/markdown";
 
 const post: Post = {
   slug: "hello-world",
@@ -20,14 +18,28 @@ const post: Post = {
   tags: ["手记", "工具链"],
   summary: "这是一篇用于验证中文博客内容管线的开场记录。",
   readingTime: 6,
-  content:
-    '<p>欢迎来到这个被重新整理过的中文个人站。</p><h2 id="topic">这个博客会写什么？</h2><p>这里会记录 Web 开发。</p>',
+  renderedContent: {
+    html: '<p>欢迎来到这个被重新整理过的中文个人站。</p><h2 id="topic">这个博客会写什么？</h2><p>这里会记录 Web 开发。</p>',
+    headings: [
+      { id: "topic", level: 2, text: "这个博客会写什么？" },
+      { id: "stack", level: 2, text: "技术栈" },
+    ],
+  },
 };
 
-const headings: TocItem[] = [
-  { id: "topic", level: 2, text: "这个博客会写什么？" },
-  { id: "stack", level: 2, text: "技术栈" },
-];
+const catalogPost: Post = {
+  slug: "catalog-post",
+  title: "Catalog post",
+  date: "2026-04-02",
+  updated: "2026-04-02",
+  tags: ["Testing"],
+  summary: "A Post returned by the Content Catalog.",
+  readingTime: 4,
+  renderedContent: {
+    html: '<p>Intro</p><h2 id="catalog-section">Catalog section</h2>',
+    headings: [{ id: "catalog-section", level: 2, text: "Catalog section" }],
+  },
+};
 
 const relatedPosts: PostMeta[] = [
   {
@@ -121,28 +133,20 @@ describe("post detail template helpers", () => {
       posts: [{ slug: "latest" }, { slug: "older" }],
     });
   });
-
-  it("removes a duplicate leading h1 that matches the post title", () => {
-    const html = '<h1 id="first">第一篇记录</h1><p>正文开始。</p>';
-
-    expect(stripLeadingTitleHeading(html, "第一篇记录")).toBe(
-      "<p>正文开始。</p>",
-    );
-  });
-
-  it("keeps a leading h1 when it is not the same as the post title", () => {
-    const html = '<h1 id="first">不同标题</h1><p>正文开始。</p>';
-
-    expect(stripLeadingTitleHeading(html, "第一篇记录")).toBe(html);
-  });
 });
 
 describe("PostDetailTemplate", () => {
+  it("renders the Content Catalog's structured Markdown result directly", () => {
+    const { getByText } = render(
+      <PostDetailTemplate post={catalogPost} relatedPosts={[]} />,
+    );
+
+    expect(getByText("Catalog section")).toBeInTheDocument();
+  });
+
   it("renders the portfolio reading template with dynamic post metadata", () => {
     const { container, getByRole, getByText } = render(
       <PostDetailTemplate
-        contentHtml={post.content}
-        headings={headings}
         post={post}
         relatedPosts={relatedPosts}
         relatedTitle="关联阅读"
@@ -168,11 +172,9 @@ describe("PostDetailTemplate", () => {
     expect(getByText("工具链")).toBeInTheDocument();
   });
 
-  it("renders numbered table-of-contents links for extracted headings", () => {
+  it("renders numbered table-of-contents links for Catalog headings", () => {
     const { getByRole } = render(
       <PostDetailTemplate
-        contentHtml={post.content}
-        headings={headings}
         post={post}
         relatedPosts={relatedPosts}
         relatedTitle="关联阅读"
@@ -191,8 +193,6 @@ describe("PostDetailTemplate", () => {
   it("renders related reading cards from dynamic posts", () => {
     const { getByRole, getByText } = render(
       <PostDetailTemplate
-        contentHtml={post.content}
-        headings={headings}
         post={post}
         relatedPosts={relatedPosts}
         relatedTitle="关联阅读"
@@ -209,9 +209,10 @@ describe("PostDetailTemplate", () => {
   it("omits the table of contents for short articles", () => {
     const { queryByLabelText } = render(
       <PostDetailTemplate
-        contentHtml={post.content}
-        headings={[]}
-        post={post}
+        post={{
+          ...post,
+          renderedContent: { ...post.renderedContent, headings: [] },
+        }}
         relatedPosts={[]}
       />,
     );
@@ -222,8 +223,6 @@ describe("PostDetailTemplate", () => {
   it("renders a latest-posts heading for fallback recommendations", () => {
     const { getByRole } = render(
       <PostDetailTemplate
-        contentHtml={post.content}
-        headings={headings}
         post={post}
         relatedPosts={relatedPosts}
         relatedTitle="最新文章"

@@ -9,11 +9,24 @@ import remarkRehype from "remark-rehype";
 import rehypeCodeBlock from "./rehype-code-block";
 import remarkCodeMeta from "./remark-code-meta";
 
-/** Represents a heading extracted from rendered HTML, used to build a table of contents */
-export interface TocItem {
-  level: number;
-  id: string;
-  text: string;
+export type MarkdownHeadingLevel = 1 | 2 | 3;
+
+/** A table-of-contents heading collected from the final sanitized HAST. */
+export interface MarkdownHeading {
+  readonly level: MarkdownHeadingLevel;
+  readonly id: string;
+  readonly text: string;
+}
+
+/** The complete result of one Markdown rendering pass. */
+export interface RenderedMarkdown {
+  readonly html: string;
+  readonly headings: readonly MarkdownHeading[];
+}
+
+export interface RenderMarkdownOptions {
+  filename?: string;
+  title?: string;
 }
 
 const baseAttrs = defaultSchema.attributes ?? {};
@@ -68,6 +81,120 @@ const sanitizeSchema: typeof defaultSchema = {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type HastElement = any;
 
+interface SyntaxNode {
+  alt?: unknown;
+  children?: unknown;
+  depth?: unknown;
+  properties?: unknown;
+  tagName?: unknown;
+  type?: unknown;
+  value?: unknown;
+}
+
+function isSyntaxNode(value: unknown): value is SyntaxNode {
+  return typeof value === "object" && value !== null;
+}
+
+function syntaxChildren(node: SyntaxNode): SyntaxNode[] {
+  if (!Array.isArray(node.children)) return [];
+  return node.children.filter(isSyntaxNode);
+}
+
+function stringProperty(properties: unknown, property: string): string | null {
+  if (!properties || typeof properties !== "object") return null;
+
+  const value = (properties as Record<string, unknown>)[property];
+  return typeof value === "string" ? value : null;
+}
+
+function hastText(node: SyntaxNode): string {
+  if (node.type === "text" && typeof node.value === "string") {
+    return node.value;
+  }
+
+  return syntaxChildren(node).map(hastText).join("");
+}
+
+function markdownHeadingLevel(tagName: string): MarkdownHeadingLevel | null {
+  switch (tagName) {
+    case "h1":
+      return 1;
+    case "h2":
+      return 2;
+    case "h3":
+      return 3;
+    default:
+      return null;
+  }
+}
+
+function mdastText(node: SyntaxNode): string {
+  if (typeof node.value === "string") {
+    return node.value;
+  }
+
+  if (node.type === "image" && typeof node.alt === "string") {
+    return node.alt;
+  }
+
+  return syntaxChildren(node).map(mdastText).join("");
+}
+
+function normalizedSemanticText(text: string): string {
+  return text.trim().replace(/\s+/gu, " ");
+}
+
+const remarkRemoveLeadingTitleHeading = (title: string | undefined) => {
+  return (tree: unknown) => {
+    if (title === undefined || !isSyntaxNode(tree)) return;
+    if (!Array.isArray(tree.children)) return;
+
+    const firstChild = tree.children[0];
+    if (
+      !isSyntaxNode(firstChild) ||
+      firstChild.type !== "heading" ||
+      firstChild.depth !== 1
+    ) {
+      return;
+    }
+
+    if (
+      normalizedSemanticText(mdastText(firstChild)) !==
+      normalizedSemanticText(title)
+    ) {
+      return;
+    }
+
+    tree.children.splice(0, 1);
+  };
+};
+
+function collectHeadings(node: SyntaxNode, headings: MarkdownHeading[]): void {
+  if (node.type === "element" && typeof node.tagName === "string") {
+    const level = markdownHeadingLevel(node.tagName);
+    const id = stringProperty(node.properties, "id");
+    if (level !== null && id !== null) {
+      headings.push({
+        id,
+        level,
+        text: hastText(node),
+      });
+    }
+  }
+
+  for (const child of syntaxChildren(node)) {
+    collectHeadings(child, headings);
+  }
+}
+
+const rehypeCollectHeadings = (headings: MarkdownHeading[]) => {
+  return (tree: unknown) => {
+    if (isSyntaxNode(tree)) {
+      collectHeadings(tree, headings);
+    }
+  };
+};
+
 const rehypeRemoveInvalidImages = () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (tree: any) => {
@@ -95,39 +222,49 @@ function hasValidImageSrc(image: HastElement): boolean {
   return typeof src === "string" && src.length > 0;
 }
 
-/** 将 Markdown 转换为安全的 HTML，自动为标题生成锚点 ID，代码块语法高亮 */
-export async function markdownToHtml(markdown: string, filename?: string) {
+/**
+ * Render Markdown once into safe HTML and its matching table-of-contents
+ * headings. Headings are collected from the sanitized HAST before
+ * serialization, rather than reconstructed from an HTML string.
+ */
+export async function renderMarkdown(
+  markdown: string,
+  options: RenderMarkdownOptions = {},
+): Promise<RenderedMarkdown> {
   try {
+    const headings: MarkdownHeading[] = [];
     const result = await remark()
       .use(remarkGfm)
       .use(remarkCodeMeta)
+      .use(remarkRemoveLeadingTitleHeading, options.title)
       .use(remarkRehype)
       .use(rehypeSlug)
       .use(rehypeHighlight)
       .use(rehypeCodeBlock)
       .use(rehypeSanitize, sanitizeSchema)
       .use(rehypeRemoveInvalidImages)
+      .use(rehypeCollectHeadings, headings)
       .use(rehypeStringify)
       .process(markdown);
-    return result.toString();
+
+    return Object.freeze({
+      html: result.toString(),
+      headings: Object.freeze(
+        headings.map((heading) => Object.freeze({ ...heading })),
+      ),
+    });
   } catch (error: unknown) {
-    const location = filename ? ` in ${filename}` : "";
+    const location = options.filename ? ` in ${options.filename}` : "";
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(`Markdown processing failed${location}: ${message}`);
   }
 }
 
-/** 从 HTML 内容中提取 h1/h2/h3 标题的 id 和文本 */
-export function extractHeadings(html: string): TocItem[] {
-  const headings: TocItem[] = [];
-  const regex = /<h([1-3])[^>]*id="([^"]*)"[^>]*>(.*?)<\/h\1>/g;
-  let match: RegExpExecArray | null;
-  while ((match = regex.exec(html)) !== null) {
-    headings.push({
-      level: parseInt(match[1]!, 10),
-      id: match[2]!,
-      text: match[3]!.replace(/<[^>]*>/g, ""),
-    });
-  }
-  return headings;
+/** Compatibility wrapper for legacy callers that only consume HTML. */
+export async function markdownToHtml(markdown: string, filename?: string) {
+  const rendered = await renderMarkdown(
+    markdown,
+    filename === undefined ? {} : { filename },
+  );
+  return rendered.html;
 }

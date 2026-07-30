@@ -7,7 +7,7 @@ import {
   validatePostContracts,
   validateProjectCaseContracts,
 } from "./content-contracts";
-import { markdownToHtml } from "./markdown";
+import { renderMarkdown } from "./markdown";
 import { estimateReadingTime } from "./reading-time";
 
 import type {
@@ -17,6 +17,7 @@ import type {
   ProjectCaseFrontmatter,
   ValidatedContentEntry,
 } from "./content-contracts";
+import type { RenderedMarkdown } from "./markdown";
 
 export interface Post {
   slug: string;
@@ -25,11 +26,11 @@ export interface Post {
   updated: string;
   tags: NonEmptyTags;
   summary: string;
-  content: string;
+  renderedContent: RenderedMarkdown;
   readingTime: number;
 }
 
-export type PostMeta = Omit<Post, "content">;
+export type PostMeta = Omit<Post, "renderedContent">;
 
 export type NonEmptyTags = readonly [string, ...string[]];
 
@@ -46,10 +47,10 @@ export interface ProjectCase {
   duration: string;
   result: string;
   featured: boolean;
-  content: string;
+  renderedContent: RenderedMarkdown;
 }
 
-export type ProjectCaseMeta = Omit<ProjectCase, "content">;
+export type ProjectCaseMeta = Omit<ProjectCase, "renderedContent">;
 
 export interface ContentCatalog {
   readonly posts: readonly Post[];
@@ -219,7 +220,10 @@ async function renderPost(
   }
 
   const frontmatter = entry.frontmatter;
-  const content = await markdownToHtml(entry.body, entry.filePath);
+  const renderedContent = await renderMarkdown(entry.body, {
+    filename: entry.filePath,
+    title: frontmatter.title,
+  });
 
   return {
     slug: frontmatter.slug,
@@ -228,7 +232,7 @@ async function renderPost(
     updated: frontmatter.updated ?? frontmatter.date,
     tags: toNonEmptyTags(frontmatter.tags),
     summary: frontmatter.summary,
-    content,
+    renderedContent,
     readingTime: estimateReadingTime(entry.body),
   };
 }
@@ -241,7 +245,10 @@ async function renderProjectCase(
   }
 
   const frontmatter = entry.frontmatter;
-  const content = await markdownToHtml(entry.body, entry.filePath);
+  const renderedContent = await renderMarkdown(entry.body, {
+    filename: entry.filePath,
+    title: frontmatter.title,
+  });
 
   return {
     slug: frontmatter.slug,
@@ -256,7 +263,7 @@ async function renderProjectCase(
     duration: frontmatter.duration,
     result: frontmatter.result,
     featured: frontmatter.featured,
-    content,
+    renderedContent,
   };
 }
 

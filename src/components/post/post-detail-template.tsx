@@ -6,11 +6,7 @@ import { CodeBlockEnhancer } from "./code-block";
 import { ReadingProgress } from "./reading-progress";
 
 import type { Post, PostMeta } from "@/lib/content-catalog";
-import type { TocItem } from "@/lib/markdown";
-
 interface PostDetailTemplateProps {
-  contentHtml: string;
-  headings: TocItem[];
   post: Post;
   relatedPosts: PostMeta[];
   relatedTitle?: string;
@@ -82,16 +78,6 @@ export function selectRelatedReading(
   };
 }
 
-export function stripLeadingTitleHeading(html: string, title: string): string {
-  const match = html.match(/^<h1\b[^>]*>(.*?)<\/h1>\s*/i);
-  if (!match) return html;
-
-  const headingText = match[1]!.replace(/<[^>]*>/g, "").trim();
-  if (headingText !== title.trim()) return html;
-
-  return html.slice(match[0].length);
-}
-
 function formatMetaLine(post: PostMeta): string {
   return `${formatDetailDate(post.date)} / ${post.tags[0]}`;
 }
@@ -130,14 +116,12 @@ function getDateTimestamp(date: string): number | null {
 }
 
 export function PostDetailTemplate({
-  contentHtml,
-  headings,
   post,
   relatedPosts,
   relatedTitle = "关联阅读",
 }: PostDetailTemplateProps) {
   const tags = post.tags;
-  const displayContent = stripLeadingTitleHeading(contentHtml, post.title);
+  const { headings, html } = post.renderedContent;
   const showToc = headings.length >= 2;
 
   return (
@@ -204,7 +188,7 @@ export function PostDetailTemplate({
                 className="article-body portfolio-prose prose"
                 id="article-body"
                 data-od-id="detail-body"
-                dangerouslySetInnerHTML={{ __html: displayContent }}
+                dangerouslySetInnerHTML={{ __html: html }}
               />
             </CodeBlockEnhancer>
           </article>

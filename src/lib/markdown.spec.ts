@@ -1,7 +1,124 @@
 import { describe, it, expect } from "vitest";
 
-import { extractHeadings } from "./markdown";
-import { markdownToHtml } from "./markdown";
+import { markdownToHtml, renderMarkdown } from "./markdown";
+
+describe("renderMarkdown", () => {
+  it("returns final HTML and its table-of-contents headings together", async () => {
+    const rendered = await renderMarkdown("## Setup\n\n### Confirm");
+    const document = new DOMParser().parseFromString(
+      rendered.html,
+      "text/html",
+    );
+    const htmlHeadings = Array.from(
+      document.querySelectorAll<HTMLHeadingElement>("h1, h2, h3"),
+    ).map((heading) => ({
+      id: heading.id,
+      level: Number(heading.tagName.slice(1)),
+      text: heading.textContent ?? "",
+    }));
+
+    expect(rendered.html).toContain("<h2");
+    expect(rendered.headings).toEqual([
+      { id: expect.any(String), level: 2, text: "Setup" },
+      { id: expect.any(String), level: 3, text: "Confirm" },
+    ]);
+    expect(rendered.headings).toEqual(htmlHeadings);
+  });
+
+  it("removes a leading body h1 that semantically matches the frontmatter title", async () => {
+    const rendered = await renderMarkdown(
+      "# **Café** [guide](https://example.com)\n\n## Setup",
+      { title: "Café guide" },
+    );
+
+    expect(rendered.html).not.toContain("<h1");
+    expect(rendered.headings).toEqual([
+      { id: expect.any(String), level: 2, text: "Setup" },
+    ]);
+  });
+
+  it("collects readable heading text from inline formatting and decoded entities", async () => {
+    const rendered = await renderMarkdown(
+      "## **粗体** *斜体* [链接](https://example.com) `code` &amp; 中英文 Mixed",
+    );
+
+    expect(rendered.headings).toEqual([
+      {
+        id: expect.any(String),
+        level: 2,
+        text: "粗体 斜体 链接 code & 中英文 Mixed",
+      },
+    ]);
+    expect(rendered.html).toContain("<strong>粗体</strong>");
+    expect(rendered.html).toContain("<em>斜体</em>");
+    expect(rendered.html).toContain('<a href="https://example.com">链接</a>');
+    expect(rendered.html).toContain("<code>code</code>");
+  });
+
+  it("gives duplicate headings stable distinct IDs that match final HTML", async () => {
+    const markdown = "## Repeat\n\n## Repeat";
+    const first = await renderMarkdown(markdown);
+    const second = await renderMarkdown(markdown);
+    const document = new DOMParser().parseFromString(first.html, "text/html");
+
+    expect(first.headings).toHaveLength(2);
+    expect(first.headings[0]?.id).not.toBe(first.headings[1]?.id);
+    expect(second.headings).toEqual(first.headings);
+    expect(
+      Array.from(document.querySelectorAll<HTMLHeadingElement>("h2")).map(
+        (heading) => heading.id,
+      ),
+    ).toEqual(first.headings.map((heading) => heading.id));
+  });
+
+  it("removes a formatted, linked, inline-code, entity-bearing leading h1", async () => {
+    const rendered = await renderMarkdown(
+      "# **C++** &amp; [`Code`](https://example.com)\n\n## Setup",
+      { title: "C++ & Code" },
+    );
+
+    expect(rendered.html).not.toContain("<h1");
+    expect(rendered.headings).toEqual([
+      { id: expect.any(String), level: 2, text: "Setup" },
+    ]);
+  });
+
+  it("keeps a different leading h1 and lets it enter the headings", async () => {
+    const rendered = await renderMarkdown("# Different title", {
+      title: "Frontmatter title",
+    });
+
+    expect(rendered.html).toContain("<h1");
+    expect(rendered.headings).toEqual([
+      { id: expect.any(String), level: 1, text: "Different title" },
+    ]);
+  });
+
+  it("does not let a removed h1 affect a following duplicate heading ID", async () => {
+    const withRemovedTitle = await renderMarkdown("# Repeat\n\n## Repeat", {
+      title: "Repeat",
+    });
+    const onlyVisibleHeading = await renderMarkdown("## Repeat");
+
+    expect(withRemovedTitle.headings).toEqual([
+      { id: onlyVisibleHeading.headings[0]?.id, level: 2, text: "Repeat" },
+    ]);
+    expect(withRemovedTitle.html).not.toContain("<h1");
+  });
+
+  it("renders h4 through h6 without including them in the article table of contents", async () => {
+    const rendered = await renderMarkdown(
+      "### Included\n\n#### Four\n\n##### Five\n\n###### Six",
+    );
+
+    expect(rendered.headings).toEqual([
+      { id: expect.any(String), level: 3, text: "Included" },
+    ]);
+    expect(rendered.html).toContain("<h4");
+    expect(rendered.html).toContain("<h5");
+    expect(rendered.html).toContain("<h6");
+  });
+});
 
 describe("markdownToHtml", () => {
   describe("基本 Markdown 转换", () => {
@@ -274,73 +391,6 @@ describe("markdownToHtml", () => {
 
     it("no filename: error message omits file reference", async () => {
       await expect(markdownToHtml("".slice(0, 0))).resolves.toBeDefined();
-    });
-  });
-
-  // ==========================================================
-  // extractHeadings
-  // ==========================================================
-  describe("extractHeadings", () => {
-    it("提取 h1/h2/h3 标题的 level、id 和 text", () => {
-      const html =
-        '<h1 id="intro">Introduction</h1><h2 id="setup">Setup</h2><h3 id="config">Configuration</h3>';
-      const headings = extractHeadings(html);
-
-      expect(headings).toHaveLength(3);
-      expect(headings[0]).toEqual({
-        level: 1,
-        id: "intro",
-        text: "Introduction",
-      });
-      expect(headings[1]).toEqual({ level: 2, id: "setup", text: "Setup" });
-      expect(headings[2]).toEqual({
-        level: 3,
-        id: "config",
-        text: "Configuration",
-      });
-    });
-
-    it("无标题时返回空数组", () => {
-      expect(extractHeadings("<p>No headings here</p>")).toEqual([]);
-    });
-
-    it("空字符串返回空数组", () => {
-      expect(extractHeadings("")).toEqual([]);
-    });
-
-    it("去除标题内嵌 HTML 标签", () => {
-      const html = '<h2 id="code">Using <code>hooks</code></h2>';
-      const headings = extractHeadings(html);
-
-      expect(headings).toHaveLength(1);
-      expect(headings[0]!.text).toBe("Using hooks");
-    });
-
-    it("忽略 h4-h6 标题", () => {
-      const html = '<h4 id="deep">Deep heading</h4><h5 id="deeper">Deeper</h5>';
-      expect(extractHeadings(html)).toEqual([]);
-    });
-
-    it("处理内容为空的标题", () => {
-      const html = '<h2 id="empty"></h2>';
-      const headings = extractHeadings(html);
-
-      expect(headings).toHaveLength(1);
-      expect(headings[0]!.text).toBe("");
-    });
-
-    it("按顺序返回多个标题", () => {
-      const html = [
-        '<h2 id="first">First</h2>',
-        '<h1 id="top">Top</h1>',
-        '<h3 id="third">Third</h3>',
-      ].join("");
-      const headings = extractHeadings(html);
-
-      expect(headings).toHaveLength(3);
-      expect(headings[0]!.id).toBe("first");
-      expect(headings[1]!.id).toBe("top");
-      expect(headings[2]!.id).toBe("third");
     });
   });
 });

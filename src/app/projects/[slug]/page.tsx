@@ -115,7 +115,9 @@ export default async function ProjectDetailPage({ params }: Props) {
           <CodeBlockEnhancer>
             <div
               className="portfolio-prose prose"
-              dangerouslySetInnerHTML={{ __html: projectCase.content }}
+              dangerouslySetInnerHTML={{
+                __html: projectCase.renderedContent.html,
+              }}
             />
           </CodeBlockEnhancer>
         </div>
