@@ -1,7 +1,7 @@
 import { expect, type Page } from "@playwright/test";
 
-import { test } from "./fixtures";
-import { goToHome, goToPosts, getText } from "./helpers/navigation";
+import { SITE_COPY, test } from "./fixtures";
+import { goToHome, goToPosts } from "./helpers/navigation";
 
 /**
  * Click a navigation link and wait for the URL to change.
@@ -31,13 +31,13 @@ test.describe("Navigation", () => {
   test("header navigation links navigate correctly on desktop", async ({
     page,
   }) => {
-    const zh = getText("zh-CN");
+    const copy = SITE_COPY;
 
     await goToHome(page);
     await clickNavAndWait(
       page,
       'nav[aria-label="主导航"]',
-      zh.posts,
+      copy.posts,
       /\/posts\//,
     );
     expect(page.url()).toContain("/posts/");
@@ -46,7 +46,7 @@ test.describe("Navigation", () => {
     await clickNavAndWait(
       page,
       'nav[aria-label="主导航"]',
-      zh.projects,
+      copy.projects,
       /\/projects\//,
     );
     expect(page.url()).toContain("/projects/");
@@ -55,7 +55,7 @@ test.describe("Navigation", () => {
     await clickNavAndWait(
       page,
       'nav[aria-label="主导航"]',
-      zh.about,
+      copy.about,
       /\/about\//,
     );
     expect(page.url()).toContain("/about/");
@@ -71,29 +71,29 @@ test.describe("Navigation", () => {
   });
 
   test("header highlights active page link", async ({ page }) => {
-    const zh = getText("zh-CN");
+    const copy = SITE_COPY;
 
     await goToPosts(page);
 
     const nav = page.locator('nav[aria-label="主导航"]');
-    const postsLink = nav.locator("a").filter({ hasText: zh.posts }).first();
+    const postsLink = nav.locator("a").filter({ hasText: copy.posts }).first();
     await expect(postsLink).toHaveAttribute("aria-current", "page");
 
     const projectsLink = nav
       .locator("a")
-      .filter({ hasText: zh.projects })
+      .filter({ hasText: copy.projects })
       .first();
     await expect(projectsLink).toHaveAttribute("aria-current", "false");
   });
 
   test("browser back/forward works correctly", async ({ page }) => {
-    const zh = getText("zh-CN");
+    const copy = SITE_COPY;
 
     await goToHome(page);
     await clickNavAndWait(
       page,
       'nav[aria-label="主导航"]',
-      zh.posts,
+      copy.posts,
       /\/posts\//,
     );
     expect(page.url()).toContain("/posts/");
@@ -116,7 +116,7 @@ test.describe("Navigation", () => {
   });
 
   test("mobile hamburger menu opens and navigates", async ({ page }) => {
-    const zh = getText("zh-CN");
+    const copy = SITE_COPY;
 
     await page.setViewportSize({ width: 375, height: 667 });
     await goToHome(page);
@@ -129,7 +129,7 @@ test.describe("Navigation", () => {
     const mobileNav = page.locator("#site-nav");
     await expect(mobileNav).toBeVisible();
 
-    await clickNavAndWait(page, "#site-nav", zh.posts, /\/posts\//);
+    await clickNavAndWait(page, "#site-nav", copy.posts, /\/posts\//);
 
     expect(page.url()).toContain("/posts/");
 

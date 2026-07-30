@@ -1,6 +1,6 @@
 # Remove unreachable legacy code
 
-Status: ready-for-agent
+Status: resolved
 
 ## Goal
 
@@ -26,3 +26,31 @@ Remove historical abstractions and tests that no longer belong to the Chinese-on
 - Search for locale and removed symbol references.
 - Run the complete unit test suite with coverage.
 - Run lint and typecheck.
+
+## Answer
+
+Removed the unreachable `posts`, `projects`, and `content-loader` modules and
+their dedicated tests; the HTML-only `markdownToHtml` compatibility wrapper;
+the test-only Catalog adjacency query; `ProjectBoard` and its isolated test;
+the orphaned metadata test helper; and stale i18n, scripts, config, and
+test-helper coverage exclusions. The E2E helpers now use one `SITE_COPY`
+object with no locale parameter or locale map. `ProjectList`, `ProjectCard`,
+the Content Catalog, and the structured `renderMarkdown` API remain.
+
+Before deletion, imports, App Router routes, static params, feed, sitemap, and
+the static-export build path were checked. All production consumers use
+`getContentCatalog()`; every legacy target was referenced only by its own
+tests, another legacy target, or stale documentation. The retained Catalog
+collections and slug lookups have production route consumers, while its
+builder and reader compose the production snapshot. `locale` searches now
+find only `String.prototype.localeCompare` sorting calls.
+
+Verified:
+
+- `pnpm exec vitest run --coverage --no-cache` — 24 files, 186 tests passed;
+  statements 93.19%, branches 82.19%, functions 97.15%, lines 95.00%.
+- `pnpm lint`
+- `pnpm exec tsc --noEmit --incremental false`
+- `pnpm format:check`
+- `NODE_ENV=production NEXT_PUBLIC_SITE_URL=https://example.com BASE_PATH=/blog NEXT_PUBLIC_BASE_PATH=/blog pnpm build`
+- `git diff --check`

@@ -186,8 +186,6 @@ draft: false`,
       duration: "Two weeks",
       result: "Published successfully.",
     });
-    expect(catalog.posts[0]).not.toHaveProperty("locale");
-    expect(catalog.projectCases[0]).not.toHaveProperty("locale");
   });
 
   it("stores immutable structured Markdown results for Posts and Project Cases", async () => {
@@ -379,7 +377,7 @@ draft: false`,
     );
   });
 
-  it("exposes immutable published collection, slug, tag, featured, and adjacency queries from one snapshot", async () => {
+  it("exposes immutable published collection, slug, tag, and featured queries from one snapshot", async () => {
     const rootDir = createFixtureRoot();
     writePost(
       rootDir,
@@ -417,10 +415,6 @@ draft: false`,
       catalog.featuredProjectCases.map((projectCase) => projectCase.slug),
     ).toEqual(["catalog-project"]);
     expect(catalog.tags).toEqual(["Catalog", "Shared", "Testing"]);
-    expect(catalog.getAdjacentPosts("newer-post")).toMatchObject({
-      prev: null,
-      next: { slug: "older-post" },
-    });
     expect(Object.isFrozen(catalog)).toBe(true);
     expect(Object.isFrozen(catalog.posts)).toBe(true);
     expect(Object.isFrozen(catalog.posts[0]?.tags)).toBe(true);

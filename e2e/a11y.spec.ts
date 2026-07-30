@@ -5,7 +5,7 @@ import { goToHome } from "./helpers/navigation";
 
 test.describe("Accessibility", () => {
   test("basic accessibility structure on home page", async ({ page }) => {
-    await goToHome(page, "zh-CN");
+    await goToHome(page);
 
     const html = page.locator("html");
     await expect(html).toHaveAttribute("lang", "zh-CN");

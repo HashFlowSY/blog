@@ -5,7 +5,7 @@ import { goToPosts, goToProjects } from "./helpers/navigation";
 
 test.describe("Archive structure", () => {
   test("article archive keeps one scannable list", async ({ page }) => {
-    await goToPosts(page, "zh-CN");
+    await goToPosts(page);
 
     const articles = page.locator(".portfolio-article-list article");
     expect(await articles.count()).toBeGreaterThan(0);
@@ -16,7 +16,7 @@ test.describe("Archive structure", () => {
   test("project archive links the stable public Project Case", async ({
     page,
   }) => {
-    await goToProjects(page, "zh-CN");
+    await goToProjects(page);
 
     await expect(
       page.getByRole("link", { name: "Personal Blog", exact: true }),

@@ -259,12 +259,3 @@ export async function renderMarkdown(
     throw new Error(`Markdown processing failed${location}: ${message}`);
   }
 }
-
-/** Compatibility wrapper for legacy callers that only consume HTML. */
-export async function markdownToHtml(markdown: string, filename?: string) {
-  const rendered = await renderMarkdown(
-    markdown,
-    filename === undefined ? {} : { filename },
-  );
-  return rendered.html;
-}

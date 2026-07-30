@@ -8,7 +8,7 @@ test.describe("Workbench shell behavior", () => {
     page,
   }) => {
     await page.emulateMedia({ colorScheme: "light" });
-    await goToHome(page, "zh-CN");
+    await goToHome(page);
 
     await expect(
       page.getByRole("button", { name: "Toggle theme" }),
@@ -19,7 +19,7 @@ test.describe("Workbench shell behavior", () => {
   });
 
   test("reveals the back-to-top control after scrolling", async ({ page }) => {
-    await goToHome(page, "zh-CN");
+    await goToHome(page);
 
     const backToTop = page.locator(".back-to-top");
     await expect(backToTop).toHaveAttribute("aria-hidden", "true");

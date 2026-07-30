@@ -1,16 +1,16 @@
 import { expect } from "@playwright/test";
 
-import { test } from "./fixtures";
-import { goToPosts, getText } from "./helpers/navigation";
+import { SITE_COPY, test } from "./fixtures";
+import { goToPosts } from "./helpers/navigation";
 
 test.describe("Posts list", () => {
   test("renders published articles with topic context", async ({ page }) => {
-    const zh = getText("zh-CN");
+    const copy = SITE_COPY;
 
     await goToPosts(page);
 
     await expect(
-      page.getByRole("heading", { name: zh.allPosts }),
+      page.getByRole("heading", { name: copy.allPosts }),
     ).toBeVisible();
 
     await expect(page.getByLabel("当前写作主题")).toBeVisible();

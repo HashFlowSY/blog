@@ -15,11 +15,11 @@ Specification: [spec.md](./spec.md)
 
 5. [Build the atomic Content Catalog](./issues/05-build-content-catalog.md) — resolved
 6. [Return structured Markdown output](./issues/06-structure-markdown-output.md) — resolved
-7. [Remove unreachable legacy code](./issues/07-remove-legacy-code.md) — ready
+7. [Remove unreachable legacy code](./issues/07-remove-legacy-code.md) — resolved
 
 ## Phase 3 — Release Harness
 
-8. [Consolidate CI and deployment gates](./issues/08-consolidate-ci-gates.md) — blocked by 01, 02, 07
+8. [Consolidate CI and deployment gates](./issues/08-consolidate-ci-gates.md) — ready
 9. [Test the generated static artifact](./issues/09-add-static-artifact-harness.md) — blocked by 08
 10. [Rewrite E2E around stable invariants](./issues/10-rewrite-e2e-invariants.md) — blocked by 09
 
@@ -31,4 +31,4 @@ Specification: [spec.md](./spec.md)
 
 ## Frontier
 
-The first open, unblocked ticket is issue 07.
+The first open, unblocked ticket is issue 08.

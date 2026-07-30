@@ -9,7 +9,7 @@ An industrial-wasteland style Chinese personal blog built with Next.js 16 and de
 - **Markdown Writing** — Posts and projects with Zod-validated frontmatter
 - **Chinese-Only Routes** — Root, posts, projects, about, RSS, sitemap, and content all target Chinese
 - **Syntax Highlighting** — Code blocks with language labels, copy button, line highlighting
-- **Archive Filters** — Tag filters for posts and projects
+- **Archive Filters** — Tag filters for posts
 - **Article Detail Template** — Shared reading page template for every post
 - **SEO** — Sitemap, robots.txt, canonical URLs, OG, Twitter, noindex 404
 - **RSS Feed** — `/feed.xml` with autodiscovery
@@ -57,15 +57,13 @@ src/
 ├── components/
 │   ├── layout/               # Header, footer, site shell, back-to-top
 │   ├── post/                 # Post archive, detail template, card, code block
-│   └── project/              # Project board, card, list
-├── lib/                      # Data layer, utilities
-│   ├── content-loader.ts     # Shared content loader factory
-│   ├── posts.ts              # Post loading & queries
-│   ├── projects.ts           # Project loading & queries
-│   ├── markdown.ts           # Markdown → HTML pipeline
-│   ├── site.ts               # Site URL config
-│   └── feed.ts               # RSS XML builder
-└── test-utils/               # Shared test helpers
+│   └── project/              # Project card, list
+└── lib/                      # Data layer, utilities
+    ├── content-catalog.ts    # Atomic content discovery, validation, and queries
+    ├── content-contracts.ts  # Strict Post and Project Case frontmatter contracts
+    ├── markdown.ts           # Structured Markdown rendering pipeline
+    ├── site.ts               # Site URL config
+    └── feed.ts               # RSS XML builder
 ```
 
 ## Getting Started

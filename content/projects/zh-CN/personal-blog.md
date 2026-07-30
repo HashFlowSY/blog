@@ -26,7 +26,7 @@ draft: false
 
 ## 内容管线
 
-文章和项目共享同一套生命周期——frontmatter 解析、slug 解析、草稿过滤、日期排序——但 Zod schema 和输出类型各不相同。为此设计了 `createContentLoader<TSchema, TMeta, TFull>` 泛型工厂：接收一个 Zod schema 和两个映射回调（`toMeta`、`toFull`），返回类型安全的 `getAllMeta()`、`getAllFull()`、`getBySlug()` 接口。`src/lib/posts.ts` 和 `src/lib/projects.ts` 各自定义 schema，工厂处理其余全部逻辑。详见 `src/lib/content-loader.ts`。
+每次构建都会创建一个原子的 Content Catalog：统一发现文章和项目案例，解析 frontmatter，执行严格契约与跨文件校验，渲染 Markdown，并按稳定 slug 建立索引。页面、静态参数、RSS、sitemap 和元数据读取同一份不可变快照；任一内容出错时，构建会在生成部分站点前失败。详见 `src/lib/content-catalog.ts`。
 
 ## Markdown 渲染与 XSS 防护
 

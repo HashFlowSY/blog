@@ -61,10 +61,6 @@ export interface ContentCatalog {
   readonly tags: readonly string[];
   getPostBySlug(slug: string): Post | null;
   getProjectCaseBySlug(slug: string): ProjectCase | null;
-  getAdjacentPosts(slug: string): {
-    readonly prev: Post | null;
-    readonly next: Post | null;
-  };
 }
 
 export interface ContentCatalogOptions {
@@ -326,17 +322,6 @@ function createCatalog(
     },
     getProjectCaseBySlug(slug: string): ProjectCase | null {
       return projectCasesBySlug.get(slug) ?? null;
-    },
-    getAdjacentPosts(slug: string) {
-      const index = postSlugs.indexOf(slug);
-
-      return Object.freeze({
-        prev: index > 0 ? (publishedPosts[index - 1] ?? null) : null,
-        next:
-          index >= 0 && index < publishedPosts.length - 1
-            ? (publishedPosts[index + 1] ?? null)
-            : null,
-      });
     },
   });
 }

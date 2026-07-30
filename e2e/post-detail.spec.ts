@@ -1,11 +1,11 @@
 import { expect } from "@playwright/test";
 
-import { test } from "./fixtures";
-import { goToPosts, getText } from "./helpers/navigation";
+import { SITE_COPY, test } from "./fixtures";
+import { goToPosts } from "./helpers/navigation";
 
 test.describe("Post detail", () => {
   test("renders post metadata", async ({ page }) => {
-    const zh = getText("zh-CN");
+    const copy = SITE_COPY;
 
     await goToPosts(page);
 
@@ -27,7 +27,7 @@ test.describe("Post detail", () => {
     await expect(
       page
         .locator(".portfolio-article-meta")
-        .getByText(new RegExp(`\\d+ ${zh.minutes}`)),
+        .getByText(new RegExp(`\\d+ ${copy.minutes}`)),
     ).toBeVisible();
   });
 

@@ -1,16 +1,16 @@
 import { expect } from "@playwright/test";
 
-import { test } from "./fixtures";
-import { goToProjects, getText } from "./helpers/navigation";
+import { SITE_COPY, test } from "./fixtures";
+import { goToProjects } from "./helpers/navigation";
 
 test.describe("Projects", () => {
   test("project list renders project cards", async ({ page }) => {
-    const zh = getText("zh-CN");
+    const copy = SITE_COPY;
 
     await goToProjects(page);
 
     await expect(
-      page.getByRole("heading", { name: zh.allProjects }),
+      page.getByRole("heading", { name: copy.allProjects }),
     ).toBeVisible();
 
     const projectCards = page.locator("article");
@@ -19,7 +19,7 @@ test.describe("Projects", () => {
   });
 
   test("project detail renders full info", async ({ page }) => {
-    const zh = getText("zh-CN");
+    const copy = SITE_COPY;
 
     await goToProjects(page);
 
@@ -38,10 +38,10 @@ test.describe("Projects", () => {
       firstProjectTitle!,
     );
 
-    const sourceLink = page.getByRole("link", { name: zh.source });
+    const sourceLink = page.getByRole("link", { name: copy.source });
     await expect(sourceLink).toHaveAttribute("href", /github\.com/);
 
-    const demoLink = page.getByRole("link", { name: zh.demo });
+    const demoLink = page.getByRole("link", { name: copy.demo });
     await expect(demoLink).toBeVisible();
   });
 });

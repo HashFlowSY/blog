@@ -1,11 +1,11 @@
 import { expect } from "@playwright/test";
 
-import { test } from "./fixtures";
-import { goToHome, getText } from "./helpers/navigation";
+import { SITE_COPY, test } from "./fixtures";
+import { goToHome } from "./helpers/navigation";
 
 test.describe("Home page", () => {
   test("renders hero section", async ({ page }) => {
-    const zh = getText("zh-CN");
+    const copy = SITE_COPY;
 
     await goToHome(page);
 
@@ -14,7 +14,7 @@ test.describe("Home page", () => {
     ).toBeVisible();
 
     const viewProjectsLink = page.getByRole("link", {
-      name: zh.viewProjects,
+      name: copy.viewProjects,
       exact: true,
     });
     await expect(viewProjectsLink).toBeVisible();
@@ -25,23 +25,23 @@ test.describe("Home page", () => {
   });
 
   test("shows recent posts section", async ({ page }) => {
-    const zh = getText("zh-CN");
+    const copy = SITE_COPY;
 
     await goToHome(page);
 
     await expect(
-      page.getByRole("heading", { name: zh.recentPosts }),
+      page.getByRole("heading", { name: copy.recentPosts }),
     ).toBeVisible();
     await expect(page.locator(".writing-item")).toHaveCount(2);
   });
 
   test("shows featured projects section", async ({ page }) => {
-    const zh = getText("zh-CN");
+    const copy = SITE_COPY;
 
     await goToHome(page);
 
     await expect(
-      page.getByRole("heading", { name: zh.featuredProjects }),
+      page.getByRole("heading", { name: copy.featuredProjects }),
     ).toBeVisible();
     await expect(page.locator(".featured-work")).toBeVisible();
   });
