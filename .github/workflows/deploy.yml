@@ -7,11 +7,13 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: "pages"
+  group: pages-${{ github.repository }}
+  cancel-in-progress: false
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   deployment-config:
@@ -40,36 +42,15 @@ jobs:
   quality-gate:
     name: Quality Gate
     needs: deployment-config
-    runs-on: ubuntu-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-    steps:
-      - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v6
-        with:
-          version: 11.0.8
-      - uses: actions/setup-node@v6
-        with:
-          node-version-file: .nvmrc
-          cache: "pnpm"
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm lint
-      - run: pnpm tsc --noEmit
-      - run: pnpm test:coverage
-      - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm test:e2e
-      - uses: actions/upload-artifact@v7
-        if: failure()
-        with:
-          name: deploy-playwright-report
-          path: playwright-report/
-          retention-days: 7
+    uses: ./.github/workflows/quality.yml
+    with:
+      playwright_report_name: deploy-playwright-report
+    permissions:
+      contents: read
 
   build:
     needs: [deployment-config, quality-gate]
     runs-on: ubuntu-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v6
@@ -102,8 +83,12 @@ jobs:
           path: ./out
 
   deploy:
-    needs: build
+    needs: [deployment-config, quality-gate, build]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
