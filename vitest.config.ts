@@ -25,11 +25,8 @@ export default defineConfig({
         "src/**/*.d.ts",
         // Next.js 服务端组件和特殊文件
         "src/**/layout.tsx",
-        "src/**/loading.tsx",
-        "src/**/error.tsx",
         "src/**/not-found.tsx",
         "src/**/page.tsx",
-        "src/**/middleware.ts",
         "src/app/global-error.tsx",
         "src/app/robots.ts",
         "src/app/sitemap.ts",

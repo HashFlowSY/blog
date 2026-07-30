@@ -54,3 +54,12 @@ Verified:
 - `pnpm format:check`
 - `NODE_ENV=production NEXT_PUBLIC_SITE_URL=https://example.com BASE_PATH=/blog NEXT_PUBLIC_BASE_PATH=/blog pnpm build`
 - `git diff --check`
+
+### Follow-up verification
+
+Removed the previously overlooked unmatched `src/**/loading.tsx`,
+`src/**/error.tsx`, and `src/**/middleware.ts` coverage exclusions. A fresh
+source-file search found no matching files. Re-ran the complete coverage suite
+(24 files, 186 tests; statements 93.19%, branches 82.19%, functions 97.15%,
+lines 95.00%), lint, non-incremental typecheck, format check, and the `/blog`
+production build successfully.
