@@ -2,13 +2,16 @@ import Link from "next/link";
 
 import { ProjectList } from "@/components/project/project-list";
 import { getContentCatalog } from "@/lib/content-catalog";
-import { SITE } from "@/lib/site";
+import { SITE, siteUrl } from "@/lib/site";
 
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "项目案例",
   description: `${SITE.name} 的项目案例：问题、角色、关键决策、实现过程与结果。`,
+  alternates: {
+    canonical: siteUrl("/projects/"),
+  },
 };
 
 export default async function ProjectsPage() {

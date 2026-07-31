@@ -3,5 +3,6 @@ out
 build
 node_modules
 coverage
+playwright-static-report
 pnpm-lock.yaml
 .superpowers

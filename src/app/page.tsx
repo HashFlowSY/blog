@@ -2,7 +2,15 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { getContentCatalog } from "@/lib/content-catalog";
-import { assetPath, SITE } from "@/lib/site";
+import { assetPath, SITE, siteUrl } from "@/lib/site";
+
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  alternates: {
+    canonical: siteUrl("/"),
+  },
+};
 
 const capabilities = [
   {

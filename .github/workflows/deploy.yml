@@ -77,6 +77,24 @@ jobs:
             exit 1
           fi
           find out -type f -name '*.html' -exec grep -l "src=\"$BASE_PATH/assets/" {} + | grep -q .
+      - name: Install Chromium for static artifact verification
+        run: pnpm exec playwright install --with-deps chromium
+      - id: static-artifact-e2e
+        name: Test generated static artifact
+        run: pnpm test:e2e:static
+        env:
+          PLAYWRIGHT_PUBLIC_ORIGIN: ${{ vars.NEXT_PUBLIC_SITE_URL }}
+          PLAYWRIGHT_STATIC_BASE_URL: http://127.0.0.1:4173${{ needs.deployment-config.outputs.base-path }}/
+          STATIC_BASE_PATH: ${{ needs.deployment-config.outputs.base-path }}
+      - name: Upload static artifact Chromium failure report
+        if: ${{ failure() && steps.static-artifact-e2e.outcome == 'failure' }}
+        continue-on-error: true
+        uses: actions/upload-artifact@v7
+        with:
+          name: deploy-static-artifact-playwright-report
+          path: playwright-static-report/
+          retention-days: 7
+          if-no-files-found: warn
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v5
         with:

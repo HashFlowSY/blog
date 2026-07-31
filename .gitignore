@@ -13,6 +13,7 @@
 # testing
 /coverage
 /playwright-report/
+/playwright-static-report/
 /test-results/
 
 # local visual review artifacts

@@ -108,6 +108,33 @@ pnpm build
 
 Static output is generated in the `out/` directory.
 
+### Verify the deployable static artifact
+
+Build the same representative GitHub Pages project-site artifact that the
+release gate validates:
+
+```bash
+NODE_ENV=production NEXT_PUBLIC_SITE_URL=https://example.com BASE_PATH=/blog NEXT_PUBLIC_BASE_PATH=/blog pnpm build
+```
+
+Start a read-only preview of the existing output, then open
+[http://127.0.0.1:4173/blog/](http://127.0.0.1:4173/blog/):
+
+```bash
+pnpm preview:static
+```
+
+Run the focused Chromium release-artifact suite with:
+
+```bash
+pnpm test:e2e:static
+```
+
+Both commands require an already-complete `out/` directory. They only serve
+and test that directory: they do not run `next dev`, `next start`, or an
+implicit rebuild. The preview server uses Node 24's built-in HTTP and file
+system modules, so this harness adds no static-server dependency.
+
 ## Writing Content
 
 ### Blog Post
@@ -214,8 +241,9 @@ The included GitHub Actions workflow (`deploy.yml`) handles everything:
 2. `BASE_PATH` is auto-detected:
    - `username.github.io` → empty (root)
    - `username.github.io/repo-name` → `/repo-name`
-3. `pnpm build` generates static files in `out/`
-4. Deployed to GitHub Pages
+3. `pnpm build` generates static files in `out/`, then the Chromium artifact
+   suite verifies that exact directory under the computed base path
+4. The same verified `out/` directory is deployed to GitHub Pages
 
 **Setup:**
 
@@ -291,16 +319,18 @@ NEXT_PUBLIC_BASE_PATH=
 
 ## Scripts
 
-| Command              | Description                    |
-| -------------------- | ------------------------------ |
-| `pnpm dev`           | Start development server       |
-| `pnpm build`         | Production build to `out/`     |
-| `pnpm lint`          | Run ESLint                     |
-| `pnpm lint:fix`      | Run ESLint with auto-fix       |
-| `pnpm format:check`  | Check Prettier formatting      |
-| `pnpm test`          | Run unit tests                 |
-| `pnpm test:watch`    | Run tests in watch mode        |
-| `pnpm test:coverage` | Run tests with coverage report |
+| Command                | Description                                       |
+| ---------------------- | ------------------------------------------------- |
+| `pnpm dev`             | Start development server                          |
+| `pnpm build`           | Production build to `out/`                        |
+| `pnpm lint`            | Run ESLint                                        |
+| `pnpm lint:fix`        | Run ESLint with auto-fix                          |
+| `pnpm format:check`    | Check Prettier formatting                         |
+| `pnpm test`            | Run unit tests                                    |
+| `pnpm test:watch`      | Run tests in watch mode                           |
+| `pnpm test:coverage`   | Run tests with coverage report                    |
+| `pnpm preview:static`  | Serve the existing artifact at `/blog`            |
+| `pnpm test:e2e:static` | Run Chromium checks against the existing artifact |
 
 ## License
 

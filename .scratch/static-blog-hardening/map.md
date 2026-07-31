@@ -20,8 +20,8 @@ Specification: [spec.md](./spec.md)
 ## Phase 3 — Release Harness
 
 8. [Consolidate CI and deployment gates](./issues/08-consolidate-ci-gates.md) — resolved
-9. [Test the generated static artifact](./issues/09-add-static-artifact-harness.md) — ready
-10. [Rewrite E2E around stable invariants](./issues/10-rewrite-e2e-invariants.md) — blocked by 09
+9. [Test the generated static artifact](./issues/09-add-static-artifact-harness.md) — resolved
+10. [Rewrite E2E around stable invariants](./issues/10-rewrite-e2e-invariants.md) — ready
 
 ## Phase 4 — Quality and Documentation
 
@@ -31,4 +31,4 @@ Specification: [spec.md](./spec.md)
 
 ## Frontier
 
-The first open, unblocked ticket is issue 09.
+The first open, unblocked ticket is issue 10.

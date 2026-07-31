@@ -1,11 +1,15 @@
 import { PostArchive } from "@/components/post/post-archive";
 import { getContentCatalog } from "@/lib/content-catalog";
+import { siteUrl } from "@/lib/site";
 
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "技术写作",
   description: "记录 AI 工具、工程实现、技术取舍与复盘。",
+  alternates: {
+    canonical: siteUrl("/posts/"),
+  },
 };
 
 export default async function PostsPage() {

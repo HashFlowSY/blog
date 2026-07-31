@@ -1,12 +1,15 @@
 import Link from "next/link";
 
-import { SITE } from "@/lib/site";
+import { SITE, siteUrl } from "@/lib/site";
 
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "关于我",
   description: `${SITE.name} 的工程经历、能力边界与求职、项目合作入口。`,
+  alternates: {
+    canonical: siteUrl("/about/"),
+  },
 };
 
 const skills = [
