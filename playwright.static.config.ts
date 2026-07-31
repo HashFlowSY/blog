@@ -8,15 +8,14 @@ import {
 
 export default defineConfig({
   testDir: "./e2e",
-  testMatch: /static-artifact\.spec\.ts/,
+  testMatch: /\.spec\.ts$/,
   fullyParallel: false,
   forbidOnly: !!process.env["CI"],
   retries: process.env["CI"] ? 2 : 0,
-  workers: process.env["CI"] ? 1 : "50%",
+  workers: 1,
   reporter: [
     ["html", { open: "never", outputFolder: "playwright-static-report" }],
   ],
-  outputDir: "test-results/static-artifact",
   timeout: 30_000,
   expect: {
     timeout: 5_000,
@@ -24,14 +23,24 @@ export default defineConfig({
 
   use: {
     baseURL: staticBaseURL,
-    trace: "on-first-retry",
+    trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },
 
   projects: [
     {
+      // The release gate: every E2E spec except the WebKit-only smoke file.
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
+      testIgnore: /webkit-smoke\.spec\.ts/,
+      outputDir: "test-results/static-artifact/chromium",
+    },
+    {
+      // Cross-browser confidence: deliberately limited to webkit-smoke.spec.ts.
+      name: "webkit",
+      use: { ...devices["Desktop Safari"] },
+      testMatch: /webkit-smoke\.spec\.ts/,
+      outputDir: "test-results/static-artifact/webkit",
     },
   ],
 

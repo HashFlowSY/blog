@@ -1,13 +1,13 @@
 import { expect } from "@playwright/test";
 
-import { test } from "./fixtures";
+import { STABLE_PROJECT, test } from "./fixtures";
 import { goToPosts, goToProjects } from "./helpers/navigation";
 
 test.describe("Archive structure", () => {
   test("article archive keeps one scannable list", async ({ page }) => {
     await goToPosts(page);
 
-    const articles = page.locator(".portfolio-article-list article");
+    const articles = page.locator("section[aria-label='文章列表'] article");
     expect(await articles.count()).toBeGreaterThan(0);
     await expect(page.getByLabel("当前写作主题")).toBeVisible();
     await expect(page.getByLabel("文章筛选")).toHaveCount(0);
@@ -18,12 +18,17 @@ test.describe("Archive structure", () => {
   }) => {
     await goToProjects(page);
 
-    await expect(
-      page.getByRole("link", { name: "Personal Blog", exact: true }),
-    ).toHaveAttribute("href", "/projects/personal-blog/");
+    const projectLink = page.getByRole("link", {
+      name: STABLE_PROJECT.title,
+      exact: true,
+    });
+    await expect(projectLink).toHaveAttribute(
+      "href",
+      new RegExp(`/projects/${STABLE_PROJECT.slug}/$`),
+    );
     await expect(
       page.locator(
-        'a[href="/projects/personal-blog/"] .portfolio-project-kind',
+        `a[href$="/projects/${STABLE_PROJECT.slug}/"] .portfolio-project-kind`,
       ),
     ).toHaveText("项目案例");
     await expect(page.getByLabel("项目筛选")).toHaveCount(0);

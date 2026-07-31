@@ -21,7 +21,7 @@ Specification: [spec.md](./spec.md)
 
 8. [Consolidate CI and deployment gates](./issues/08-consolidate-ci-gates.md) — resolved
 9. [Test the generated static artifact](./issues/09-add-static-artifact-harness.md) — resolved
-10. [Rewrite E2E around stable invariants](./issues/10-rewrite-e2e-invariants.md) — ready
+10. [Rewrite E2E around stable invariants](./issues/10-rewrite-e2e-invariants.md) — resolved
 
 ## Phase 4 — Quality and Documentation
 

@@ -1,8 +1,9 @@
-import { access } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 
 import { expect, test } from "@playwright/test";
 
+import { STABLE_POST, STABLE_PROJECT } from "./fixtures";
 import {
   isMountedPath,
   isPublicOriginUrl,
@@ -43,6 +44,13 @@ interface ExpectedPageMetadata {
   title: string;
 }
 
+interface ExpectedDetailMetadata {
+  description: string;
+  heading: string;
+  pathname: string;
+  title: string;
+}
+
 const defaultDescription =
   "Hashflow 的个人作品站：记录 AI 应用、后端系统、自动化交付和长期写作。";
 
@@ -68,6 +76,21 @@ const staticPageMetadata = {
     title: "项目案例 | Hashflow",
   },
 } as const satisfies Record<string, ExpectedPageMetadata>;
+
+const stableDetailMetadata = {
+  post: {
+    description: STABLE_POST.description,
+    heading: STABLE_POST.title,
+    pathname: `/posts/${STABLE_POST.slug}/`,
+    title: `${STABLE_POST.title} | Hashflow`,
+  },
+  project: {
+    description: STABLE_PROJECT.description,
+    heading: STABLE_PROJECT.title,
+    pathname: `/projects/${STABLE_PROJECT.slug}/`,
+    title: `${STABLE_PROJECT.title} | Hashflow`,
+  },
+} as const satisfies Record<"post" | "project", ExpectedDetailMetadata>;
 
 async function visit(page: Page, pathname: string): Promise<void> {
   const response = await page.goto(routePath(pathname));
@@ -116,24 +139,20 @@ async function expectPageMetadata(
   ).toBe(false);
 }
 
-async function expectPublishedDetailMetadata(page: Page): Promise<void> {
-  const title = (
-    await page.getByRole("heading", { level: 1 }).textContent()
-  )?.trim();
-  const description = (
-    await page.locator(".portfolio-lede").first().textContent()
-  )?.trim();
-
-  if (!title || !description) {
-    throw new Error(
-      "Published detail pages must expose a title and description",
-    );
-  }
-
+async function expectPublishedDetailMetadata(
+  page: Page,
+  expected: ExpectedDetailMetadata,
+): Promise<void> {
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    expected.heading,
+  );
+  await expect(page.locator(".portfolio-lede")).toHaveText(
+    expected.description,
+  );
   await expectPageMetadata(page, {
-    description,
+    description: expected.description,
     robots: "indexable",
-    title: `${title} | Hashflow`,
+    title: expected.title,
   });
 }
 
@@ -349,28 +368,12 @@ function expectPublicUrlsUseBasePath(urls: string[], source: string): void {
   ).toEqual([]);
 }
 
-async function visitPublishedDetail(
+async function visitStableDetail(
   page: Page,
-  collection: "posts" | "projects",
-): Promise<string> {
-  const archivePath = routePath(`/${collection}/`);
-  await visit(page, `/${collection}/`);
-
-  const hrefs = await page
-    .locator(`main a[href^="${archivePath}"]`)
-    .evaluateAll((links) =>
-      links
-        .map((link) => link.getAttribute("href"))
-        .filter((href): href is string => href !== null),
-    );
-  const detailPath = hrefs.find((href) => href !== archivePath);
-
-  if (!detailPath) {
-    throw new Error(`No published ${collection} detail link was generated`);
-  }
-
-  await visit(page, detailPath.slice(staticBasePath.length));
-  return detailPath;
+  collection: "post" | "project",
+): Promise<void> {
+  const detail = stableDetailMetadata[collection];
+  await visit(page, detail.pathname);
 }
 
 function recordCriticalResources(
@@ -455,15 +458,15 @@ test.describe("generated static artifact", () => {
       await expectPageMetadata(page, staticPageMetadata[pathname]);
     }
 
-    const postDetailPath = await visitPublishedDetail(page, "posts");
+    await visitStableDetail(page, "post");
     await expectBasePathReferences(page);
-    await expectCanonical(page, postDetailPath.slice(staticBasePath.length));
-    await expectPublishedDetailMetadata(page);
+    await expectCanonical(page, stableDetailMetadata.post.pathname);
+    await expectPublishedDetailMetadata(page, stableDetailMetadata.post);
 
-    const projectDetailPath = await visitPublishedDetail(page, "projects");
+    await visitStableDetail(page, "project");
     await expectBasePathReferences(page);
-    await expectCanonical(page, projectDetailPath.slice(staticBasePath.length));
-    await expectPublishedDetailMetadata(page);
+    await expectCanonical(page, stableDetailMetadata.project.pathname);
+    await expectPublishedDetailMetadata(page, stableDetailMetadata.project);
 
     const projectText = (await page.locator("body").innerText()).toLowerCase();
     expect(projectText).not.toContain("template case");
@@ -551,12 +554,14 @@ test.describe("generated static artifact", () => {
     await visit(page, "/");
     await expectCanonical(page, "/");
 
-    await visitPublishedDetail(page, "posts");
-    await visitPublishedDetail(page, "projects");
+    await visitStableDetail(page, "post");
+    await visitStableDetail(page, "project");
 
     await visit(page, "/about/");
     await expect(
-      page.getByRole("link", { name: "GitHub / HashFlowSY" }).first(),
+      page.getByRole("contentinfo").getByRole("link", {
+        name: "GitHub / HashFlowSY",
+      }),
     ).toHaveAttribute("href", "https://github.com/HashFlowSY");
 
     const visibleText = (await page.locator("body").innerText()).toLowerCase();
@@ -567,17 +572,20 @@ test.describe("generated static artifact", () => {
     const feed = await page.request.get(routePath("/feed.xml"));
     expect(feed.status()).toBe(200);
     expect(feed.headers()["content-type"]).toMatch(/application\/xml/);
-    expectPublicUrlsUseBasePath(
-      await extractXmlUrls(page, await feed.text(), "link"),
-      "RSS <link>",
-    );
+    const feedUrls = await extractXmlUrls(page, await feed.text(), "link");
+    expectPublicUrlsUseBasePath(feedUrls, "RSS <link>");
+    expect(feedUrls).toContain(publicUrl(stableDetailMetadata.post.pathname));
 
     const sitemap = await page.request.get(routePath("/sitemap.xml"));
     expect(sitemap.status()).toBe(200);
     expect(sitemap.headers()["content-type"]).toMatch(/application\/xml/);
-    expectPublicUrlsUseBasePath(
-      await extractXmlUrls(page, await sitemap.text(), "loc"),
-      "Sitemap <loc>",
+    const sitemapUrls = await extractXmlUrls(page, await sitemap.text(), "loc");
+    expectPublicUrlsUseBasePath(sitemapUrls, "Sitemap <loc>");
+    expect(sitemapUrls).toContain(
+      publicUrl(stableDetailMetadata.post.pathname),
+    );
+    expect(sitemapUrls).toContain(
+      publicUrl(stableDetailMetadata.project.pathname),
     );
 
     const robots = await page.request.get(routePath("/robots.txt"));
@@ -594,24 +602,59 @@ test.describe("generated static artifact", () => {
   test("serves the generated 404 document without a SPA fallback", async ({
     page,
   }) => {
-    await expect(
-      access(path.resolve("out", "404.html")),
-    ).resolves.toBeUndefined();
+    const generated404 = await readFile(path.resolve("out", "404.html"));
+    expect(generated404.byteLength).toBeGreaterThan(0);
 
-    const missingPath = routePath("/does-not-exist/");
-    const response = await page.goto(missingPath);
-    if (!response) {
-      throw new Error(`Static server did not respond to ${missingPath}`);
+    const missingContentRoutes = [
+      "/posts/no-such-published-post/",
+      "/projects/no-such-project-case/",
+    ] as const;
+    for (const pathname of missingContentRoutes) {
+      const missingContentResponse = await page.request.get(
+        routePath(pathname),
+      );
+      expect(missingContentResponse.status(), pathname).toBe(404);
+      expect(await missingContentResponse.body(), pathname).toEqual(
+        generated404,
+      );
+
+      const missingContentNavigation = await page.goto(routePath(pathname));
+      if (!missingContentNavigation) {
+        throw new Error(
+          `Static server did not respond to ${routePath(pathname)}`,
+        );
+      }
+      expect(missingContentNavigation.status(), pathname).toBe(404);
+      await page.waitForLoadState("networkidle");
+      await expect(
+        page.getByRole("heading", { name: "页面不存在" }),
+      ).toBeVisible();
+      await expect(page.locator("main .portfolio-article-page")).toHaveCount(0);
+      await expect(page.locator("main .portfolio-project-detail")).toHaveCount(
+        0,
+      );
+      await expect(page.locator('link[rel="canonical"]')).toHaveCount(0);
+      await expectBasePathReferences(page);
     }
 
+    const missingPath = routePath("/does-not-exist/");
+    const response = await page.request.get(missingPath);
+
     expect(response.status()).toBe(404);
+    expect(await response.body()).toEqual(generated404);
+
+    const navigationResponse = await page.goto(missingPath);
+    if (!navigationResponse) {
+      throw new Error(`Static server did not respond to ${missingPath}`);
+    }
+    expect(navigationResponse.status()).toBe(404);
+    await page.waitForLoadState("networkidle");
     await expect(
       page.getByRole("heading", { name: "页面不存在" }),
     ).toBeVisible();
     await expect(page.getByText("404 / missing signal")).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Hashflow" })).toHaveCount(
-      0,
-    );
+    await expect(page.locator("main .portfolio-article-page")).toHaveCount(0);
+    await expect(page.locator("main .portfolio-project-detail")).toHaveCount(0);
     await expect(page.locator('link[rel="canonical"]')).toHaveCount(0);
     await expectPageMetadata(page, {
       description: defaultDescription,

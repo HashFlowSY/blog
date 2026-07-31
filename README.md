@@ -124,16 +124,28 @@ Start a read-only preview of the existing output, then open
 pnpm preview:static
 ```
 
-Run the focused Chromium release-artifact suite with:
+Run the complete Chromium artifact suite and the smaller WebKit smoke suite
+against that same output with:
 
 ```bash
 pnpm test:e2e:static
 ```
 
+To inspect either project independently:
+
+```bash
+pnpm test:e2e:static:chromium
+pnpm test:e2e:static:webkit
+```
+
 Both commands require an already-complete `out/` directory. They only serve
 and test that directory: they do not run `next dev`, `next start`, or an
 implicit rebuild. The preview server uses Node 24's built-in HTTP and file
-system modules, so this harness adds no static-server dependency.
+system modules, so this harness adds no static-server dependency. Failure
+screenshots and traces are separated under
+`test-results/static-artifact/chromium/` and
+`test-results/static-artifact/webkit/`; the HTML report is written to
+`playwright-static-report/`.
 
 ## Writing Content
 
@@ -319,18 +331,18 @@ NEXT_PUBLIC_BASE_PATH=
 
 ## Scripts
 
-| Command                | Description                                       |
-| ---------------------- | ------------------------------------------------- |
-| `pnpm dev`             | Start development server                          |
-| `pnpm build`           | Production build to `out/`                        |
-| `pnpm lint`            | Run ESLint                                        |
-| `pnpm lint:fix`        | Run ESLint with auto-fix                          |
-| `pnpm format:check`    | Check Prettier formatting                         |
-| `pnpm test`            | Run unit tests                                    |
-| `pnpm test:watch`      | Run tests in watch mode                           |
-| `pnpm test:coverage`   | Run tests with coverage report                    |
-| `pnpm preview:static`  | Serve the existing artifact at `/blog`            |
-| `pnpm test:e2e:static` | Run Chromium checks against the existing artifact |
+| Command                | Description                                                           |
+| ---------------------- | --------------------------------------------------------------------- |
+| `pnpm dev`             | Start development server                                              |
+| `pnpm build`           | Production build to `out/`                                            |
+| `pnpm lint`            | Run ESLint                                                            |
+| `pnpm lint:fix`        | Run ESLint with auto-fix                                              |
+| `pnpm format:check`    | Check Prettier formatting                                             |
+| `pnpm test`            | Run unit tests                                                        |
+| `pnpm test:watch`      | Run tests in watch mode                                               |
+| `pnpm test:coverage`   | Run tests with coverage report                                        |
+| `pnpm preview:static`  | Serve the existing artifact at `/blog`                                |
+| `pnpm test:e2e:static` | Run Chromium full + WebKit smoke checks against the existing artifact |
 
 ## License
 

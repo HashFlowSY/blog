@@ -17,4 +17,33 @@ const SITE_COPY = {
   experience: "经历介绍",
 } as const;
 
-export { SITE_COPY, test };
+const STABLE_POST = {
+  slug: "2026-04-30",
+  title: "AI 服务中转站：常见术语与风险清单",
+  description:
+    "梳理官方订阅、API 转发、逆向渠道和计费倍率等常见术语，并标出需要重点留意的风险。",
+} as const;
+
+const STABLE_PROJECT = {
+  slug: "personal-blog",
+  title: "Personal Blog",
+  description:
+    "基于 Next.js 16 静态导出的中文个人作品站，包含类型安全的内容管线、CJK 阅读时间、标签感知推荐和完整测试验证。",
+} as const;
+
+function routeForPost(slug: string = STABLE_POST.slug): string {
+  return `/posts/${slug}/`;
+}
+
+function routeForProject(slug: string = STABLE_PROJECT.slug): string {
+  return `/projects/${slug}/`;
+}
+
+export {
+  SITE_COPY,
+  STABLE_POST,
+  STABLE_PROJECT,
+  routeForPost,
+  routeForProject,
+  test,
+};

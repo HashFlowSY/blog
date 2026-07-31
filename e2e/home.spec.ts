@@ -1,6 +1,6 @@
 import { expect } from "@playwright/test";
 
-import { SITE_COPY, test } from "./fixtures";
+import { SITE_COPY, STABLE_PROJECT, test } from "./fixtures";
 import { goToHome } from "./helpers/navigation";
 
 test.describe("Home page", () => {
@@ -20,8 +20,8 @@ test.describe("Home page", () => {
     await expect(viewProjectsLink).toBeVisible();
     await expect(viewProjectsLink).toHaveAttribute("href", /\/projects\/$/);
 
-    const contactLink = page.getByRole("link", { name: "联系我" }).first();
-    await expect(contactLink).toHaveAttribute("href", /\/about\/#contact$/);
+    const contactLinks = page.locator('a[href$="/about/#contact"]');
+    expect(await contactLinks.count()).toBeGreaterThan(0);
   });
 
   test("shows recent posts section", async ({ page }) => {
@@ -32,7 +32,15 @@ test.describe("Home page", () => {
     await expect(
       page.getByRole("heading", { name: copy.recentPosts }),
     ).toBeVisible();
-    await expect(page.locator(".writing-item")).toHaveCount(2);
+    const recentSection = page
+      .getByRole("heading", { name: copy.recentPosts })
+      .locator("xpath=ancestor::section[1]");
+    const recentPostLinks = recentSection.locator(
+      'a[href*="/posts/"]:not([href$="/posts/"])',
+    );
+
+    await expect(recentSection).toBeVisible();
+    expect(await recentPostLinks.count()).toBeGreaterThan(0);
   });
 
   test("shows featured projects section", async ({ page }) => {
@@ -43,6 +51,14 @@ test.describe("Home page", () => {
     await expect(
       page.getByRole("heading", { name: copy.featuredProjects }),
     ).toBeVisible();
-    await expect(page.locator(".featured-work")).toBeVisible();
+
+    const featuredProjectLink = page.getByRole("link", {
+      name: "查看项目详情",
+      exact: true,
+    });
+    await expect(featuredProjectLink).toHaveAttribute(
+      "href",
+      new RegExp(`/projects/${STABLE_PROJECT.slug}/$`),
+    );
   });
 });
