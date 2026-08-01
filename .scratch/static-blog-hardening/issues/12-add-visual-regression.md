@@ -78,3 +78,33 @@ pre-existing fixture-independence test attempting to spawn `pnpm`, which is
 absent from the official browser image. The visual project itself passed in
 that same Linux environment, and the deployment runner installs pnpm before
 running the full gate.
+
+### Follow-up: Linux gate and configuration de-duplication
+
+The visual context options, fixed viewports, screenshot stabilization options,
+and strict pixel comparison values now have one shared definition in
+`e2e/visual-regression-config.ts`, consumed by both the visual spec and static
+project configuration. Static accessibility scans also disable route entry
+animations and transitions before axe runs; this makes the Linux a11y project
+pass deterministically.
+
+At the time of this note, the remaining verification blocker was the fixture
+independence test's real `pnpm build` and `pnpm preview:static` inside the Linux
+container. That historical run reached 42 passed and 1 failed with
+`spawn pnpm ENOENT` because the official Playwright browser image does not
+include pnpm.
+
+### Follow-up: Linux gate completed
+
+With explicit authorization, the gate was rerun in a disposable
+`linux/amd64` container using `mcr.microsoft.com/playwright:v1.59.1-noble`,
+Playwright 1.59.1, Node 24.14.1, and pnpm 11.0.8. Dependencies were installed
+from the lockfile in an isolated container volume; no host-global package was
+installed. `uname -s` reported `Linux`, and the complete static suite passed
+`43 passed (2.9m)`, including the fixture-independence test.
+
+The visual project then passed two consecutive strict comparison runs, each
+with `4 passed`, after a representative production build. No PNG diff was
+produced. The temporary dependency store was removed after verification. The
+shared visual configuration also removes the earlier locale, timezone, color
+scheme, viewport, and pixel-threshold duplication.

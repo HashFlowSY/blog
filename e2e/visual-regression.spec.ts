@@ -8,21 +8,14 @@ import {
   test,
 } from "./fixtures";
 import { routePath } from "./static-artifact-config";
+import {
+  VISUAL_DESKTOP_VIEWPORT,
+  VISUAL_MOBILE_VIEWPORT,
+  VISUAL_SCREENSHOT_OPTIONS,
+  VISUAL_USE_OPTIONS,
+} from "./visual-regression-config";
 
-import type { Page, ViewportSize } from "@playwright/test";
-
-const DESKTOP_VIEWPORT: ViewportSize = { height: 900, width: 1440 };
-const MOBILE_VIEWPORT: ViewportSize = { height: 667, width: 375 };
-
-const SCREENSHOT_OPTIONS = {
-  animations: "disabled" as const,
-  caret: "hide" as const,
-  fullPage: false,
-  maxDiffPixelRatio: 0,
-  maxDiffPixels: 0,
-  scale: "css" as const,
-  threshold: 0,
-};
+import type { Page } from "@playwright/test";
 
 const STABILIZATION_STYLE = `
   *, *::before, *::after {
@@ -105,16 +98,10 @@ async function stabilizePage(page: Page): Promise<void> {
 async function expectStableScreenshot(page: Page, name: string): Promise<void> {
   // Exact comparison is intentional. Baselines are generated in the CI-aligned
   // Linux/Chromium environment; no tolerance or broad mask hides layout drift.
-  await expect(page).toHaveScreenshot(name, SCREENSHOT_OPTIONS);
+  await expect(page).toHaveScreenshot(name, VISUAL_SCREENSHOT_OPTIONS);
 }
 
-test.use({
-  colorScheme: "light",
-  contextOptions: { reducedMotion: "reduce" },
-  deviceScaleFactor: 1,
-  locale: "zh-CN",
-  timezoneId: "Asia/Shanghai",
-});
+test.use(VISUAL_USE_OPTIONS);
 
 test.describe("Focused visual regression", () => {
   test.skip(
@@ -123,7 +110,7 @@ test.describe("Focused visual regression", () => {
   );
 
   test.describe("desktop viewport", () => {
-    test.use({ viewport: DESKTOP_VIEWPORT });
+    test.use({ viewport: VISUAL_DESKTOP_VIEWPORT });
 
     test("captures the home page", async ({ page }) => {
       await visit(page, "/");
@@ -156,7 +143,7 @@ test.describe("Focused visual regression", () => {
   });
 
   test.describe("mobile viewport", () => {
-    test.use({ viewport: MOBILE_VIEWPORT });
+    test.use({ viewport: VISUAL_MOBILE_VIEWPORT });
 
     test("captures the home page with mobile navigation open", async ({
       page,

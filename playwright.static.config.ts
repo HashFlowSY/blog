@@ -5,6 +5,11 @@ import {
   staticBaseURL,
   staticServerUrl,
 } from "./e2e/static-artifact-config";
+import {
+  VISUAL_DESKTOP_VIEWPORT,
+  VISUAL_PIXEL_COMPARISON,
+  VISUAL_USE_OPTIONS,
+} from "./e2e/visual-regression-config";
 
 export default defineConfig({
   testDir: "./e2e",
@@ -59,20 +64,12 @@ export default defineConfig({
       use: {
         ...devices["Desktop Chrome"],
         browserName: "chromium",
-        colorScheme: "light",
-        deviceScaleFactor: 1,
-        locale: "zh-CN",
-        contextOptions: { reducedMotion: "reduce" },
-        timezoneId: "Asia/Shanghai",
-        viewport: { height: 900, width: 1440 },
+        ...VISUAL_USE_OPTIONS,
+        viewport: VISUAL_DESKTOP_VIEWPORT,
       },
       testMatch: /visual-regression\.spec\.ts$/,
       expect: {
-        toHaveScreenshot: {
-          maxDiffPixelRatio: 0,
-          maxDiffPixels: 0,
-          threshold: 0,
-        },
+        toHaveScreenshot: VISUAL_PIXEL_COMPARISON,
       },
       outputDir: "test-results/static-artifact/chromium-visual",
     },

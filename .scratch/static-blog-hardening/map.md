@@ -27,8 +27,8 @@ Specification: [spec.md](./spec.md)
 
 11. [Add accessibility enforcement](./issues/11-add-accessibility-gate.md) — resolved
 12. [Add focused visual regression](./issues/12-add-visual-regression.md) — resolved
-13. [Retire the stale site audit and complete verification](./issues/13-retire-stale-audit.md) — blocked by 01–12
+13. [Retire the stale site audit and complete verification](./issues/13-retire-stale-audit.md) — ready-for-agent
 
 ## Frontier
 
-The first open, unblocked ticket is issue 13.
+The active frontier is issue 13 (ready-for-agent).

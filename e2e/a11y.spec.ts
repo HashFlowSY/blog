@@ -17,6 +17,13 @@ import type { Page } from "@playwright/test";
 
 const blockingImpacts = new Set(["serious", "critical"]);
 
+const STATIC_SCAN_STABILIZATION_STYLE = `
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+`;
+
 const scannedPages = [
   ["home", "/"],
   ["post list", "/posts/"],
@@ -76,6 +83,9 @@ async function visitPublishedPage(page: Page, pathname: string): Promise<void> {
 
   expect(response.status(), routePath(pathname)).toBe(200);
   await page.waitForLoadState("networkidle");
+  // Route entry animations can leave Linux axe scans sampling a half-opacity
+  // frame. Static accessibility checks should inspect the settled artifact.
+  await page.addStyleTag({ content: STATIC_SCAN_STABILIZATION_STYLE });
 }
 
 test.describe("Accessibility scans on the static artifact", () => {
