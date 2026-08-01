@@ -35,10 +35,10 @@ Specification: [spec.md](./spec.md)
 15. [Normalize cover URL paths](./issues/15-normalize-cover-url-paths.md) — resolved
 16. [Localize the global error page](./issues/16-localize-global-error-page.md) — resolved
 17. [Tighten coverage thresholds](./issues/17-tighten-coverage-thresholds.md) — resolved
-18. [Remove test-only production exports](./issues/18-remove-test-only-production-exports.md) — claimed
-19. [Share static E2E page access](./issues/19-share-static-e2e-page-access.md) — ready-for-agent
+18. [Remove test-only production exports](./issues/18-remove-test-only-production-exports.md) — resolved
+19. [Share static E2E page access](./issues/19-share-static-e2e-page-access.md) — claimed
 20. [Correct documentation and Issue history](./issues/20-correct-documentation-and-issue-history.md) — ready-for-agent
 
 ## Frontier
 
-18. Remove test-only production exports — claimed
+19. Share static E2E page access — claimed

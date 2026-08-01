@@ -1,6 +1,6 @@
 # Share static E2E page access
 
-Status: ready-for-agent
+Status: claimed
 
 ## Goal
 

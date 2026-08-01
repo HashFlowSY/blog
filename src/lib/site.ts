@@ -105,7 +105,6 @@ function readBasePath(): string {
 export const SITE_ORIGIN = validateSiteOrigin(
   process.env["NEXT_PUBLIC_SITE_URL"],
 );
-export const BASE_URL = SITE_ORIGIN;
 export const BASE_PATH = readBasePath();
 
 function requireRootRelativePath(path: string): void {

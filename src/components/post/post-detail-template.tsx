@@ -17,17 +17,9 @@ export interface RelatedReadingSelection {
   title: "关联阅读" | "最新文章";
 }
 
-export function formatDetailDate(date: string): string {
+function formatDetailDate(date: string): string {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return date;
   return date.replaceAll("-", ".");
-}
-
-export function selectRelatedPosts(
-  currentSlug: string,
-  posts: PostMeta[],
-  limit = 3,
-): PostMeta[] {
-  return selectRelatedReading(currentSlug, posts, limit).posts;
 }
 
 export function selectRelatedReading(

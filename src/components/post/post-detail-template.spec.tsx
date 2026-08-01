@@ -3,9 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   PostDetailTemplate,
-  formatDetailDate,
   selectRelatedReading,
-  selectRelatedPosts,
 } from "./post-detail-template";
 
 import type { Post, PostMeta } from "@/lib/content-catalog";
@@ -67,14 +65,6 @@ function makePostMeta(overrides: Partial<PostMeta>): PostMeta {
 }
 
 describe("post detail template helpers", () => {
-  it("formats ISO dates as the detail record stamp", () => {
-    expect(formatDetailDate("2026-04-02")).toBe("2026.04.02");
-  });
-
-  it("keeps unknown dates readable instead of throwing", () => {
-    expect(formatDetailDate("not-a-date")).toBe("not-a-date");
-  });
-
   it("selects related posts by shared tags first, then date proximity", () => {
     const posts: PostMeta[] = [
       makePostMeta({
@@ -104,9 +94,14 @@ describe("post detail template helpers", () => {
       }),
     ];
 
-    expect(
-      selectRelatedPosts("hello-world", posts, 3).map((item) => item.slug),
-    ).toEqual(["two-shared-far", "one-shared-close", "one-shared-later"]);
+    expect(selectRelatedReading("hello-world", posts, 3)).toMatchObject({
+      title: "关联阅读",
+      posts: [
+        { slug: "two-shared-far" },
+        { slug: "one-shared-close" },
+        { slug: "one-shared-later" },
+      ],
+    });
   });
 
   it("falls back to latest posts when no post shares tags", () => {
@@ -170,6 +165,17 @@ describe("PostDetailTemplate", () => {
     expect(getByText("6 min")).toBeInTheDocument();
     expect(getByText("手记")).toBeInTheDocument();
     expect(getByText("工具链")).toBeInTheDocument();
+  });
+
+  it("keeps unexpected record dates readable in the rendered article", () => {
+    const { getByText } = render(
+      <PostDetailTemplate
+        post={{ ...post, date: "not-a-date", updated: "not-a-date" }}
+        relatedPosts={[]}
+      />,
+    );
+
+    expect(getByText("not-a-date")).toBeInTheDocument();
   });
 
   it("renders numbered table-of-contents links for Catalog headings", () => {

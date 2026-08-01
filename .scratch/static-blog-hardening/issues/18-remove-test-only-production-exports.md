@@ -1,6 +1,6 @@
 # Remove test-only production exports
 
-Status: claimed
+Status: resolved
 
 ## Goal
 
@@ -24,6 +24,14 @@ interfaces or related-reading behavior.
 
 ## Answer
 
-Pending implementation.
+Removed `BASE_URL`; site tests now use `SITE_ORIGIN` and `siteUrl()`. Removed
+`selectRelatedPosts`; related-reading tests now assert through the production
+`selectRelatedReading()` result. The affected modules were also checked for
+equivalent test-only exports: `formatDetailDate` was internalized and is now
+covered through rendered article behavior, while the remaining exports have
+production consumers or are the required configuration interface.
+
+Verified with `pnpm exec vitest run src/lib/site.spec.ts
+src/components/post/post-detail-template.spec.tsx` (39 tests passed).
 
 ## Comments

@@ -17,17 +17,17 @@ describe("siteUrl", () => {
     process.env = { ...process.env, NODE_ENV: "production" };
     process.env["NEXT_PUBLIC_SITE_URL"] = "https://example.com";
     process.env["BASE_PATH"] = "";
-    const { siteUrl, BASE_URL } = await import("./site");
-    expect(BASE_URL).toBe("https://example.com");
+    const { SITE_ORIGIN, siteUrl } = await import("./site");
+    expect(SITE_ORIGIN).toBe("https://example.com");
     expect(siteUrl("/about/")).toBe("https://example.com/about/");
   });
 
   it("returns undefined when NEXT_PUBLIC_SITE_URL is not set", async () => {
     delete process.env["NEXT_PUBLIC_SITE_URL"];
     process.env["BASE_PATH"] = "";
-    const { BASE_URL, siteUrl } = await import("./site");
-    expect(BASE_URL).toBeUndefined();
-    // siteUrl returns path as-is when BASE_URL is missing
+    const { SITE_ORIGIN, siteUrl } = await import("./site");
+    expect(SITE_ORIGIN).toBeUndefined();
+    // siteUrl returns path as-is when SITE_ORIGIN is missing.
     expect(siteUrl("/about/")).toBe("/about/");
   });
 
@@ -88,7 +88,7 @@ describe("siteUrl", () => {
     expect(BASE_PATH).toBe("");
   });
 
-  it("omits BASE_PATH when it is undefined but BASE_URL is set", async () => {
+  it("omits BASE_PATH when it is undefined but SITE_ORIGIN is set", async () => {
     process.env["NEXT_PUBLIC_SITE_URL"] = "https://example.com";
     delete process.env["BASE_PATH"];
     const { siteUrl } = await import("./site");
