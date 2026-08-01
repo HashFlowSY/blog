@@ -27,19 +27,6 @@ Catch major layout and styling regressions without turning every page into a bri
 - Review generated diffs at desktop and mobile sizes.
 - Run the complete Chromium artifact suite.
 
-## Comments
-
-### Implementation and baseline review
-
-Added the isolated `chromium-visual` static project and four strict viewport
-assertions for the home page, stable post, real Project Case, and open mobile
-navigation. The visual project waits for network idle, fonts, and image decode;
-it fixes locale, timezone, color scheme, reduced motion, viewport, and device
-scale, and writes failures under `test-results/static-artifact/chromium-visual/`.
-The mobile navigation height was corrected so its contact action is not clipped.
-
-The host reports `Darwin`, so no Darwin baseline was generated or accepted.
-
 ## Answer
 
 Added the focused `chromium-visual` static Playwright project and four strict
@@ -108,3 +95,16 @@ with `4 passed`, after a representative production build. No PNG diff was
 produced. The temporary dependency store was removed after verification. The
 shared visual configuration also removes the earlier locale, timezone, color
 scheme, viewport, and pixel-threshold duplication.
+
+## Comments
+
+### Implementation and baseline review
+
+Added the isolated `chromium-visual` static project and four strict viewport
+assertions for the home page, stable post, real Project Case, and open mobile
+navigation. The visual project waits for network idle, fonts, and image decode;
+it fixes locale, timezone, color scheme, reduced motion, viewport, and device
+scale, and writes failures under `test-results/static-artifact/chromium-visual/`.
+The mobile navigation height was corrected so its contact action is not clipped.
+
+The host reports `Darwin`, so no Darwin baseline was generated or accepted.

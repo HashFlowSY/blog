@@ -27,6 +27,12 @@ history without expanding product scope.
 
 ## Answer
 
-Pending implementation.
+Removed unsupported OG/Twitter metadata claims from README and the public
+Personal Blog Project Case. Both now state that canonical URLs, RSS URLs, and
+sitemap URLs are written during the build and require a rebuild for each final
+origin/base-path deployment target. Issue 12's existing Comments section was
+moved unchanged to the final second-level section.
+
+Final full verification and the required final review are pending.
 
 ## Comments

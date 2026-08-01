@@ -11,7 +11,7 @@ A Chinese personal portfolio built with Next.js 16. It presents real Project Cas
 - **Syntax Highlighting** — Code blocks with language labels, copy button, line highlighting
 - **Writing Topics** — Post tags summarize current writing themes without client-side filtering
 - **Post Reading Template** — Shared reading page template for every Post
-- **SEO** — Sitemap, robots.txt, canonical URLs, OG, Twitter, noindex 404
+- **SEO** — Sitemap, robots.txt, canonical URLs, noindex 404
 - **RSS Feed** — `/feed.xml` with autodiscovery
 - **Reading Time** — Word-count-based estimation on post cards and detail pages
 - **XSS Safe** — All Markdown HTML sanitized via rehype-sanitize
@@ -111,7 +111,10 @@ NODE_ENV=production NEXT_PUBLIC_SITE_URL=https://example.com BASE_PATH= NEXT_PUB
 ```
 
 Replace `https://example.com` with the deployed site origin. Static output is
-generated in the `out/` directory.
+generated in the `out/` directory. Canonical URLs, RSS URLs, and sitemap URLs
+are written into that artifact at build time. Rebuild separately for every
+deployment target with its final origin and base path; do not reuse an artifact
+between localhost, preview, and production.
 
 ### Verify the deployable static artifact
 
@@ -378,13 +381,16 @@ Set `NEXT_PUBLIC_SITE_URL` to your domain in GitHub Variables, and configure DNS
 
 | Variable                | Required   | Description                                                           |
 | ----------------------- | ---------- | --------------------------------------------------------------------- |
-| `NEXT_PUBLIC_SITE_URL`  | Production | Base URL for sitemap, robots, RSS, canonical, and Open Graph data     |
+| `NEXT_PUBLIC_SITE_URL`  | Production | Build-time origin for sitemap, robots, RSS, and canonical URLs        |
 | `BASE_PATH`             | No         | URL prefix for project pages; omitted or empty means the site root    |
 | `NEXT_PUBLIC_BASE_PATH` | No         | Client-visible mirror of `BASE_PATH`; it must match when both are set |
 
 ### NEXT_PUBLIC_SITE_URL
 
-The base URL of your site. Used to generate sitemap, robots.txt, RSS feed URLs, canonical links, and Open Graph metadata.
+The final deployment origin. During `pnpm build`, it is written into sitemap,
+robots.txt, RSS feed URLs, and canonical links together with `BASE_PATH`.
+Build again whenever either value changes; a static artifact is only valid for
+the origin and base path used to create it.
 
 For releases, it must be a bare HTTPS origin: no path, query, hash, or
 trailing slash. `http://localhost` is allowed only for local development. Put

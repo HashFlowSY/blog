@@ -46,7 +46,7 @@ draft: false
 
 ## 中文单站与 SEO
 
-项目已经移除多语言路由和翻译文件，页面只保留中文路径。SEO 基础设施包括：自动生成中文站点 sitemap、RSS feed、Open Graph / Twitter Card 元数据。Canonical URL 基于 `NEXT_PUBLIC_SITE_URL` 环境变量动态计算，同一构建产物可在 localhost、预览和生产环境中复用。
+项目已经移除多语言路由和翻译文件，页面只保留中文路径。SEO 基础设施包括：自动生成中文站点 sitemap、RSS feed 和 canonical URL。canonical、RSS 与 sitemap 会在构建时按 `NEXT_PUBLIC_SITE_URL` 和 `BASE_PATH` 写入静态产物；每个部署目标都必须使用最终 origin 和 base path 重新构建，不能在 localhost、预览和生产环境之间复用同一份产物。
 
 ## 测试与 CI
 
