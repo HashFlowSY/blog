@@ -1,6 +1,6 @@
 # Localize the global error page
 
-Status: claimed
+Status: resolved
 
 ## Goal
 
@@ -27,6 +27,14 @@ inside the application for root and `/blog` deployments.
 
 ## Answer
 
-Pending implementation.
+Localized the global error document, title, description, retry action, and
+home action to Chinese. The error is still logged and retry still calls
+`unstable_retry`. The home action is now a plain anchor whose href comes from
+`siteUrl("/")`, so root and `/blog` deployments navigate inside the generated
+application without relying on client routing. The stale Vitest coverage
+exclusion was removed.
+
+Verified with `pnpm exec vitest run src/app/global-error.spec.tsx` (4 tests
+passed).
 
 ## Comments

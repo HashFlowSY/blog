@@ -1,6 +1,6 @@
 # Tighten coverage thresholds
 
-Status: ready-for-agent
+Status: claimed
 
 ## Goal
 

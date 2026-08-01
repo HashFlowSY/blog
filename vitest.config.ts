@@ -27,7 +27,6 @@ export default defineConfig({
         "src/**/layout.tsx",
         "src/**/not-found.tsx",
         "src/**/page.tsx",
-        "src/app/global-error.tsx",
         "src/app/robots.ts",
         "src/app/sitemap.ts",
         "src/app/**/route.ts",
