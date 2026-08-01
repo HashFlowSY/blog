@@ -521,6 +521,83 @@ describe("strict content contracts", () => {
       expect(hasError(result, escapingCoverFile, "cover")).toBe(true);
     });
 
+    it("rejects non-canonical and encoded cover paths before filesystem mapping", () => {
+      const publicDir = createPublicDirectory();
+      const literalEncodedDotDirectory = path.join(
+        publicDir,
+        "assets",
+        "%2e%2e",
+      );
+      fs.mkdirSync(literalEncodedDotDirectory);
+      fs.writeFileSync(
+        path.join(literalEncodedDotDirectory, "cover.png"),
+        "encoded dot asset",
+      );
+
+      const encodedDotFile = "content/projects/zh-CN/encoded-dot.md";
+      const upperCaseDotFile = "content/projects/zh-CN/upper-case-dot.md";
+      const encodedSeparatorFile =
+        "content/projects/zh-CN/encoded-separator.md";
+      const invalidEncodingFile = "content/projects/zh-CN/invalid-encoding.md";
+      const literalDirectoryFile =
+        "content/projects/zh-CN/literal-encoded-directory.md";
+      const result = validateProjectCaseContracts(
+        [
+          {
+            filePath: encodedDotFile,
+            frontmatter: {
+              ...publishedProject(),
+              cover: "/assets/%2e%2e/cover.png",
+            },
+            body: "# Project body",
+          },
+          {
+            filePath: upperCaseDotFile,
+            frontmatter: {
+              ...publishedProject(),
+              cover: "/assets/%2E%2E/cover.png",
+            },
+            body: "# Project body",
+          },
+          {
+            filePath: encodedSeparatorFile,
+            frontmatter: {
+              ...publishedProject(),
+              cover: "/assets/cover%2Fcopy.png",
+            },
+            body: "# Project body",
+          },
+          {
+            filePath: invalidEncodingFile,
+            frontmatter: {
+              ...publishedProject(),
+              cover: "/assets/invalid%cover.png",
+            },
+            body: "# Project body",
+          },
+          {
+            filePath: literalDirectoryFile,
+            frontmatter: {
+              ...publishedProject(),
+              cover: "/assets/%252e%252e/cover.png",
+            },
+            body: "# Project body",
+          },
+        ],
+        { publicDir },
+      );
+
+      for (const filePath of [
+        encodedDotFile,
+        upperCaseDotFile,
+        encodedSeparatorFile,
+        invalidEncodingFile,
+        literalDirectoryFile,
+      ]) {
+        expect(hasError(result, filePath, "cover")).toBe(true);
+      }
+    });
+
     it("rejects HTTP, relative, and unsafe external URLs", () => {
       const publicDir = createPublicDirectory();
       const httpFile = "content/projects/zh-CN/http.md";

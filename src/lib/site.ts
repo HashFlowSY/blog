@@ -1,4 +1,5 @@
-const URL_BASE = "https://site.invalid";
+import { parseUrlReference, URL_PATH_NORMALIZATION_BASE } from "./url-path";
+
 const SITE_NAME = "Hashflow";
 const SITE_ROLE = "AI 全栈工程师";
 const GITHUB_HANDLE = "HashFlowSY";
@@ -62,7 +63,7 @@ function validateBasePath(
 
   let url: URL;
   try {
-    url = new URL(value, URL_BASE);
+    url = parseUrlReference(value);
   } catch {
     return invalidConfiguration(name, value);
   }
@@ -74,7 +75,7 @@ function validateBasePath(
     value.includes("//") ||
     value.includes("?") ||
     value.includes("#") ||
-    url.origin !== URL_BASE ||
+    url.origin !== URL_PATH_NORMALIZATION_BASE ||
     url.pathname !== value
   ) {
     return invalidConfiguration(name, value);
@@ -118,17 +119,19 @@ function getRootRelativeReference(url: URL): string {
 }
 
 function withBasePath(path: string): string {
-  const pathUrl = new URL(path, URL_BASE);
+  const pathUrl = parseUrlReference(path);
   const rootRelativePath = getRootRelativeReference(pathUrl);
 
   if (!BASE_PATH) return rootRelativePath;
 
-  const baseUrl = new URL(`${BASE_PATH}/`, URL_BASE);
-  return getRootRelativeReference(new URL(rootRelativePath.slice(1), baseUrl));
+  const baseUrl = parseUrlReference(`${BASE_PATH}/`);
+  return getRootRelativeReference(
+    parseUrlReference(rootRelativePath.slice(1), baseUrl),
+  );
 }
 
 function isExternalUrl(path: string): boolean {
-  return new URL(path, URL_BASE).origin !== URL_BASE;
+  return parseUrlReference(path).origin !== URL_PATH_NORMALIZATION_BASE;
 }
 
 export function assetPath(path: string): string {

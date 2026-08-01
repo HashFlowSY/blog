@@ -1,6 +1,6 @@
 # Localize the global error page
 
-Status: ready-for-agent
+Status: claimed
 
 ## Goal
 

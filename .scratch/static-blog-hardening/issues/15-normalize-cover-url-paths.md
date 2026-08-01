@@ -1,6 +1,6 @@
 # Normalize cover URL paths
 
-Status: claimed
+Status: resolved
 
 ## Goal
 
@@ -28,6 +28,14 @@ mapping them safely to files in `public/`.
 
 ## Answer
 
-Pending implementation.
+Added a side-effect-free URL path module shared by content contracts and site
+URL composition. Cover values now must be canonical root-relative WHATWG URL
+pathnames without query strings or fragments; they are decoded before file
+mapping, then still pass containment, realpath, symlink, and file checks.
+Encoded separators, malformed percent encodings, encoded dot traversal, and a
+literal `%2e%2e` directory reached through `%25` encoding are rejected.
+
+Verified with `pnpm exec vitest run src/lib/url-path.spec.ts
+src/lib/content-contracts.spec.ts src/lib/site.spec.ts` (69 tests passed).
 
 ## Comments

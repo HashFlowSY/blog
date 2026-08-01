@@ -32,8 +32,8 @@ Specification: [spec.md](./spec.md)
 ## Phase 5 — Final Review Repairs
 
 14. [Enforce published slug policy](./issues/14-enforce-published-slug-policy.md) — resolved
-15. [Normalize cover URL paths](./issues/15-normalize-cover-url-paths.md) — claimed
-16. [Localize the global error page](./issues/16-localize-global-error-page.md) — ready-for-agent
+15. [Normalize cover URL paths](./issues/15-normalize-cover-url-paths.md) — resolved
+16. [Localize the global error page](./issues/16-localize-global-error-page.md) — claimed
 17. [Tighten coverage thresholds](./issues/17-tighten-coverage-thresholds.md) — ready-for-agent
 18. [Remove test-only production exports](./issues/18-remove-test-only-production-exports.md) — ready-for-agent
 19. [Share static E2E page access](./issues/19-share-static-e2e-page-access.md) — ready-for-agent
@@ -41,4 +41,4 @@ Specification: [spec.md](./spec.md)
 
 ## Frontier
 
-15. Normalize cover URL paths — claimed
+16. Localize the global error page — claimed

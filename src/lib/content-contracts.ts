@@ -3,6 +3,8 @@ import path from "path";
 
 import { z } from "zod";
 
+import { decodeCanonicalRootRelativePathname } from "./url-path";
+
 export const CONTENT_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 const DATE_ONLY_SLUG_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -95,7 +97,7 @@ const tagsSchema = z
     }
   });
 
-const coverPathSchema = z.string().trim().min(1, "Must not be blank.");
+const coverPathSchema = z.string().min(1, "Must not be blank.");
 
 const absoluteHttpsUrlSchema = z
   .string()
@@ -444,17 +446,19 @@ function projectCoverErrors(
     return [];
   }
 
-  const cover = input.frontmatter["cover"].trim();
+  const cover = input.frontmatter["cover"];
   if (cover.length === 0) {
     return [];
   }
 
-  if (!cover.startsWith("/") || cover.startsWith("//")) {
+  const decodedCoverPath = decodeCanonicalRootRelativePathname(cover);
+  if (decodedCoverPath === null) {
     return [
       {
         filePath: input.filePath,
         field: "cover",
-        reason: "Must be a root-relative path inside public/.",
+        reason:
+          "Must be a canonical root-relative URL pathname inside public/ without a query, hash, or encoded path traversal.",
       },
     ];
   }
@@ -462,7 +466,7 @@ function projectCoverErrors(
   const publicDir = path.resolve(/* turbopackIgnore: true */ options.publicDir);
   const coverPath = path.resolve(
     /* turbopackIgnore: true */ publicDir,
-    `.${cover}`,
+    `.${decodedCoverPath}`,
   );
 
   if (!isPathWithin(publicDir, coverPath)) {
