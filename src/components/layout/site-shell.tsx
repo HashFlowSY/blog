@@ -17,7 +17,9 @@ export function SiteShell({ children }: SiteShellProps) {
       </a>
       <div className="site-frame">
         <Header siteName={SITE.name} siteRole={SITE.role} />
-        <main id="content">{children}</main>
+        <main id="content" tabIndex={-1}>
+          {children}
+        </main>
         <Footer />
       </div>
       <BackToTop />

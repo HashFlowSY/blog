@@ -131,10 +131,32 @@ against that same output with:
 pnpm test:e2e:static
 ```
 
-To inspect either project independently:
+The `chromium-a11y` static project is part of that command and runs only in
+Chromium. It scans the home page (`/`), post list (`/posts/`), stable post
+fixture (`/posts/2026-04-30/`), project list (`/projects/`), stable real project
+fixture (`/projects/personal-blog/`), and the generated 404 document. The 404
+check first verifies an HTTP 404 response and byte-for-byte equality with
+`out/404.html`, then runs the accessibility scan. All pages are served from the
+same `/blog` build of `out/`.
+
+The gate uses `@axe-core/playwright@4.12.1` and fails when any violation has
+`serious` or `critical` impact. Failure output includes the axe rule id, impact,
+help text/URL, and each matched DOM target. Moderate and minor findings do not
+lower this threshold. Automated scanning complements the focused keyboard
+tests for the skip link, mobile menu, navigation links, and isolated copy
+control fixture.
+
+Run only the accessibility project with:
+
+```bash
+pnpm test:e2e:static:a11y
+```
+
+To inspect a browser project independently:
 
 ```bash
 pnpm test:e2e:static:chromium
+pnpm test:e2e:static:a11y
 pnpm test:e2e:static:webkit
 ```
 
@@ -144,8 +166,14 @@ implicit rebuild. The preview server uses Node 24's built-in HTTP and file
 system modules, so this harness adds no static-server dependency. Failure
 screenshots and traces are separated under
 `test-results/static-artifact/chromium/` and
+`test-results/static-artifact/chromium-a11y/` for the accessibility project, and
 `test-results/static-artifact/webkit/`; the HTML report is written to
 `playwright-static-report/`.
+
+Accessibility suppressions are intentionally local: there is no shared
+site-wide rule-disable list. A suppression is permitted only beside the
+specific page/rule, with the rule id, concrete reason, and exact scope written
+in the test. It must not silently affect another page.
 
 ## Writing Content
 
@@ -331,18 +359,19 @@ NEXT_PUBLIC_BASE_PATH=
 
 ## Scripts
 
-| Command                | Description                                                           |
-| ---------------------- | --------------------------------------------------------------------- |
-| `pnpm dev`             | Start development server                                              |
-| `pnpm build`           | Production build to `out/`                                            |
-| `pnpm lint`            | Run ESLint                                                            |
-| `pnpm lint:fix`        | Run ESLint with auto-fix                                              |
-| `pnpm format:check`    | Check Prettier formatting                                             |
-| `pnpm test`            | Run unit tests                                                        |
-| `pnpm test:watch`      | Run tests in watch mode                                               |
-| `pnpm test:coverage`   | Run tests with coverage report                                        |
-| `pnpm preview:static`  | Serve the existing artifact at `/blog`                                |
-| `pnpm test:e2e:static` | Run Chromium full + WebKit smoke checks against the existing artifact |
+| Command                     | Description                                                           |
+| --------------------------- | --------------------------------------------------------------------- |
+| `pnpm dev`                  | Start development server                                              |
+| `pnpm build`                | Production build to `out/`                                            |
+| `pnpm lint`                 | Run ESLint                                                            |
+| `pnpm lint:fix`             | Run ESLint with auto-fix                                              |
+| `pnpm format:check`         | Check Prettier formatting                                             |
+| `pnpm test`                 | Run unit tests                                                        |
+| `pnpm test:watch`           | Run tests in watch mode                                               |
+| `pnpm test:coverage`        | Run tests with coverage report                                        |
+| `pnpm preview:static`       | Serve the existing artifact at `/blog`                                |
+| `pnpm test:e2e:static`      | Run Chromium full + WebKit smoke checks against the existing artifact |
+| `pnpm test:e2e:static:a11y` | Run the Chromium-only accessibility and keyboard gate                 |
 
 ## License
 

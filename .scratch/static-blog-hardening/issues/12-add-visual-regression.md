@@ -1,7 +1,6 @@
 # Add focused visual regression
 
 Status: ready-for-agent
-Blocked by: 10, 11
 
 ## Goal
 

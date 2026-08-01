@@ -3,6 +3,7 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "./e2e",
   testIgnore: [
+    /a11y\.spec\.ts/,
     /static-artifact\.spec\.ts/,
     /fixture-independence\.spec\.ts/,
     /webkit-smoke\.spec\.ts/,

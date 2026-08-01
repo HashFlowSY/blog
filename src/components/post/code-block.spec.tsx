@@ -110,6 +110,46 @@ describe("CodeBlockEnhancer", () => {
     expect(writeText).toHaveBeenCalledWith("const x = 1;");
   });
 
+  it.each([
+    ["Enter", "{Enter}"],
+    ["Space", " "],
+  ] as const)("copy button activates with Tab + %s", async (_key, input) => {
+    const user = userEvent.setup();
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText },
+      writable: true,
+      configurable: true,
+    });
+
+    const { container } = render(
+      <CodeBlockEnhancer>
+        <div
+          className="code-block"
+          dangerouslySetInnerHTML={{
+            __html: "<pre><code>keyboard copy</code></pre>",
+          }}
+        />
+      </CodeBlockEnhancer>,
+    );
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    const button = container.querySelector<HTMLButtonElement>(
+      'button[aria-label="复制代码"]',
+    );
+    expect(button).toBeInTheDocument();
+    if (!button) throw new Error("Expected the isolated copy control");
+    await user.tab();
+    expect(button).toHaveFocus();
+    await user.keyboard(input);
+
+    expect(writeText).toHaveBeenCalledWith("keyboard copy");
+    expect(button).toHaveTextContent("已复制");
+  });
+
   it("multiple code blocks each get independent copy buttons", async () => {
     const { container } = render(
       <CodeBlockEnhancer>

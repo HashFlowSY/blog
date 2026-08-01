@@ -16,6 +16,7 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "test:e2e:static": "playwright test --config=playwright.static.config.ts",
+    "test:e2e:static:a11y": "playwright test --config=playwright.static.config.ts --project=chromium-a11y",
     "test:e2e:static:chromium": "playwright test --config=playwright.static.config.ts --project=chromium",
     "test:e2e:static:webkit": "playwright test --config=playwright.static.config.ts --project=webkit",
     "test:e2e:ui": "playwright test --ui",
@@ -41,6 +42,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.12.1",
     "@playwright/test": "^1.59.1",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",

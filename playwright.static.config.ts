@@ -29,11 +29,18 @@ export default defineConfig({
 
   projects: [
     {
-      // The release gate: every E2E spec except the WebKit-only smoke file.
+      // The release gate: every static E2E spec except a11y and WebKit smoke.
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
-      testIgnore: /webkit-smoke\.spec\.ts/,
+      testIgnore: /(?:webkit-smoke|a11y)\.spec\.ts/,
       outputDir: "test-results/static-artifact/chromium",
+    },
+    {
+      // Accessibility scans and keyboard checks run once in their own Chromium project.
+      name: "chromium-a11y",
+      use: { ...devices["Desktop Chrome"] },
+      testMatch: /a11y\.spec\.ts$/,
+      outputDir: "test-results/static-artifact/chromium-a11y",
     },
     {
       // Cross-browser confidence: deliberately limited to webkit-smoke.spec.ts.

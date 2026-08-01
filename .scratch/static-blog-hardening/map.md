@@ -25,10 +25,10 @@ Specification: [spec.md](./spec.md)
 
 ## Phase 4 — Quality and Documentation
 
-11. [Add accessibility enforcement](./issues/11-add-accessibility-gate.md) — ready
-12. [Add focused visual regression](./issues/12-add-visual-regression.md) — blocked by 10, 11
+11. [Add accessibility enforcement](./issues/11-add-accessibility-gate.md) — resolved
+12. [Add focused visual regression](./issues/12-add-visual-regression.md) — ready
 13. [Retire the stale site audit and complete verification](./issues/13-retire-stale-audit.md) — blocked by 01–12
 
 ## Frontier
 
-The first open, unblocked ticket is issue 11.
+The first open, unblocked ticket is issue 12.
