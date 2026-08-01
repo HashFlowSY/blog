@@ -17,8 +17,6 @@
 /test-results/
 
 # local visual review artifacts
-/audit-evidence/**/*.jpg
-/audit-evidence/**/*.png
 /qa-evidence/
 /implementation-homepage-*.png
 

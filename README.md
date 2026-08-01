@@ -1,16 +1,16 @@
 # Blog
 
-An industrial-wasteland style Chinese personal blog built with Next.js 16 and deployed as a static site on GitHub Pages.
+A Chinese personal portfolio built with Next.js 16. It presents real Project Cases and technical writing, and is deployed as a static site on GitHub Pages.
 
 ## Features
 
 - **Static Export** — Pure HTML/CSS/JS, no server required
-- **Industrial UI** — Scraplog-inspired dark grid, archive panels, workbench project cards, and shelter-style about page
-- **Markdown Writing** — Posts and projects with Zod-validated frontmatter
+- **Unified Portfolio UI** — One workbench and portfolio system across the home page, Project Cases, Posts, and about page
+- **Strict Content Catalog** — Posts and Project Cases use explicit, Zod-validated frontmatter and build as one atomic snapshot
 - **Chinese-Only Routes** — Root, posts, projects, about, RSS, sitemap, and content all target Chinese
 - **Syntax Highlighting** — Code blocks with language labels, copy button, line highlighting
-- **Archive Filters** — Tag filters for posts
-- **Article Detail Template** — Shared reading page template for every post
+- **Writing Topics** — Post tags summarize current writing themes without client-side filtering
+- **Post Reading Template** — Shared reading page template for every Post
 - **SEO** — Sitemap, robots.txt, canonical URLs, OG, Twitter, noindex 404
 - **RSS Feed** — `/feed.xml` with autodiscovery
 - **Reading Time** — Word-count-based estimation on post cards and detail pages
@@ -40,12 +40,12 @@ An industrial-wasteland style Chinese personal blog built with Next.js 16 and de
 ```
 content/
 ├── posts/zh-CN/              # Chinese blog posts (Markdown)
-└── projects/zh-CN/           # Chinese project entries (Markdown)
+└── projects/zh-CN/           # Chinese Project Cases (Markdown)
 
 src/
 ├── app/
 │   ├── layout.tsx            # Root layout + site shell
-│   ├── globals.css           # Industrial UI styles + design tokens
+│   ├── globals.css           # Shared workbench and portfolio styles
 │   ├── page.tsx              # Home
 │   ├── about/                # About page
 │   ├── posts/                # Blog posts (list + detail)
@@ -57,7 +57,7 @@ src/
 ├── components/
 │   ├── layout/               # Header, footer, site shell, back-to-top
 │   ├── post/                 # Post archive, detail template, card, code block
-│   └── project/              # Project card, list
+│   └── project/              # Project Case card, list
 └── lib/                      # Data layer, utilities
     ├── content-catalog.ts    # Atomic content discovery, validation, and queries
     ├── content-contracts.ts  # Strict Post and Project Case frontmatter contracts
@@ -106,7 +106,9 @@ Open [http://localhost:3000](http://localhost:3000).
 pnpm build
 ```
 
-Static output is generated in the `out/` directory.
+Static output is generated in the `out/` directory. A production build requires
+`NEXT_PUBLIC_SITE_URL`; use the local `.env.local` configuration above or pass
+the variables explicitly.
 
 ### Verify the deployable static artifact
 
@@ -124,8 +126,9 @@ Start a read-only preview of the existing output, then open
 pnpm preview:static
 ```
 
-Run the complete Chromium artifact suite, focused visual project, and smaller
-WebKit smoke suite against that same output with:
+Run the complete Chromium artifact suite, Chromium-only accessibility and
+keyboard checks, focused visual project, and smaller WebKit smoke suite against
+that same output with:
 
 ```bash
 pnpm test:e2e:static
@@ -223,7 +226,7 @@ in the test. It must not silently affect another page.
 
 ## Writing Content
 
-### Blog Post
+### Post
 
 Create a Markdown file in `content/posts/zh-CN/`:
 
@@ -245,7 +248,7 @@ console.log("Hello, World!");
 ```
 ````
 
-### Project Entry
+### Project Case
 
 Create a Markdown file in `content/projects/zh-CN/`:
 
@@ -256,8 +259,12 @@ slug: "my-project"
 date: "2026-04-02"
 tags: ["react", "typescript"]
 description: "A brief project description."
+cover: "/assets/my-project-cover.jpg"
 source: "https://github.com/user/repo"
 demo: "https://demo.example.com"
+role: "My actual responsibility"
+duration: "2026-01 to 2026-03"
+result: "An outcome supported by evidence"
 featured: true
 draft: false
 ---
@@ -265,9 +272,22 @@ draft: false
 Detailed project description in Markdown.
 ```
 
+### Template Case
+
+`templates/project-case.md` is an internal Template Case. It is outside the
+Content Catalog's scanned directories and is never public portfolio evidence.
+Copy it only after real, publishable facts and a local cover asset are ready;
+do not add a public `template` field.
+
+### Draft
+
+A Draft must explicitly declare `draft: true`. It may omit publication fields
+and its Markdown body, but every field it provides must still have a valid type
+and format.
+
 ### Markdown Support
 
-Posts and project entries use safe static Markdown. Supported authoring features:
+Posts and Project Cases use safe static Markdown. Supported authoring features:
 
 - CommonMark headings, paragraphs, emphasis, links, blockquotes, ordered lists, unordered lists, inline code, and fenced code blocks
 - GitHub Flavored Markdown tables, task lists, strikethrough, footnotes, and autolink literals
@@ -287,31 +307,36 @@ Intentional exclusions:
 
 #### Post
 
-| Field     | Type       | Required | Default      | Description                 |
-| --------- | ---------- | -------- | ------------ | --------------------------- |
-| `title`   | `string`   | Yes      | —            | Post title                  |
-| `slug`    | `string`   | No       | Filename     | URL path segment            |
-| `date`    | `string`   | No       | `1970-01-01` | Publish date (YYYY-MM-DD)   |
-| `updated` | `string`   | No       | `date`       | Last update date            |
-| `tags`    | `string[]` | No       | `[]`         | Tag list                    |
-| `summary` | `string`   | No       | `""`         | Short description           |
-| `cover`   | `string`   | No       | `null`       | Cover image path            |
-| `draft`   | `boolean`  | No       | `false`      | Set `true` to skip in build |
+| Field     | Required for a published Post | Description                                                               |
+| --------- | ----------------------------- | ------------------------------------------------------------------------- |
+| `title`   | Yes                           | Non-empty title                                                           |
+| `slug`    | Yes                           | Stable lowercase kebab-case URL segment; it never comes from the filename |
+| `date`    | Yes                           | Real `YYYY-MM-DD` calendar date                                           |
+| `updated` | No                            | Real `YYYY-MM-DD` date that is not earlier than `date`                    |
+| `tags`    | Yes                           | At least one non-empty, unique tag after trimming                         |
+| `summary` | Yes                           | Non-empty summary                                                         |
+| `draft`   | Yes                           | Explicitly `false` for a published Post and `true` for a Draft            |
 
-#### Project
+#### Project Case
 
-| Field         | Type       | Required | Default      | Description                 |
-| ------------- | ---------- | -------- | ------------ | --------------------------- |
-| `title`       | `string`   | Yes      | —            | Project name                |
-| `slug`        | `string`   | No       | Filename     | URL path segment            |
-| `date`        | `string`   | No       | `1970-01-01` | Date (YYYY-MM-DD)           |
-| `tags`        | `string[]` | No       | `[]`         | Technology tags             |
-| `description` | `string`   | No       | `""`         | Brief description           |
-| `source`      | `string`   | No       | `null`       | Source code URL             |
-| `demo`        | `string`   | No       | `null`       | Live demo URL               |
-| `featured`    | `boolean`  | No       | `false`      | Show on homepage            |
-| `cover`       | `string`   | No       | `null`       | Cover image path            |
-| `draft`       | `boolean`  | No       | `false`      | Set `true` to skip in build |
+| Field         | Required for a published Project Case | Description                                                               |
+| ------------- | ------------------------------------- | ------------------------------------------------------------------------- |
+| `title`       | Yes                                   | Non-empty title                                                           |
+| `slug`        | Yes                                   | Stable lowercase kebab-case URL segment; it never comes from the filename |
+| `date`        | Yes                                   | Real `YYYY-MM-DD` calendar date                                           |
+| `tags`        | Yes                                   | At least one non-empty, unique tag after trimming                         |
+| `description` | Yes                                   | Non-empty project summary                                                 |
+| `cover`       | Yes                                   | Root-relative asset that exists inside `public/`                          |
+| `role`        | Yes                                   | The author's actual responsibility                                        |
+| `duration`    | Yes                                   | Actual participation or delivery period                                   |
+| `result`      | Yes                                   | Outcome supported by publishable evidence                                 |
+| `source`      | No                                    | Absolute HTTPS source URL                                                 |
+| `demo`        | No                                    | Absolute HTTPS demo URL                                                   |
+| `featured`    | Yes                                   | Explicit boolean controlling the home-page selection                      |
+| `draft`       | Yes                                   | Explicitly `false` for a published Project Case and `true` for a Draft    |
+
+Published Posts and Project Cases require a non-empty Markdown body. Both
+schemas reject unknown frontmatter fields.
 
 ## Chinese-Only Routing
 
@@ -327,9 +352,12 @@ The included GitHub Actions workflow (`deploy.yml`) handles everything:
 2. `BASE_PATH` is auto-detected:
    - `username.github.io` → empty (root)
    - `username.github.io/repo-name` → `/repo-name`
-3. `pnpm build` generates static files in `out/`, then the Chromium artifact
-   suite verifies that exact directory under the computed base path
-4. The same verified `out/` directory is deployed to GitHub Pages
+3. The reusable quality workflow runs linting, non-incremental TypeScript,
+   coverage, dependency audit, and the development-server Chromium suite
+4. `pnpm build` generates static files in `out/`; Chromium, accessibility,
+   focused Linux visual, and WebKit smoke checks verify that exact directory
+   under the computed base path
+5. The same verified `out/` directory is deployed to GitHub Pages
 
 **Setup:**
 
@@ -345,11 +373,11 @@ Set `NEXT_PUBLIC_SITE_URL` to your domain in GitHub Variables, and configure DNS
 
 ## Environment Variables
 
-| Variable                | Required | Description                                           |
-| ----------------------- | -------- | ----------------------------------------------------- |
-| `NEXT_PUBLIC_SITE_URL`  | Yes      | Base URL for sitemap, robots, RSS, canonical, OG      |
-| `BASE_PATH`             | Yes      | URL prefix for project pages (auto-set by CI)         |
-| `NEXT_PUBLIC_BASE_PATH` | No       | Client-visible mirror of `BASE_PATH` (auto-set by CI) |
+| Variable                | Required   | Description                                                           |
+| ----------------------- | ---------- | --------------------------------------------------------------------- |
+| `NEXT_PUBLIC_SITE_URL`  | Production | Base URL for sitemap, robots, RSS, canonical, and Open Graph data     |
+| `BASE_PATH`             | No         | URL prefix for project pages; omitted or empty means the site root    |
+| `NEXT_PUBLIC_BASE_PATH` | No         | Client-visible mirror of `BASE_PATH`; it must match when both are set |
 
 ### NEXT_PUBLIC_SITE_URL
 
@@ -405,20 +433,25 @@ NEXT_PUBLIC_BASE_PATH=
 
 ## Scripts
 
-| Command                       | Description                                                                    |
-| ----------------------------- | ------------------------------------------------------------------------------ |
-| `pnpm dev`                    | Start development server                                                       |
-| `pnpm build`                  | Production build to `out/`                                                     |
-| `pnpm lint`                   | Run ESLint                                                                     |
-| `pnpm lint:fix`               | Run ESLint with auto-fix                                                       |
-| `pnpm format:check`           | Check Prettier formatting                                                      |
-| `pnpm test`                   | Run unit tests                                                                 |
-| `pnpm test:watch`             | Run tests in watch mode                                                        |
-| `pnpm test:coverage`          | Run tests with coverage report                                                 |
-| `pnpm preview:static`         | Serve the existing artifact at `/blog`                                         |
-| `pnpm test:e2e:static`        | Run Chromium full + visual + WebKit smoke checks against the existing artifact |
-| `pnpm test:e2e:static:a11y`   | Run the Chromium-only accessibility and keyboard gate                          |
-| `pnpm test:e2e:static:visual` | Run the four strict Chromium visual comparisons                                |
+| Command                                      | Description                                                          |
+| -------------------------------------------- | -------------------------------------------------------------------- |
+| `pnpm dev`                                   | Start the development server                                         |
+| `pnpm build`                                 | Build the production static artifact in `out/`                       |
+| `pnpm lint`                                  | Run ESLint                                                           |
+| `pnpm lint:fix`                              | Run ESLint with auto-fix                                             |
+| `pnpm format:check`                          | Check Prettier formatting                                            |
+| `pnpm exec tsc --noEmit --incremental false` | Run the release TypeScript check                                     |
+| `pnpm test`                                  | Run unit tests                                                       |
+| `pnpm test:watch`                            | Run unit tests in watch mode                                         |
+| `pnpm test:coverage`                         | Run unit tests with coverage                                         |
+| `pnpm audit --audit-level moderate`          | Run the release dependency-audit policy                              |
+| `pnpm test:e2e`                              | Run the development-server Chromium suite                            |
+| `pnpm preview:static`                        | Serve an existing static artifact at `/blog` by default              |
+| `pnpm test:e2e:static`                       | Run static Chromium, a11y, focused visual, and WebKit smoke projects |
+| `pnpm test:e2e:static:chromium`              | Run the ordinary static Chromium suite                               |
+| `pnpm test:e2e:static:a11y`                  | Run the Chromium-only accessibility and keyboard gate                |
+| `pnpm test:e2e:static:visual`                | Run four strict Chromium visual comparisons on Linux only            |
+| `pnpm test:e2e:static:webkit`                | Run the reduced static WebKit smoke suite                            |
 
 ## License
 
