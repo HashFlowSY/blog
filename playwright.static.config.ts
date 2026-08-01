@@ -17,6 +17,8 @@ export default defineConfig({
     ["html", { open: "never", outputFolder: "playwright-static-report" }],
   ],
   timeout: 30_000,
+  // Baselines may only change through an explicit --update-snapshots command.
+  updateSnapshots: "none",
   expect: {
     timeout: 5_000,
   },
@@ -29,10 +31,10 @@ export default defineConfig({
 
   projects: [
     {
-      // The release gate: every static E2E spec except a11y and WebKit smoke.
+      // The release gate: every static E2E spec except a11y, visual, and WebKit smoke.
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
-      testIgnore: /(?:webkit-smoke|a11y)\.spec\.ts/,
+      testIgnore: /(?:webkit-smoke|a11y|visual-regression)\.spec\.ts/,
       outputDir: "test-results/static-artifact/chromium",
     },
     {
@@ -48,6 +50,31 @@ export default defineConfig({
       use: { ...devices["Desktop Safari"] },
       testMatch: /webkit-smoke\.spec\.ts/,
       outputDir: "test-results/static-artifact/webkit",
+    },
+    {
+      // The focused Linux/Chromium visual gate. It intentionally owns only the
+      // four screenshot assertions in visual-regression.spec.ts. Playwright's
+      // default platform suffix keeps Darwin and Linux baselines separate.
+      name: "chromium-visual",
+      use: {
+        ...devices["Desktop Chrome"],
+        browserName: "chromium",
+        colorScheme: "light",
+        deviceScaleFactor: 1,
+        locale: "zh-CN",
+        contextOptions: { reducedMotion: "reduce" },
+        timezoneId: "Asia/Shanghai",
+        viewport: { height: 900, width: 1440 },
+      },
+      testMatch: /visual-regression\.spec\.ts$/,
+      expect: {
+        toHaveScreenshot: {
+          maxDiffPixelRatio: 0,
+          maxDiffPixels: 0,
+          threshold: 0,
+        },
+      },
+      outputDir: "test-results/static-artifact/chromium-visual",
     },
   ],
 

@@ -80,7 +80,7 @@ jobs:
       - name: Install Chromium and WebKit for static artifact verification
         run: pnpm exec playwright install --with-deps chromium webkit
       - id: static-artifact-e2e
-        name: Test generated static artifact
+        name: Test generated static artifact (Chromium, visual, a11y, WebKit)
         run: pnpm test:e2e:static
         env:
           PLAYWRIGHT_PUBLIC_ORIGIN: ${{ vars.NEXT_PUBLIC_SITE_URL }}

@@ -124,8 +124,8 @@ Start a read-only preview of the existing output, then open
 pnpm preview:static
 ```
 
-Run the complete Chromium artifact suite and the smaller WebKit smoke suite
-against that same output with:
+Run the complete Chromium artifact suite, focused visual project, and smaller
+WebKit smoke suite against that same output with:
 
 ```bash
 pnpm test:e2e:static
@@ -157,18 +157,64 @@ To inspect a browser project independently:
 ```bash
 pnpm test:e2e:static:chromium
 pnpm test:e2e:static:a11y
+pnpm test:e2e:static:visual
 pnpm test:e2e:static:webkit
 ```
 
-Both commands require an already-complete `out/` directory. They only serve
+These commands require an already-complete `out/` directory. They only serve
 and test that directory: they do not run `next dev`, `next start`, or an
 implicit rebuild. The preview server uses Node 24's built-in HTTP and file
 system modules, so this harness adds no static-server dependency. Failure
 screenshots and traces are separated under
 `test-results/static-artifact/chromium/` and
-`test-results/static-artifact/chromium-a11y/` for the accessibility project, and
+`test-results/static-artifact/chromium-a11y/` for the accessibility project,
+`test-results/static-artifact/chromium-visual/` for the visual project, and
 `test-results/static-artifact/webkit/`; the HTML report is written to
-`playwright-static-report/`.
+`playwright-static-report/`. A visual failure keeps the expected, actual, and
+diff PNGs alongside its trace and screenshot in the visual project directory.
+
+The `chromium-visual` project owns exactly four viewport screenshots: the home
+page at `1440x900`, the stable post
+`/posts/2026-04-30/` at `1440x900`, the real project
+`/projects/personal-blog/` at `1440x900`, and the home page at `375x667` with
+the mobile navigation open. It uses Chromium with a fixed device scale factor,
+light color scheme, reduced motion, `zh-CN` locale, and `Asia/Shanghai`
+timezone. The snapshots live in
+`e2e/visual-regression.spec.ts-snapshots/`; names include `linux` and the
+`chromium-visual` project marker through Playwright's platform/project suffix.
+Linux files therefore end in `-chromium-visual-linux.png`; Darwin explicitly
+skips the project and never creates or accepts a canonical baseline (the
+underlying Playwright suffix would be `-darwin` if that guard were removed).
+The visual project is excluded from
+development-server tests and from the ordinary Chromium project, and WebKit
+remains smoke-only.
+
+On non-Linux hosts, the visual project is explicitly reported as skipped so
+`pnpm test:e2e:static` can still exercise the non-visual static suites without
+looking for Darwin baselines. Linux CI runs all four comparisons and fails if
+any canonical PNG is missing or differs.
+
+### Visual baseline review
+
+Canonical PNGs must be generated in a Linux/Chromium environment aligned with
+CI, using the Playwright version pinned by `pnpm-lock.yaml` and the CI runner's
+architecture (the committed baseline uses the amd64 image variant). Do not
+generate or commit a baseline from macOS or a different Linux architecture.
+The visual project disables automatic snapshot updates and uses strict pixel
+comparison; CI can only compare committed PNGs.
+
+For an intentional baseline change, run the update explicitly in the approved
+Linux environment, inspect every expected/actual/diff image, then run two
+ordinary comparison passes:
+
+```bash
+pnpm test:e2e:static:visual --update-snapshots
+pnpm test:e2e:static:visual
+pnpm test:e2e:static:visual
+```
+
+Review the PNG diff with the code change and commit the four baseline files
+together. Updating snapshots is never part of the default test command.
 
 Accessibility suppressions are intentionally local: there is no shared
 site-wide rule-disable list. A suppression is permitted only beside the
@@ -359,19 +405,20 @@ NEXT_PUBLIC_BASE_PATH=
 
 ## Scripts
 
-| Command                     | Description                                                           |
-| --------------------------- | --------------------------------------------------------------------- |
-| `pnpm dev`                  | Start development server                                              |
-| `pnpm build`                | Production build to `out/`                                            |
-| `pnpm lint`                 | Run ESLint                                                            |
-| `pnpm lint:fix`             | Run ESLint with auto-fix                                              |
-| `pnpm format:check`         | Check Prettier formatting                                             |
-| `pnpm test`                 | Run unit tests                                                        |
-| `pnpm test:watch`           | Run tests in watch mode                                               |
-| `pnpm test:coverage`        | Run tests with coverage report                                        |
-| `pnpm preview:static`       | Serve the existing artifact at `/blog`                                |
-| `pnpm test:e2e:static`      | Run Chromium full + WebKit smoke checks against the existing artifact |
-| `pnpm test:e2e:static:a11y` | Run the Chromium-only accessibility and keyboard gate                 |
+| Command                       | Description                                                                    |
+| ----------------------------- | ------------------------------------------------------------------------------ |
+| `pnpm dev`                    | Start development server                                                       |
+| `pnpm build`                  | Production build to `out/`                                                     |
+| `pnpm lint`                   | Run ESLint                                                                     |
+| `pnpm lint:fix`               | Run ESLint with auto-fix                                                       |
+| `pnpm format:check`           | Check Prettier formatting                                                      |
+| `pnpm test`                   | Run unit tests                                                                 |
+| `pnpm test:watch`             | Run tests in watch mode                                                        |
+| `pnpm test:coverage`          | Run tests with coverage report                                                 |
+| `pnpm preview:static`         | Serve the existing artifact at `/blog`                                         |
+| `pnpm test:e2e:static`        | Run Chromium full + visual + WebKit smoke checks against the existing artifact |
+| `pnpm test:e2e:static:a11y`   | Run the Chromium-only accessibility and keyboard gate                          |
+| `pnpm test:e2e:static:visual` | Run the four strict Chromium visual comparisons                                |
 
 ## License
 

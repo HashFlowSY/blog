@@ -7,6 +7,7 @@ export default defineConfig({
     /static-artifact\.spec\.ts/,
     /fixture-independence\.spec\.ts/,
     /webkit-smoke\.spec\.ts/,
+    /visual-regression\.spec\.ts/,
   ],
   fullyParallel: true,
   forbidOnly: !!process.env["CI"],

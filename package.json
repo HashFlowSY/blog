@@ -18,6 +18,7 @@
     "test:e2e:static": "playwright test --config=playwright.static.config.ts",
     "test:e2e:static:a11y": "playwright test --config=playwright.static.config.ts --project=chromium-a11y",
     "test:e2e:static:chromium": "playwright test --config=playwright.static.config.ts --project=chromium",
+    "test:e2e:static:visual": "playwright test --config=playwright.static.config.ts --project=chromium-visual",
     "test:e2e:static:webkit": "playwright test --config=playwright.static.config.ts --project=webkit",
     "test:e2e:ui": "playwright test --ui",
     "preview:static": "node --experimental-strip-types scripts/serve-static.mts",

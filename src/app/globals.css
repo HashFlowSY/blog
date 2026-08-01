@@ -1411,7 +1411,8 @@ h3 {
       visibility 0s linear 220ms;
   }
   .site-header.is-menu-open .site-nav {
-    max-height: 130px;
+    /* Four links plus the contact action occupy three fixed-height rows. */
+    max-height: 180px;
     padding-top: 10px;
     border-top-width: 1px;
     opacity: 1;
