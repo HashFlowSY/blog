@@ -51,6 +51,10 @@ jobs:
   build:
     needs: [deployment-config, quality-gate]
     runs-on: ubuntu-latest
+    # Keep this image version and digest synchronized with @playwright/test and visual baselines.
+    container:
+      image: mcr.microsoft.com/playwright:v1.59.1-noble@sha256:eac9b0a5312cdab40ee8c2429df5bf19bffdccf8f3bf3c42268e173f97541645
+      options: --init --ipc=host
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v6
@@ -77,8 +81,6 @@ jobs:
             exit 1
           fi
           find out -type f -name '*.html' -exec grep -l "src=\"$BASE_PATH/assets/" {} + | grep -q .
-      - name: Install Chromium and WebKit for static artifact verification
-        run: pnpm exec playwright install --with-deps chromium webkit
       - id: static-artifact-e2e
         name: Test generated static artifact (Chromium, visual, a11y, WebKit)
         run: pnpm test:e2e:static
