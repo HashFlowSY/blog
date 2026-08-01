@@ -1,6 +1,6 @@
 # Correct documentation and Issue history
 
-Status: claimed
+Status: resolved
 
 ## Goal
 
@@ -33,6 +33,12 @@ sitemap URLs are written during the build and require a rebuild for each final
 origin/base-path deployment target. Issue 12's existing Comments section was
 moved unchanged to the final second-level section.
 
-Final full verification and the required final review are pending.
+Fresh verification passed: `pnpm format:check`, `pnpm lint`,
+`pnpm exec tsc --noEmit --incremental false`, `pnpm test:coverage` (208 tests),
+`pnpm audit --audit-level moderate`, the production `/blog` build, static E2E
+(39 passed), and `git diff --check`. The final review against
+`origin/main...HEAD` found zero Standards findings and zero Spec findings.
+Darwin skips four Linux-only visual comparisons; GitHub Actions/Linux remains
+the required remote verification for those checks.
 
 ## Comments

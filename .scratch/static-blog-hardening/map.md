@@ -1,6 +1,6 @@
 # Static Blog Hardening Map
 
-Status: active
+Status: completed
 
 Specification: [spec.md](./spec.md)
 
@@ -37,8 +37,8 @@ Specification: [spec.md](./spec.md)
 17. [Tighten coverage thresholds](./issues/17-tighten-coverage-thresholds.md) — resolved
 18. [Remove test-only production exports](./issues/18-remove-test-only-production-exports.md) — resolved
 19. [Share static E2E page access](./issues/19-share-static-e2e-page-access.md) — resolved
-20. [Correct documentation and Issue history](./issues/20-correct-documentation-and-issue-history.md) — claimed
+20. [Correct documentation and Issue history](./issues/20-correct-documentation-and-issue-history.md) — resolved
 
 ## Frontier
 
-20. Correct documentation and Issue history — claimed
+All hardening issues are resolved; this effort has no open frontier.
