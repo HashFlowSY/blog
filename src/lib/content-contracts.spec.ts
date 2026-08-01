@@ -166,6 +166,16 @@ describe("strict content contracts", () => {
       expect(hasError(result, filePath, "draft")).toBe(true);
     });
 
+    it("rejects a non-object frontmatter value instead of inferring a content state", () => {
+      const filePath = "content/posts/zh-CN/non-object.md";
+      const result = validatePostContracts([
+        { filePath, frontmatter: null, body: "# Post body" },
+      ]);
+
+      expect(result.entries).toEqual([]);
+      expect(hasError(result, filePath, "frontmatter")).toBe(true);
+    });
+
     it("requires every publication field and a Markdown body", () => {
       const filePath = "content/posts/zh-CN/incomplete.md";
       const result = validatePostContracts([
@@ -519,6 +529,31 @@ describe("strict content contracts", () => {
       expect(hasError(result, relativeCoverFile, "cover")).toBe(true);
       expect(hasError(result, missingFileCover, "cover")).toBe(true);
       expect(hasError(result, escapingCoverFile, "cover")).toBe(true);
+    });
+
+    it("rejects a cover path that resolves to a directory", () => {
+      const publicDir = createPublicDirectory();
+      const coverDirectory = path.join(publicDir, "assets", "cover-directory");
+      fs.mkdirSync(coverDirectory);
+      const filePath = "content/projects/zh-CN/directory-cover.md";
+      const result = validateProjectCaseContracts(
+        [
+          {
+            filePath,
+            frontmatter: {
+              ...publishedProject(),
+              cover: "/assets/cover-directory",
+            },
+            body: "# Project body",
+          },
+        ],
+        { publicDir },
+      );
+
+      expect(hasError(result, filePath, "cover")).toBe(true);
+      expect(
+        result.errors.find((error) => error.filePath === filePath)?.reason,
+      ).toBe("Must reference a file inside public/.");
     });
 
     it("rejects non-canonical and encoded cover paths before filesystem mapping", () => {

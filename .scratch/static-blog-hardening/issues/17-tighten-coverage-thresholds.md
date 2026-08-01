@@ -1,6 +1,6 @@
 # Tighten coverage thresholds
 
-Status: claimed
+Status: resolved
 
 ## Goal
 
@@ -26,6 +26,14 @@ coverage thresholds while retaining the existing global floor.
 
 ## Answer
 
-Pending implementation.
+Added behavior-focused tests for missing collection directories, default catalog
+access, deterministic same-day ordering, null Project Case lookups, non-object
+frontmatter, and directory covers. Vitest now enforces global 80% thresholds,
+85% branch coverage for the catalog and contracts, and 90% for site URLs and
+the URL pathname module.
+
+Verified with `pnpm test:coverage`: 209 tests passed; global branch coverage
+was 84.85%, with `content-catalog.ts` at 85.36%, `content-contracts.ts` at
+89.18%, `site.ts` at 98%, and `url-path.ts` at 100%.
 
 ## Comments

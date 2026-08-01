@@ -8,6 +8,7 @@ import {
   buildContentCatalog,
   ContentCatalogError,
   createContentCatalogReader,
+  getContentCatalog,
   type ContentCatalogOptions,
   type Post,
   type ProjectCase,
@@ -31,6 +32,13 @@ function createFixtureRoot(): string {
   fs.mkdirSync(projectCasesDir, { recursive: true });
   fs.mkdirSync(assetsDir, { recursive: true });
   fs.writeFileSync(path.join(assetsDir, "project.png"), "project cover");
+  temporaryDirectories.push(rootDir);
+
+  return rootDir;
+}
+
+function createEmptyFixtureRoot(): string {
+  const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), "blog-empty-catalog-"));
   temporaryDirectories.push(rootDir);
 
   return rootDir;
@@ -186,6 +194,52 @@ draft: false`,
       duration: "Two weeks",
       result: "Published successfully.",
     });
+  });
+
+  it("builds an empty Catalog when the optional collection directories are absent", async () => {
+    const catalog = await buildContentCatalog({
+      rootDir: createEmptyFixtureRoot(),
+    });
+
+    expect(catalog.posts).toEqual([]);
+    expect(catalog.projectCases).toEqual([]);
+    expect(catalog.tags).toEqual([]);
+  });
+
+  it("uses stable slug ordering for same-day Posts and returns null for missing Project Cases", async () => {
+    const rootDir = createFixtureRoot();
+    writePost(
+      rootDir,
+      "zeta.md",
+      `title: "Zeta Post"
+slug: "zeta-post"
+date: "2026-04-04"
+tags: ["Testing"]
+summary: "The later slug on the same date."
+draft: false`,
+    );
+    writePost(
+      rootDir,
+      "alpha.md",
+      `title: "Alpha Post"
+slug: "alpha-post"
+date: "2026-04-04"
+tags: ["Testing"]
+summary: "The earlier slug on the same date."
+draft: false`,
+    );
+    writeProjectCase(rootDir, "catalog-project.md", completeProjectFrontmatter);
+
+    const catalog = await buildContentCatalog({ rootDir });
+
+    expect(catalog.postSlugs).toEqual(["alpha-post", "zeta-post"]);
+    expect(catalog.getProjectCaseBySlug("not-published")).toBeNull();
+  });
+
+  it("reads the checked-in content through the default Catalog API", async () => {
+    const catalog = await getContentCatalog();
+
+    expect(catalog.getPostBySlug("2026-04-30")?.slug).toBe("2026-04-30");
   });
 
   it("stores immutable structured Markdown results for Posts and Project Cases", async () => {
@@ -360,7 +414,8 @@ draft: false`,
         expect.objectContaining({
           filePath: "content/projects/zh-CN/traversal.md",
           field: "cover",
-          reason: "Must resolve inside public/ without path traversal.",
+          reason:
+            "Must be a canonical root-relative URL pathname inside public/ without a query, hash, or encoded path traversal.",
         }),
         expect.objectContaining({
           filePath: "content/projects/zh-CN/absolute.md",

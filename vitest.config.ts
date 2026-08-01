@@ -38,6 +38,18 @@ export default defineConfig({
         functions: 80,
         branches: 80,
         statements: 80,
+        "src/lib/content-catalog.ts": {
+          branches: 85,
+        },
+        "src/lib/content-contracts.ts": {
+          branches: 85,
+        },
+        "src/lib/site.ts": {
+          branches: 90,
+        },
+        "src/lib/url-path.ts": {
+          branches: 90,
+        },
       },
     },
   },

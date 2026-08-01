@@ -1,6 +1,6 @@
 # Remove test-only production exports
 
-Status: ready-for-agent
+Status: claimed
 
 ## Goal
 
