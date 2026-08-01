@@ -101,6 +101,24 @@ network download. The required representative production build above passed
 on the current host; the Linux result records the browser visual verification
 only.
 
+### Follow-up production-build documentation correction
+
+A post-resolution review found that the generic README build command could
+inherit the `http://localhost:3000` development value from `.env.local`.
+Issue 13 was reopened and claimed to correct that inconsistency. The Build
+section now states that localhost is for `pnpm dev` only and provides the
+explicit HTTPS production command that overrides the local values.
+
+`pnpm format:check` passed after this correction.
+A temporary `.env.local` exactly matching the documented localhost development
+configuration was added only for this verification and then removed.
+`NODE_ENV=production NEXT_PUBLIC_SITE_URL=https://example.com BASE_PATH=
+NEXT_PUBLIC_BASE_PATH= pnpm build` passed while Next loaded both `.env.local`
+and `.env`, generating all 12 static routes. This proves that the documented
+HTTPS values override the localhost development setting and is the root-path
+counterpart to the existing `/blog` GitHub Pages representative build command
+above.
+
 ### Final hygiene
 
 The host-generated `coverage/`, `out/`, `.next/`,

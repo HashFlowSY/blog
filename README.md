@@ -102,13 +102,16 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ### Build
 
+`pnpm build` runs in production mode. The `http://localhost:3000` value above
+is for `pnpm dev` only and is rejected by a production build. Pass a bare HTTPS
+deployment origin explicitly so it overrides the local development settings:
+
 ```bash
-pnpm build
+NODE_ENV=production NEXT_PUBLIC_SITE_URL=https://example.com BASE_PATH= NEXT_PUBLIC_BASE_PATH= pnpm build
 ```
 
-Static output is generated in the `out/` directory. A production build requires
-`NEXT_PUBLIC_SITE_URL`; use the local `.env.local` configuration above or pass
-the variables explicitly.
+Replace `https://example.com` with the deployed site origin. Static output is
+generated in the `out/` directory.
 
 ### Verify the deployable static artifact
 
