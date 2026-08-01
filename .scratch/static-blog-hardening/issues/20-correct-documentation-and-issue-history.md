@@ -42,3 +42,11 @@ Darwin skips four Linux-only visual comparisons; GitHub Actions/Linux remains
 the required remote verification for those checks.
 
 ## Comments
+
+### Accepted final-review exception
+
+A later review identified `normalizeRootRelativePathname` as a production
+export whose only external consumer is its focused unit test. The maintainer
+explicitly accepted this P3 judgement item on 2026-08-01. It has no observed
+runtime effect, does not block delivery, and will remain unchanged unless a
+future refactor provides a concrete reason to revisit the boundary.
