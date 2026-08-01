@@ -4,7 +4,7 @@
   "private": true,
   "packageManager": "pnpm@11.0.8",
   "engines": {
-    "node": ">=22.13.0"
+    "node": "24.x"
   },
   "scripts": {
     "dev": "next dev",
@@ -15,7 +15,13 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
+    "test:e2e:static": "playwright test --config=playwright.static.config.ts",
+    "test:e2e:static:a11y": "playwright test --config=playwright.static.config.ts --project=chromium-a11y",
+    "test:e2e:static:chromium": "playwright test --config=playwright.static.config.ts --project=chromium",
+    "test:e2e:static:visual": "playwright test --config=playwright.static.config.ts --project=chromium-visual",
+    "test:e2e:static:webkit": "playwright test --config=playwright.static.config.ts --project=webkit",
     "test:e2e:ui": "playwright test --ui",
+    "preview:static": "node --experimental-strip-types scripts/serve-static.mts",
     "lint:fix": "eslint --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -37,6 +43,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.12.1",
     "@playwright/test": "^1.59.1",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",

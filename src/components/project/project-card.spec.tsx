@@ -3,30 +3,28 @@ import { describe, expect, it } from "vitest";
 
 import { ProjectCard } from "./project-card";
 
-import type { ProjectMeta } from "@/lib/projects";
+import type { ProjectCaseMeta } from "@/lib/content-catalog";
 
-const baseProject: ProjectMeta = {
+const baseProject: ProjectCaseMeta = {
   slug: "my-project",
   title: "My Project",
   description: "A cool project",
   date: "2026-02-01",
   tags: ["prototype", "industrial"],
-  cover: null,
+  cover: "/assets/project.png",
   source: "https://github.com/example/repo",
   demo: "https://example.com",
   featured: true,
   role: "独立设计与开发",
   duration: "4 周",
   result: "完成可运行版本",
-  template: false,
-  locale: "zh-CN",
 };
 
 describe("ProjectCard", () => {
   it("renders project positioning, facts, and tags", () => {
     render(<ProjectCard project={baseProject} />);
 
-    expect(screen.getByText("真实项目")).toBeInTheDocument();
+    expect(screen.getByText("项目案例")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent(
       "My Project",
     );
@@ -56,12 +54,5 @@ describe("ProjectCard", () => {
       "href",
       "https://example.com",
     );
-  });
-
-  it("clearly labels template projects", () => {
-    render(<ProjectCard project={{ ...baseProject, template: true }} />);
-
-    expect(screen.getByText("示例案例")).toBeInTheDocument();
-    expect(screen.getByText("模板结果")).toBeInTheDocument();
   });
 });

@@ -2,11 +2,19 @@ import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./e2e",
+  testIgnore: [
+    /a11y\.spec\.ts/,
+    /static-artifact\.spec\.ts/,
+    /fixture-independence\.spec\.ts/,
+    /webkit-smoke\.spec\.ts/,
+    /visual-regression\.spec\.ts/,
+  ],
   fullyParallel: true,
   forbidOnly: !!process.env["CI"],
   retries: process.env["CI"] ? 2 : 0,
   workers: process.env["CI"] ? 1 : "50%",
-  reporter: "html",
+  reporter: [["html", { open: "never", outputFolder: "playwright-report" }]],
+  outputDir: "test-results/e2e/chromium",
   timeout: 30_000,
   expect: {
     timeout: 5_000,
@@ -14,7 +22,8 @@ export default defineConfig({
 
   use: {
     baseURL: process.env["PLAYWRIGHT_BASE_URL"] || "http://localhost:3000",
-    trace: "on-first-retry",
+    trace: "retain-on-failure",
+    screenshot: "only-on-failure",
     permissions: ["clipboard-write"],
   },
 

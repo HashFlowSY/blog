@@ -1,9 +1,16 @@
 import Image from "next/image";
 import Link from "next/link";
 
-import { getAllPostsMeta } from "@/lib/posts";
-import { getFeaturedProjects } from "@/lib/projects";
-import { assetPath } from "@/lib/site";
+import { getContentCatalog } from "@/lib/content-catalog";
+import { assetPath, SITE, siteUrl } from "@/lib/site";
+
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  alternates: {
+    canonical: siteUrl("/"),
+  },
+};
 
 const capabilities = [
   {
@@ -27,9 +34,10 @@ function formatDate(date: string): string {
   return date.replaceAll("-", ".");
 }
 
-export default function HomePage() {
-  const recentPosts = getAllPostsMeta("zh-CN").slice(0, 3);
-  const featuredProject = getFeaturedProjects("zh-CN")[0] ?? null;
+export default async function HomePage() {
+  const catalog = await getContentCatalog();
+  const recentPosts = catalog.posts.slice(0, 3);
+  const featuredProjectCase = catalog.featuredProjectCases[0] ?? null;
 
   return (
     <section
@@ -48,7 +56,9 @@ export default function HomePage() {
 
         <div className="workbench-content">
           <div className="workbench-kicker">
-            <span>Hashflow / AI 全栈工程师</span>
+            <span>
+              {SITE.name} / {SITE.role}
+            </span>
             <span>AI 应用 · 后端系统 · 自动化交付</span>
           </div>
 
@@ -56,8 +66,8 @@ export default function HomePage() {
             <div className="workbench-hero-copy">
               <p className="workbench-overline">Home / profile 01</p>
               <h1 id="home-title" data-od-id="home-headline">
-                Hashflow
-                <span>AI 全栈工程师</span>
+                {SITE.name}
+                <span>{SITE.role}</span>
               </h1>
               <p className="workbench-lede">
                 把复杂需求拆成可上线、可维护的系统。
@@ -109,14 +119,12 @@ export default function HomePage() {
               </Link>
             </div>
 
-            {featuredProject ? (
+            {featuredProjectCase ? (
               <article className="featured-work" data-od-id="featured-project">
                 <div className="featured-work-media">
                   <Image
-                    src={assetPath(
-                      featuredProject.cover ?? "/assets/content-dashboard.png",
-                    )}
-                    alt={`${featuredProject.title}项目界面预览`}
+                    src={assetPath(featuredProjectCase.cover)}
+                    alt={`${featuredProjectCase.title}项目界面预览`}
                     fill
                     loading="eager"
                     sizes="(max-width: 800px) 100vw, 58vw"
@@ -125,29 +133,31 @@ export default function HomePage() {
                 </div>
                 <div className="featured-work-copy">
                   <p className="workbench-project-meta">
-                    {featuredProject.role ?? "独立设计与开发"} /{" "}
-                    {featuredProject.tags.slice(0, 3).join(" · ")}
+                    {[
+                      featuredProjectCase.role,
+                      ...featuredProjectCase.tags.slice(0, 3),
+                    ].join(" / ")}
                   </p>
-                  <h3>{featuredProject.title}</h3>
-                  <p>{featuredProject.description}</p>
+                  <h3>{featuredProjectCase.title}</h3>
+                  <p>{featuredProjectCase.description}</p>
                   <dl className="featured-work-details">
                     <div>
                       <dt>我的角色</dt>
-                      <dd>{featuredProject.role ?? "独立设计与开发"}</dd>
+                      <dd>{featuredProjectCase.role}</dd>
                     </div>
                     <div>
                       <dt>项目结果</dt>
-                      <dd>{featuredProject.result ?? "项目结果待补充"}</dd>
+                      <dd>{featuredProjectCase.result}</dd>
                     </div>
                   </dl>
                   <div className="workbench-tags" aria-label="项目技术标签">
-                    {featuredProject.tags.slice(0, 5).map((tag) => (
+                    {featuredProjectCase.tags.slice(0, 5).map((tag) => (
                       <span key={tag}>{tag}</span>
                     ))}
                   </div>
                   <Link
                     className="workbench-text-link"
-                    href={`/projects/${featuredProject.slug}/`}
+                    href={`/projects/${featuredProjectCase.slug}/`}
                   >
                     查看项目详情 <span aria-hidden="true">→</span>
                   </Link>
@@ -205,10 +215,10 @@ export default function HomePage() {
                     </span>
                     <span className="writing-copy">
                       <span className="writing-meta">
-                        {formatDate(post.date)} · {post.tags[0] ?? "记录"}
+                        {formatDate(post.date)} · {post.tags[0]}
                       </span>
                       <strong>{post.title}</strong>
-                      {post.summary && <span>{post.summary}</span>}
+                      <span>{post.summary}</span>
                     </span>
                     <span className="writing-arrow" aria-hidden="true">
                       ↗

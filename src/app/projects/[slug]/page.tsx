@@ -3,8 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { CodeBlockEnhancer } from "@/components/post/code-block";
-import { getAllProjectSlugs, getProjectBySlug } from "@/lib/projects";
-import { assetPath, siteUrl } from "@/lib/site";
+import { getContentCatalog } from "@/lib/content-catalog";
+import { assetPath, SITE, siteUrl } from "@/lib/site";
 
 import type { Metadata } from "next";
 
@@ -12,18 +12,20 @@ interface Props {
   params: Promise<{ slug: string }>;
 }
 
-export function generateStaticParams() {
-  return getAllProjectSlugs().map((slug) => ({ slug }));
+export async function generateStaticParams() {
+  const catalog = await getContentCatalog();
+  return catalog.projectCaseSlugs.map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const project = await getProjectBySlug(slug, "zh-CN");
-  if (!project) return {};
+  const catalog = await getContentCatalog();
+  const projectCase = catalog.getProjectCaseBySlug(slug);
+  if (!projectCase) return {};
 
   return {
-    title: project.title,
-    description: project.description,
+    title: projectCase.title,
+    description: projectCase.description,
     alternates: {
       canonical: siteUrl(`/projects/${slug}/`),
     },
@@ -32,8 +34,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ProjectDetailPage({ params }: Props) {
   const { slug } = await params;
-  const project = await getProjectBySlug(slug, "zh-CN");
-  if (!project) notFound();
+  const catalog = await getContentCatalog();
+  const projectCase = catalog.getProjectCaseBySlug(slug);
+  if (!projectCase) notFound();
 
   return (
     <article
@@ -48,33 +51,24 @@ export default async function ProjectDetailPage({ params }: Props) {
 
         <header className="portfolio-case-hero">
           <div>
-            <p className="portfolio-overline">
-              {project.template ? "Template case / 示例案例" : "Case study"}
-            </p>
-            <h1 id="project-title">{project.title}</h1>
-            {project.description && (
-              <p className="portfolio-lede">{project.description}</p>
-            )}
-            {project.template && (
-              <p className="portfolio-template-notice">
-                这是用于完善作品集结构的示例案例，不代表真实客户或真实商业结果。
-              </p>
-            )}
+            <p className="portfolio-overline">项目案例</p>
+            <h1 id="project-title">{projectCase.title}</h1>
+            <p className="portfolio-lede">{projectCase.description}</p>
             <div className="portfolio-link-row">
-              {project.source && (
+              {projectCase.source && (
                 <a
                   className="portfolio-button portfolio-button-primary"
-                  href={project.source}
+                  href={projectCase.source}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
                   查看源代码
                 </a>
               )}
-              {project.demo && (
+              {projectCase.demo && (
                 <a
                   className="portfolio-button"
-                  href={project.demo}
+                  href={projectCase.demo}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -86,27 +80,27 @@ export default async function ProjectDetailPage({ params }: Props) {
           <dl className="portfolio-case-facts">
             <div>
               <dt>我的角色</dt>
-              <dd>{project.role ?? "独立设计与开发"}</dd>
+              <dd>{projectCase.role}</dd>
             </div>
             <div>
               <dt>项目周期</dt>
-              <dd>{project.duration ?? "持续迭代"}</dd>
+              <dd>{projectCase.duration}</dd>
             </div>
             <div>
-              <dt>{project.template ? "模板结果" : "项目结果"}</dt>
-              <dd>{project.result ?? "项目结果待补充"}</dd>
+              <dt>项目结果</dt>
+              <dd>{projectCase.result}</dd>
             </div>
             <div>
               <dt>技术标签</dt>
-              <dd>{project.tags.join(" · ")}</dd>
+              <dd>{projectCase.tags.join(" · ")}</dd>
             </div>
           </dl>
         </header>
 
         <figure className="portfolio-case-cover">
           <Image
-            src={assetPath(project.cover ?? "/assets/workbench-hero.png")}
-            alt={`${project.title}项目界面预览`}
+            src={assetPath(projectCase.cover)}
+            alt={`${projectCase.title}项目界面预览`}
             fill
             preload
             sizes="(max-width: 760px) 100vw, 1200px"
@@ -116,16 +110,14 @@ export default async function ProjectDetailPage({ params }: Props) {
         <div className="portfolio-case-body">
           <aside className="portfolio-case-aside">
             <p className="portfolio-overline">Project note</p>
-            <p>
-              {project.template
-                ? "把本页中的场景、角色、方案和验证方式替换成真实项目资料即可。"
-                : "以下内容记录项目中的关键实现、取舍和验证方式。"}
-            </p>
+            <p>以下内容记录项目中的关键实现、取舍和验证方式。</p>
           </aside>
           <CodeBlockEnhancer>
             <div
               className="portfolio-prose prose"
-              dangerouslySetInnerHTML={{ __html: project.content }}
+              dangerouslySetInnerHTML={{
+                __html: projectCase.renderedContent.html,
+              }}
             />
           </CodeBlockEnhancer>
         </div>
@@ -139,8 +131,13 @@ export default async function ProjectDetailPage({ params }: Props) {
             <h2 id="case-contact-title">希望把类似需求推进到上线？</h2>
             <p>欢迎带着背景、约束或现有系统来聊。</p>
           </div>
-          <a className="portfolio-button" href="mailto:hello@example.com">
-            hello@example.com
+          <a
+            className="portfolio-button"
+            href={SITE.githubProfile.url}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {SITE.githubProfile.label}
           </a>
         </section>
       </div>

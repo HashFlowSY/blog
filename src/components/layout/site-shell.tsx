@@ -1,3 +1,5 @@
+import { SITE } from "@/lib/site";
+
 import { BackToTop } from "./back-to-top";
 import { Footer } from "./footer";
 import { Header } from "./header";
@@ -14,8 +16,10 @@ export function SiteShell({ children }: SiteShellProps) {
         跳到内容
       </a>
       <div className="site-frame">
-        <Header />
-        <main id="content">{children}</main>
+        <Header siteName={SITE.name} siteRole={SITE.role} />
+        <main id="content" tabIndex={-1}>
+          {children}
+        </main>
         <Footer />
       </div>
       <BackToTop />

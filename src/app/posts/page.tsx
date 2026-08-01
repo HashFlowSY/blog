@@ -1,16 +1,21 @@
 import { PostArchive } from "@/components/post/post-archive";
-import { getAllPostsMeta, getAllTags } from "@/lib/posts";
+import { getContentCatalog } from "@/lib/content-catalog";
+import { siteUrl } from "@/lib/site";
 
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "技术写作",
   description: "记录 AI 工具、工程实现、技术取舍与复盘。",
+  alternates: {
+    canonical: siteUrl("/posts/"),
+  },
 };
 
-export default function PostsPage() {
-  const posts = getAllPostsMeta("zh-CN");
-  const tags = getAllTags("zh-CN");
+export default async function PostsPage() {
+  const catalog = await getContentCatalog();
+  const posts = catalog.posts.slice();
+  const tags = catalog.tags.slice();
 
   return (
     <section

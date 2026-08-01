@@ -1,19 +1,22 @@
 import Link from "next/link";
 
 import { ProjectList } from "@/components/project/project-list";
-import { getAllProjectsMeta } from "@/lib/projects";
+import { getContentCatalog } from "@/lib/content-catalog";
+import { SITE, siteUrl } from "@/lib/site";
 
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "项目案例",
-  description: "Hashflow 的项目案例：问题、角色、关键决策、实现过程与结果。",
+  description: `${SITE.name} 的项目案例：问题、角色、关键决策、实现过程与结果。`,
+  alternates: {
+    canonical: siteUrl("/projects/"),
+  },
 };
 
-export default function ProjectsPage() {
-  const projects = getAllProjectsMeta("zh-CN");
-  const templateCount = projects.filter((project) => project.template).length;
-  const realCount = projects.length - templateCount;
+export default async function ProjectsPage() {
+  const catalog = await getContentCatalog();
+  const projectCases = catalog.projectCases.slice();
 
   return (
     <section
@@ -30,23 +33,13 @@ export default function ProjectsPage() {
               从问题、角色和关键决策出发，说明一个项目如何被推进到可用、可维护的状态。
             </p>
           </div>
-          <dl className="portfolio-page-stats">
-            <div>
-              <dt>真实项目</dt>
-              <dd>{realCount.toString().padStart(2, "0")}</dd>
-            </div>
-            <div>
-              <dt>示例模板</dt>
-              <dd>{templateCount.toString().padStart(2, "0")}</dd>
-            </div>
-          </dl>
         </header>
 
         <section
           className="portfolio-section portfolio-projects-section"
           aria-label="项目案例列表"
         >
-          <ProjectList projects={projects} />
+          <ProjectList projects={projectCases} />
         </section>
 
         <section

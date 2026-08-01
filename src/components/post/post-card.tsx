@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import type { PostMeta } from "@/lib/posts";
+import type { PostMeta } from "@/lib/content-catalog";
 
 interface PostCardProps {
   index?: number;
@@ -12,7 +12,7 @@ function formatDateStamp(date: string): string {
 }
 
 export function PostCard({ index = 1, post }: PostCardProps) {
-  const primaryTag = post.tags[0] ?? "Notes";
+  const primaryTag = post.tags[0];
 
   return (
     <article className="portfolio-article-row" data-filter-item={primaryTag}>
@@ -26,7 +26,7 @@ export function PostCard({ index = 1, post }: PostCardProps) {
         <h2>
           <Link href={`/posts/${post.slug}/`}>{post.title}</Link>
         </h2>
-        {post.summary && <p>{post.summary}</p>}
+        <p>{post.summary}</p>
       </div>
       <Link
         className="portfolio-text-link"

@@ -1,6 +1,8 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+import { SITE } from "@/lib/site";
+
 import { Header } from "./header";
 
 const usePathnameMock = vi.hoisted(() => vi.fn(() => "/"));
@@ -13,7 +15,7 @@ vi.mock("next/navigation", () => {
 
 describe("Header", () => {
   it("renders the portfolio brand lockup without language switcher", () => {
-    render(<Header />);
+    render(<Header siteName={SITE.name} siteRole={SITE.role} />);
 
     expect(screen.getByText("H")).toBeInTheDocument();
     expect(screen.getByText("Hashflow")).toBeInTheDocument();
@@ -23,7 +25,7 @@ describe("Header", () => {
   });
 
   it("renders the four Chinese-only primary navigation links", () => {
-    render(<Header />);
+    render(<Header siteName={SITE.name} siteRole={SITE.role} />);
 
     expect(screen.getByRole("link", { name: "首页" })).toHaveAttribute(
       "href",
@@ -50,7 +52,7 @@ describe("Header", () => {
   it("marks the active route with aria-current", () => {
     usePathnameMock.mockReturnValue("/projects/");
 
-    render(<Header />);
+    render(<Header siteName={SITE.name} siteRole={SITE.role} />);
 
     expect(screen.getByRole("link", { name: "项目" })).toHaveAttribute(
       "aria-current",
@@ -63,7 +65,7 @@ describe("Header", () => {
   });
 
   it("opens and closes the mobile menu with the reference class contract", () => {
-    render(<Header />);
+    render(<Header siteName={SITE.name} siteRole={SITE.role} />);
 
     const button = screen.getByRole("button", { name: "菜单" });
     const header = screen.getByLabelText("站点头部");

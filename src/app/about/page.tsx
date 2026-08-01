@@ -1,10 +1,15 @@
 import Link from "next/link";
 
+import { SITE, siteUrl } from "@/lib/site";
+
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "关于我",
-  description: "Hashflow 的工程经历、能力边界与求职、项目合作入口。",
+  description: `${SITE.name} 的工程经历、能力边界与求职、项目合作入口。`,
+  alternates: {
+    canonical: siteUrl("/about/"),
+  },
 };
 
 const skills = [
@@ -144,22 +149,16 @@ export default function AboutPage() {
           <div>
             <p className="portfolio-overline">Contact / open to work</p>
             <h2 id="contact-title">求职或合作，欢迎联系我。</h2>
-            <p>邮箱暂用示例地址占位，后续可直接替换成正式联系方式。</p>
+            <p>可以通过 GitHub 了解我的工作并继续交流。</p>
           </div>
           <div className="portfolio-link-row">
             <a
               className="portfolio-button portfolio-button-primary"
-              href="mailto:hello@example.com"
-            >
-              hello@example.com
-            </a>
-            <a
-              className="portfolio-button"
-              href="https://github.com/HashFlowSY"
+              href={SITE.githubProfile.url}
               target="_blank"
               rel="noopener noreferrer"
             >
-              GitHub
+              {SITE.githubProfile.label}
             </a>
             <Link className="portfolio-button" href="/projects/">
               查看项目

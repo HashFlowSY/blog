@@ -7,11 +7,13 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: "pages"
+  group: pages-${{ github.repository }}
+  cancel-in-progress: false
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   deployment-config:
@@ -40,36 +42,15 @@ jobs:
   quality-gate:
     name: Quality Gate
     needs: deployment-config
-    runs-on: ubuntu-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-    steps:
-      - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v6
-        with:
-          version: 11.0.8
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          cache: "pnpm"
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm lint
-      - run: pnpm tsc --noEmit
-      - run: pnpm test:coverage
-      - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm test:e2e
-      - uses: actions/upload-artifact@v7
-        if: failure()
-        with:
-          name: deploy-playwright-report
-          path: playwright-report/
-          retention-days: 7
+    uses: ./.github/workflows/quality.yml
+    with:
+      playwright_report_name: deploy-playwright-report
+    permissions:
+      contents: read
 
   build:
     needs: [deployment-config, quality-gate]
     runs-on: ubuntu-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v6
@@ -77,7 +58,7 @@ jobs:
           version: 11.0.8
       - uses: actions/setup-node@v6
         with:
-          node-version: 24
+          node-version-file: .nvmrc
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
       - name: Build with Next.js
@@ -96,14 +77,38 @@ jobs:
             exit 1
           fi
           find out -type f -name '*.html' -exec grep -l "src=\"$BASE_PATH/assets/" {} + | grep -q .
+      - name: Install Chromium and WebKit for static artifact verification
+        run: pnpm exec playwright install --with-deps chromium webkit
+      - id: static-artifact-e2e
+        name: Test generated static artifact (Chromium, visual, a11y, WebKit)
+        run: pnpm test:e2e:static
+        env:
+          PLAYWRIGHT_PUBLIC_ORIGIN: ${{ vars.NEXT_PUBLIC_SITE_URL }}
+          PLAYWRIGHT_STATIC_BASE_URL: http://127.0.0.1:4173${{ needs.deployment-config.outputs.base-path }}/
+          STATIC_BASE_PATH: ${{ needs.deployment-config.outputs.base-path }}
+      - name: Upload static artifact browser failure report
+        if: ${{ failure() && steps.static-artifact-e2e.outcome == 'failure' }}
+        continue-on-error: true
+        uses: actions/upload-artifact@v7
+        with:
+          name: deploy-static-artifact-playwright-report
+          path: |
+            playwright-static-report/
+            test-results/static-artifact/
+          retention-days: 7
+          if-no-files-found: warn
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v5
         with:
           path: ./out
 
   deploy:
-    needs: build
+    needs: [deployment-config, quality-gate, build]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

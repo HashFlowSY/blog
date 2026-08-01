@@ -23,37 +23,33 @@ export default defineConfig({
         // 纯类型和 barrel 文件
         "src/**/types/**",
         "src/**/*.d.ts",
-        "src/i18n/types.ts",
-        // 配置文件
-        "src/**/*.config.ts",
         // Next.js 服务端组件和特殊文件
         "src/**/layout.tsx",
-        "src/**/loading.tsx",
-        "src/**/error.tsx",
         "src/**/not-found.tsx",
         "src/**/page.tsx",
-        "src/**/middleware.ts",
-        "src/app/global-error.tsx",
         "src/app/robots.ts",
         "src/app/sitemap.ts",
         "src/app/**/route.ts",
-        // i18n 配置（通过集成测试验证）
-        "src/i18n/routing.ts",
-        "src/i18n/request.ts",
-        "src/i18n/navigation.ts",
-        // 构建脚本
-        "src/scripts/**",
-        // 测试辅助代码
-        "src/test-utils/**",
         // 测试文件自身
         "src/**/*.spec.{ts,tsx}",
-        "src/**/*.test-utils.{ts,tsx}",
       ],
       thresholds: {
         lines: 80,
         functions: 80,
         branches: 80,
         statements: 80,
+        "src/lib/content-catalog.ts": {
+          branches: 85,
+        },
+        "src/lib/content-contracts.ts": {
+          branches: 85,
+        },
+        "src/lib/site.ts": {
+          branches: 90,
+        },
+        "src/lib/url-path.ts": {
+          branches: 90,
+        },
       },
     },
   },

@@ -1,9 +1,9 @@
 import { ProjectCard } from "./project-card";
 
-import type { ProjectMeta } from "@/lib/projects";
+import type { ProjectCaseMeta } from "@/lib/content-catalog";
 
 interface ProjectListProps {
-  projects: ProjectMeta[];
+  projects: ProjectCaseMeta[];
 }
 
 export function ProjectList({ projects }: ProjectListProps) {

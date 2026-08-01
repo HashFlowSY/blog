@@ -1,16 +1,16 @@
 import "./globals.css";
 
 import { SiteShell } from "@/components/layout/site-shell";
+import { SITE } from "@/lib/site";
 
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: {
-    default: "Hashflow｜AI 全栈工程师",
-    template: "%s | Hashflow",
+    default: SITE.title,
+    template: `%s | ${SITE.name}`,
   },
-  description:
-    "Hashflow 的个人作品站：记录 AI 应用、后端系统、自动化交付和长期写作。",
+  description: SITE.description,
 };
 
 export default function RootLayout({

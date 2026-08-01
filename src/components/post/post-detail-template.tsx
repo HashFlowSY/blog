@@ -1,14 +1,12 @@
 import Link from "next/link";
 
+import { SITE } from "@/lib/site";
+
 import { CodeBlockEnhancer } from "./code-block";
 import { ReadingProgress } from "./reading-progress";
 
-import type { TocItem } from "@/lib/markdown";
-import type { Post, PostMeta } from "@/lib/posts";
-
+import type { Post, PostMeta } from "@/lib/content-catalog";
 interface PostDetailTemplateProps {
-  contentHtml: string;
-  headings: TocItem[];
   post: Post;
   relatedPosts: PostMeta[];
   relatedTitle?: string;
@@ -19,17 +17,9 @@ export interface RelatedReadingSelection {
   title: "关联阅读" | "最新文章";
 }
 
-export function formatDetailDate(date: string): string {
+function formatDetailDate(date: string): string {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return date;
   return date.replaceAll("-", ".");
-}
-
-export function selectRelatedPosts(
-  currentSlug: string,
-  posts: PostMeta[],
-  limit = 3,
-): PostMeta[] {
-  return selectRelatedReading(currentSlug, posts, limit).posts;
 }
 
 export function selectRelatedReading(
@@ -40,7 +30,7 @@ export function selectRelatedReading(
   const currentPost = posts.find((item) => item.slug === currentSlug);
   const candidates = posts.filter((item) => item.slug !== currentSlug);
 
-  if (!currentPost || currentPost.tags.length === 0) {
+  if (!currentPost) {
     return {
       posts: [...candidates].sort(compareByLatestDate).slice(0, limit),
       title: "最新文章",
@@ -80,18 +70,8 @@ export function selectRelatedReading(
   };
 }
 
-export function stripLeadingTitleHeading(html: string, title: string): string {
-  const match = html.match(/^<h1\b[^>]*>(.*?)<\/h1>\s*/i);
-  if (!match) return html;
-
-  const headingText = match[1]!.replace(/<[^>]*>/g, "").trim();
-  if (headingText !== title.trim()) return html;
-
-  return html.slice(match[0].length);
-}
-
 function formatMetaLine(post: PostMeta): string {
-  return `${formatDetailDate(post.date)} / ${post.tags[0] ?? "Archive"}`;
+  return `${formatDetailDate(post.date)} / ${post.tags[0]}`;
 }
 
 function compareByLatestDate(a: PostMeta, b: PostMeta): number {
@@ -128,14 +108,12 @@ function getDateTimestamp(date: string): number | null {
 }
 
 export function PostDetailTemplate({
-  contentHtml,
-  headings,
   post,
   relatedPosts,
   relatedTitle = "关联阅读",
 }: PostDetailTemplateProps) {
-  const tags = post.tags.length > 0 ? post.tags : ["未分类"];
-  const displayContent = stripLeadingTitleHeading(contentHtml, post.title);
+  const tags = post.tags;
+  const { headings, html } = post.renderedContent;
   const showToc = headings.length >= 2;
 
   return (
@@ -158,7 +136,7 @@ export function PostDetailTemplate({
           <h1 id="post-title" data-od-id="detail-headline">
             {post.title}
           </h1>
-          {post.summary && <p className="portfolio-lede">{post.summary}</p>}
+          <p className="portfolio-lede">{post.summary}</p>
           <div className="portfolio-article-meta" aria-label="文章信息">
             <span>{formatDetailDate(post.date)}</span>
             <span>{post.readingTime} min</span>
@@ -202,7 +180,7 @@ export function PostDetailTemplate({
                 className="article-body portfolio-prose prose"
                 id="article-body"
                 data-od-id="detail-body"
-                dangerouslySetInnerHTML={{ __html: displayContent }}
+                dangerouslySetInnerHTML={{ __html: html }}
               />
             </CodeBlockEnhancer>
           </article>
@@ -233,7 +211,7 @@ export function PostDetailTemplate({
                   <span>
                     <small>{formatMetaLine(relatedPost)}</small>
                     <strong>{relatedPost.title}</strong>
-                    {relatedPost.summary && <span>{relatedPost.summary}</span>}
+                    <span>{relatedPost.summary}</span>
                   </span>
                 </Link>
               ))}
@@ -248,10 +226,15 @@ export function PostDetailTemplate({
           <div>
             <p className="portfolio-overline">Contact / discuss</p>
             <h2 id="writing-contact-title">想继续讨论这个问题？</h2>
-            <p>可以通过占位邮箱联系，后续再替换成正式入口。</p>
+            <p>欢迎通过 GitHub 继续讨论。</p>
           </div>
-          <a className="portfolio-button" href="mailto:hello@example.com">
-            hello@example.com
+          <a
+            className="portfolio-button"
+            href={SITE.githubProfile.url}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {SITE.githubProfile.label}
           </a>
         </section>
       </div>

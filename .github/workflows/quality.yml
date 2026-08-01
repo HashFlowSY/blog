@@ -1,0 +1,48 @@
+name: Quality Gate
+
+on:
+  workflow_call:
+    inputs:
+      playwright_report_name:
+        description: Stable name for the Chromium E2E failure artifact.
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  quality:
+    name: Quality Gate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11.0.8
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm exec tsc --noEmit --incremental false
+      - run: pnpm test:coverage
+      - run: pnpm audit --audit-level moderate
+      - run: pnpm exec playwright install --with-deps chromium
+      - id: e2e
+        run: pnpm test:e2e
+      - name: Upload Chromium E2E failure report
+        if: ${{ failure() && steps.e2e.outcome == 'failure' }}
+        continue-on-error: true
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ inputs.playwright_report_name }}
+          path: playwright-report/
+          retention-days: 7
+          if-no-files-found: warn

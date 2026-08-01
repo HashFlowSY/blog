@@ -16,7 +16,12 @@ function isActivePath(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(href);
 }
 
-export function Header() {
+interface HeaderProps {
+  siteName: string;
+  siteRole: string;
+}
+
+export function Header({ siteName, siteRole }: HeaderProps) {
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -77,8 +82,8 @@ export function Header() {
       <Link className="brand-lockup" href="/" aria-label="回到首页">
         <span className="brand-mark">H</span>
         <span className="brand-text">
-          <strong>Hashflow</strong>
-          <span>AI 全栈工程师</span>
+          <strong>{siteName}</strong>
+          <span>{siteRole}</span>
         </span>
       </Link>
       <button

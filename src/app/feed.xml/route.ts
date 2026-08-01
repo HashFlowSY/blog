@@ -1,25 +1,26 @@
+import { getContentCatalog } from "@/lib/content-catalog";
 import { buildRssXml } from "@/lib/feed";
-import { getAllPostsMeta } from "@/lib/posts";
-import { siteUrl } from "@/lib/site";
+import { SITE, siteUrl } from "@/lib/site";
 
 export const dynamic = "force-static";
 
 const FEED_CONFIG = {
-  title: "Hashflow｜AI 全栈工程师",
+  title: SITE.title,
   link: siteUrl("/"),
-  description: "Hashflow 的个人作品站，记录 AI 应用、后端系统和长期写作。",
+  description: SITE.description,
   language: "zh-CN",
 } as const;
 
 export async function GET() {
-  const posts = getAllPostsMeta("zh-CN");
+  const catalog = await getContentCatalog();
+  const posts = catalog.posts;
 
   const items = posts.map((post) => ({
     title: post.title,
     link: siteUrl(`/posts/${post.slug}/`),
     description: post.summary ?? "",
     pubDate: post.updated,
-    categories: post.tags,
+    categories: [...post.tags],
   }));
 
   const xml = buildRssXml({ ...FEED_CONFIG, items });

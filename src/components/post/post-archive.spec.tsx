@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { PostArchive } from "./post-archive";
 
-import type { PostMeta } from "@/lib/posts";
+import type { PostMeta } from "@/lib/content-catalog";
 
 const posts: PostMeta[] = [
   {
@@ -13,9 +13,7 @@ const posts: PostMeta[] = [
     updated: "2026-01-02",
     tags: ["手记"],
     summary: "第一篇摘要",
-    cover: null,
     readingTime: 3,
-    locale: "zh-CN",
   },
   {
     slug: "second",
@@ -24,9 +22,7 @@ const posts: PostMeta[] = [
     updated: "2026-02-03",
     tags: ["工程"],
     summary: "第二篇摘要",
-    cover: null,
     readingTime: 5,
-    locale: "zh-CN",
   },
 ];
 

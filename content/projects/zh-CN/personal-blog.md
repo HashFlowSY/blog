@@ -16,18 +16,17 @@ demo: "https://hashflowsy.github.io/blog"
 role: "需求拆解、视觉重构、全栈开发"
 duration: "持续迭代"
 result: "静态部署、内容自动化与完整测试链路已落地"
-template: false
 featured: true
 draft: false
 ---
 
 ## 概述
 
-基于 Next.js 16 静态导出、部署至 GitHub Pages 的中文个人作品站。它把求职、项目合作和长期写作组织成一条清晰的浏览路径。核心特性包括泛型 Markdown 内容管线、CJK 感知阅读时间、标签感知的文章推荐和完整自动化验证。
+基于 Next.js 16 静态导出、部署至 GitHub Pages 的中文个人作品站。它把求职、项目合作和长期写作组织成一条清晰的浏览路径。核心特性包括原子化 Content Catalog、CJK 感知阅读时间、标签感知的文章推荐和完整自动化验证。
 
 ## 内容管线
 
-文章和项目共享同一套生命周期——frontmatter 解析、slug 解析、草稿过滤、日期排序——但 Zod schema 和输出类型各不相同。为此设计了 `createContentLoader<TSchema, TMeta, TFull>` 泛型工厂：接收一个 Zod schema 和两个映射回调（`toMeta`、`toFull`），返回类型安全的 `getAllMeta()`、`getAllFull()`、`getBySlug()` 接口。`src/lib/posts.ts` 和 `src/lib/projects.ts` 各自定义 schema，工厂处理其余全部逻辑。详见 `src/lib/content-loader.ts`。
+每次构建都会创建一个原子的 Content Catalog：统一发现文章和项目案例，解析 frontmatter，执行严格契约与跨文件校验，渲染 Markdown，并按稳定 slug 建立索引。页面、静态参数、RSS、sitemap 和元数据读取同一份不可变快照；任一内容出错时，构建会在生成部分站点前失败。详见 `src/lib/content-catalog.ts`。
 
 ## Markdown 渲染与 XSS 防护
 
@@ -47,7 +46,7 @@ draft: false
 
 ## 中文单站与 SEO
 
-项目已经移除多语言路由和翻译文件，页面只保留中文路径。SEO 基础设施包括：自动生成中文站点 sitemap、RSS feed、Open Graph / Twitter Card 元数据。Canonical URL 基于 `NEXT_PUBLIC_SITE_URL` 环境变量动态计算，同一构建产物可在 localhost、预览和生产环境中复用。
+项目已经移除多语言路由和翻译文件，页面只保留中文路径。SEO 基础设施包括：自动生成中文站点 sitemap、RSS feed 和 canonical URL。canonical、RSS 与 sitemap 会在构建时按 `NEXT_PUBLIC_SITE_URL` 和 `BASE_PATH` 写入静态产物；每个部署目标都必须使用最终 origin 和 base path 重新构建，不能在 localhost、预览和生产环境之间复用同一份产物。
 
 ## 测试与 CI
 
