@@ -5,6 +5,12 @@ import { z } from "zod";
 
 export const CONTENT_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
+const DATE_ONLY_SLUG_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const GRANDFATHERED_PUBLISHED_POST_SLUGS = new Set([
+  "2026-04-30",
+  "2026-05-02",
+]);
+
 export interface ContentContractInput {
   filePath: string;
   frontmatter: unknown;
@@ -378,6 +384,41 @@ function appendErrors<TFrontmatter>(
   };
 }
 
+function dateOnlySlugErrors(
+  input: ContentContractInput,
+  collection: "post" | "project",
+): ContentValidationError[] {
+  if (!isRecord(input.frontmatter)) {
+    return [];
+  }
+
+  const { draft, slug } = input.frontmatter;
+  if (
+    (draft !== true && draft !== false) ||
+    typeof slug !== "string" ||
+    !DATE_ONLY_SLUG_PATTERN.test(slug)
+  ) {
+    return [];
+  }
+
+  if (
+    collection === "post" &&
+    draft === false &&
+    GRANDFATHERED_PUBLISHED_POST_SLUGS.has(slug)
+  ) {
+    return [];
+  }
+
+  return [
+    {
+      filePath: input.filePath,
+      field: "slug",
+      reason:
+        "Must not be a date-only YYYY-MM-DD slug unless it is a grandfathered published Post slug.",
+    },
+  ];
+}
+
 function isPathWithin(root: string, candidate: string): boolean {
   const relativePath = path.relative(
     /* turbopackIgnore: true */ root,
@@ -488,9 +529,12 @@ export function validatePostContract(
   input: ContentContractInput,
 ): ContentContractResult<PostFrontmatter> {
   const result = validateContentState(input, postStateSchemas);
-  const errors = isRecord(input.frontmatter)
-    ? updatedDateErrors(input.frontmatter, input.filePath)
-    : [];
+  const errors = [
+    ...(isRecord(input.frontmatter)
+      ? updatedDateErrors(input.frontmatter, input.filePath)
+      : []),
+    ...dateOnlySlugErrors(input, "post"),
+  ];
 
   return appendErrors(result, errors);
 }
@@ -501,7 +545,10 @@ export function validateProjectCaseContract(
 ): ContentContractResult<ProjectCaseFrontmatter> {
   const result = validateContentState(input, projectStateSchemas);
 
-  return appendErrors(result, projectCoverErrors(input, options));
+  return appendErrors(result, [
+    ...projectCoverErrors(input, options),
+    ...dateOnlySlugErrors(input, "project"),
+  ]);
 }
 
 function duplicateSlugErrors(

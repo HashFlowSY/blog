@@ -286,6 +286,58 @@ describe("strict content contracts", () => {
       expect(hasError(result, unknownKeyFile, "audience")).toBe(true);
     });
 
+    it("grandfathers only the two published date-only Post slugs", () => {
+      const result = validatePostContracts([
+        {
+          filePath: "content/posts/zh-CN/legacy-one.md",
+          frontmatter: { ...publishedPost, slug: "2026-04-30" },
+          body: "# Legacy post",
+        },
+        {
+          filePath: "content/posts/zh-CN/legacy-two.md",
+          frontmatter: { ...publishedPost, slug: "2026-05-02" },
+          body: "# Legacy post",
+        },
+      ]);
+
+      expect(result.errors).toEqual([]);
+    });
+
+    it("rejects date-only slugs for drafts and newly published Posts", () => {
+      const draftFile = "content/posts/zh-CN/date-draft.md";
+      const publishedFile = "content/posts/zh-CN/date-published.md";
+      const result = validatePostContracts([
+        {
+          filePath: draftFile,
+          frontmatter: { draft: true, slug: "2026-06-01" },
+          body: "",
+        },
+        {
+          filePath: publishedFile,
+          frontmatter: { ...publishedPost, slug: "2026-06-01" },
+          body: "# New post",
+        },
+      ]);
+
+      expect(hasError(result, draftFile, "slug")).toBe(true);
+      expect(hasError(result, publishedFile, "slug")).toBe(true);
+    });
+
+    it("allows a descriptive slug with a date prefix", () => {
+      const result = validatePostContracts([
+        {
+          filePath: "content/posts/zh-CN/release-notes.md",
+          frontmatter: {
+            ...publishedPost,
+            slug: "2026-06-01-release-notes",
+          },
+          body: "# Release notes",
+        },
+      ]);
+
+      expect(result.errors).toEqual([]);
+    });
+
     it("reports duplicate slugs for every file in the collection", () => {
       const firstFile = "content/posts/zh-CN/first.md";
       const secondFile = "content/posts/zh-CN/second.md";
@@ -542,6 +594,33 @@ describe("strict content contracts", () => {
       expect(hasError(result, wrongTypeFile, "featured")).toBe(true);
       expect(hasError(result, firstDuplicateFile, "slug")).toBe(true);
       expect(hasError(result, secondDuplicateFile, "slug")).toBe(true);
+    });
+
+    it("rejects date-only Project Case slugs but allows descriptive date prefixes", () => {
+      const publicDir = createPublicDirectory();
+      const dateOnlyFile = "content/projects/zh-CN/date-only.md";
+      const prefixedFile = "content/projects/zh-CN/release-notes.md";
+      const result = validateProjectCaseContracts(
+        [
+          {
+            filePath: dateOnlyFile,
+            frontmatter: { ...publishedProject(), slug: "2026-06-01" },
+            body: "# Project body",
+          },
+          {
+            filePath: prefixedFile,
+            frontmatter: {
+              ...publishedProject(),
+              slug: "2026-06-01-release-notes",
+            },
+            body: "# Project body",
+          },
+        ],
+        { publicDir },
+      );
+
+      expect(hasError(result, dateOnlyFile, "slug")).toBe(true);
+      expect(hasError(result, prefixedFile, "slug")).toBe(false);
     });
   });
 });

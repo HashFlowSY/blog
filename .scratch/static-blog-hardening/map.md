@@ -1,6 +1,6 @@
 # Static Blog Hardening Map
 
-Status: completed
+Status: active
 
 Specification: [spec.md](./spec.md)
 
@@ -29,6 +29,16 @@ Specification: [spec.md](./spec.md)
 12. [Add focused visual regression](./issues/12-add-visual-regression.md) — resolved
 13. [Retire the stale site audit and complete verification](./issues/13-retire-stale-audit.md) — resolved
 
+## Phase 5 — Final Review Repairs
+
+14. [Enforce published slug policy](./issues/14-enforce-published-slug-policy.md) — resolved
+15. [Normalize cover URL paths](./issues/15-normalize-cover-url-paths.md) — claimed
+16. [Localize the global error page](./issues/16-localize-global-error-page.md) — ready-for-agent
+17. [Tighten coverage thresholds](./issues/17-tighten-coverage-thresholds.md) — ready-for-agent
+18. [Remove test-only production exports](./issues/18-remove-test-only-production-exports.md) — ready-for-agent
+19. [Share static E2E page access](./issues/19-share-static-e2e-page-access.md) — ready-for-agent
+20. [Correct documentation and Issue history](./issues/20-correct-documentation-and-issue-history.md) — ready-for-agent
+
 ## Frontier
 
-All hardening issues are resolved; this effort has no open frontier.
+15. Normalize cover URL paths — claimed
