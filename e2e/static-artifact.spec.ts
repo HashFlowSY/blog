@@ -4,6 +4,7 @@ import path from "node:path";
 import { expect, test } from "@playwright/test";
 
 import { STABLE_POST, STABLE_PROJECT } from "./fixtures";
+import { visitStaticPage } from "./helpers/static-page";
 import {
   isMountedPath,
   isPublicOriginUrl,
@@ -91,18 +92,6 @@ const stableDetailMetadata = {
     title: `${STABLE_PROJECT.title} | Hashflow`,
   },
 } as const satisfies Record<"post" | "project", ExpectedDetailMetadata>;
-
-async function visit(page: Page, pathname: string): Promise<void> {
-  const response = await page.goto(routePath(pathname));
-  if (!response) {
-    throw new Error(`Static server did not respond to ${routePath(pathname)}`);
-  }
-
-  expect(response.status(), routePath(pathname)).toBe(200);
-  await page.waitForLoadState("networkidle");
-  expect(new URL(page.url()).pathname).toBe(routePath(pathname));
-  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-}
 
 async function expectCanonical(page: Page, pathname: string): Promise<void> {
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
@@ -373,7 +362,7 @@ async function visitStableDetail(
   collection: "post" | "project",
 ): Promise<void> {
   const detail = stableDetailMetadata[collection];
-  await visit(page, detail.pathname);
+  await visitStaticPage(page, detail.pathname);
 }
 
 function recordCriticalResources(
@@ -452,7 +441,8 @@ test.describe("generated static artifact", () => {
     recordCriticalResources(page, observations, failures);
 
     for (const pathname of ["/", "/posts/", "/projects/", "/about/"] as const) {
-      await visit(page, pathname);
+      await visitStaticPage(page, pathname);
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
       await expectBasePathReferences(page);
       await expectCanonical(page, pathname);
       await expectPageMetadata(page, staticPageMetadata[pathname]);
@@ -518,7 +508,8 @@ test.describe("generated static artifact", () => {
     const failures: string[] = [];
     recordCriticalResources(page, observations, failures);
     await mapPublicResourcesToStaticPreview(page);
-    await visit(page, "/");
+    await visitStaticPage(page, "/");
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 
     const existingImage = publicUrl("/assets/workbench-hero.png");
     const existingResponse = await requestImage(page, existingImage);
@@ -551,13 +542,15 @@ test.describe("generated static artifact", () => {
   test("publishes base-path-aware canonical URLs, feed, sitemap, and robots", async ({
     page,
   }) => {
-    await visit(page, "/");
+    await visitStaticPage(page, "/");
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     await expectCanonical(page, "/");
 
     await visitStableDetail(page, "post");
     await visitStableDetail(page, "project");
 
-    await visit(page, "/about/");
+    await visitStaticPage(page, "/about/");
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     await expect(
       page.getByRole("contentinfo").getByRole("link", {
         name: "GitHub / HashFlowSY",
@@ -618,14 +611,7 @@ test.describe("generated static artifact", () => {
         generated404,
       );
 
-      const missingContentNavigation = await page.goto(routePath(pathname));
-      if (!missingContentNavigation) {
-        throw new Error(
-          `Static server did not respond to ${routePath(pathname)}`,
-        );
-      }
-      expect(missingContentNavigation.status(), pathname).toBe(404);
-      await page.waitForLoadState("networkidle");
+      await visitStaticPage(page, pathname, { expectedStatus: 404 });
       await expect(
         page.getByRole("heading", { name: "页面不存在" }),
       ).toBeVisible();
@@ -637,18 +623,13 @@ test.describe("generated static artifact", () => {
       await expectBasePathReferences(page);
     }
 
-    const missingPath = routePath("/does-not-exist/");
-    const response = await page.request.get(missingPath);
+    const missingPath = "/does-not-exist/";
+    const response = await page.request.get(routePath(missingPath));
 
     expect(response.status()).toBe(404);
     expect(await response.body()).toEqual(generated404);
 
-    const navigationResponse = await page.goto(missingPath);
-    if (!navigationResponse) {
-      throw new Error(`Static server did not respond to ${missingPath}`);
-    }
-    expect(navigationResponse.status()).toBe(404);
-    await page.waitForLoadState("networkidle");
+    await visitStaticPage(page, missingPath, { expectedStatus: 404 });
     await expect(
       page.getByRole("heading", { name: "页面不存在" }),
     ).toBeVisible();

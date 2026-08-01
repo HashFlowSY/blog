@@ -1,6 +1,6 @@
 # Share static E2E page access
 
-Status: claimed
+Status: resolved
 
 ## Goal
 
@@ -26,6 +26,15 @@ accessibility, and visual E2E tests.
 
 ## Answer
 
-Pending implementation.
+Added `visitStaticPage`, a shared static-artifact navigation helper that owns
+base-path route composition, null navigation responses, expected HTTP status,
+network-idle waiting, and final pathname checks. Static-artifact, accessibility,
+and visual suites use it for normal and 404 document navigation; their title,
+axe, animation, font/image, and screenshot concerns remain local to each
+suite. WebKit smoke was not expanded.
+
+Verified after the representative `/blog` build with `CI=1
+pnpm test:e2e:static`: 39 tests passed. Four Linux-only visual comparisons were
+skipped on Darwin and are not recorded as locally verified.
 
 ## Comments

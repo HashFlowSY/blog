@@ -1,6 +1,6 @@
 # Correct documentation and Issue history
 
-Status: ready-for-agent
+Status: claimed
 
 ## Goal
 

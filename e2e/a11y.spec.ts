@@ -11,6 +11,7 @@ import {
   STABLE_PROJECT,
   test,
 } from "./fixtures";
+import { visitStaticPage } from "./helpers/static-page";
 import { routePath } from "./static-artifact-config";
 
 import type { Page } from "@playwright/test";
@@ -75,14 +76,8 @@ async function scanPage(page: Page, pageName: string): Promise<void> {
   }
 }
 
-async function visitPublishedPage(page: Page, pathname: string): Promise<void> {
-  const response = await page.goto(routePath(pathname));
-  if (!response) {
-    throw new Error(`Static server did not respond to ${routePath(pathname)}`);
-  }
-
-  expect(response.status(), routePath(pathname)).toBe(200);
-  await page.waitForLoadState("networkidle");
+async function prepareA11yPage(page: Page, pathname: string): Promise<void> {
+  await visitStaticPage(page, pathname);
   // Route entry animations can leave Linux axe scans sampling a half-opacity
   // frame. Static accessibility checks should inspect the settled artifact.
   await page.addStyleTag({ content: STATIC_SCAN_STABILIZATION_STYLE });
@@ -92,7 +87,7 @@ test.describe("Accessibility scans on the static artifact", () => {
   test("exposes the expected document language and landmarks", async ({
     page,
   }) => {
-    await visitPublishedPage(page, "/");
+    await prepareA11yPage(page, "/");
 
     await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
     await expect(page.getByRole("link", { name: "跳到内容" })).toHaveAttribute(
@@ -107,7 +102,7 @@ test.describe("Accessibility scans on the static artifact", () => {
     test(`passes the serious/critical threshold on ${pageName}`, async ({
       page,
     }) => {
-      await visitPublishedPage(page, pathname);
+      await prepareA11yPage(page, pathname);
       await scanPage(page, pageName);
     });
   }
@@ -122,15 +117,7 @@ test.describe("Accessibility scans on the static artifact", () => {
     expect(documentResponse.status(), routePath(missingPath)).toBe(404);
     expect(await documentResponse.body()).toEqual(generated404);
 
-    const navigationResponse = await page.goto(routePath(missingPath));
-    if (!navigationResponse) {
-      throw new Error(
-        `Static server did not respond to ${routePath(missingPath)}`,
-      );
-    }
-
-    expect(navigationResponse.status(), routePath(missingPath)).toBe(404);
-    await page.waitForLoadState("networkidle");
+    await visitStaticPage(page, missingPath, { expectedStatus: 404 });
     await expect(
       page.getByRole("heading", { name: "页面不存在" }),
     ).toBeVisible();
@@ -142,7 +129,7 @@ test.describe("Keyboard accessibility on the static artifact", () => {
   test("skip link is visible on focus and moves focus to main content", async ({
     page,
   }) => {
-    await visitPublishedPage(page, "/");
+    await prepareA11yPage(page, "/");
 
     const skipLink = page.getByRole("link", { name: "跳到内容" });
     await page.keyboard.press("Tab");
@@ -157,7 +144,7 @@ test.describe("Keyboard accessibility on the static artifact", () => {
     page,
   }) => {
     await page.setViewportSize({ width: 375, height: 667 });
-    await visitPublishedPage(page, "/");
+    await prepareA11yPage(page, "/");
 
     const menuButton = page.getByRole("button", { name: "菜单" });
     const menu = page.locator("#site-nav");
@@ -176,7 +163,7 @@ test.describe("Keyboard accessibility on the static artifact", () => {
   test("navigation links can be triggered from the keyboard", async ({
     page,
   }) => {
-    await visitPublishedPage(page, "/");
+    await prepareA11yPage(page, "/");
 
     const postsLink = page
       .locator('nav[aria-label="主导航"]')

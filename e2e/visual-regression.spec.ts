@@ -7,7 +7,7 @@ import {
   STABLE_PROJECT,
   test,
 } from "./fixtures";
-import { routePath } from "./static-artifact-config";
+import { visitStaticPage } from "./helpers/static-page";
 import {
   VISUAL_DESKTOP_VIEWPORT,
   VISUAL_MOBILE_VIEWPORT,
@@ -28,16 +28,6 @@ const STABILIZATION_STYLE = `
     scroll-behavior: auto !important;
   }
 `;
-
-async function visit(page: Page, pathname: string): Promise<void> {
-  const response = await page.goto(routePath(pathname));
-  if (!response) {
-    throw new Error(`Static server did not respond to ${routePath(pathname)}`);
-  }
-
-  expect(response.status(), routePath(pathname)).toBe(200);
-  await page.waitForLoadState("networkidle");
-}
 
 async function waitForFontsAndImages(page: Page): Promise<void> {
   const unloadedImages = await page.evaluate(async () => {
@@ -113,7 +103,7 @@ test.describe("Focused visual regression", () => {
     test.use({ viewport: VISUAL_DESKTOP_VIEWPORT });
 
     test("captures the home page", async ({ page }) => {
-      await visit(page, "/");
+      await visitStaticPage(page, "/");
       await expect(
         page.getByRole("heading", { name: /Hashflow AI 全栈工程师/ }),
       ).toBeVisible();
@@ -123,7 +113,7 @@ test.describe("Focused visual regression", () => {
     });
 
     test("captures the stable post detail", async ({ page }) => {
-      await visit(page, routeForPost(STABLE_POST.slug));
+      await visitStaticPage(page, routeForPost(STABLE_POST.slug));
       await expect(page.getByRole("heading", { level: 1 })).toHaveText(
         STABLE_POST.title,
       );
@@ -132,7 +122,7 @@ test.describe("Focused visual regression", () => {
     });
 
     test("captures the real project detail", async ({ page }) => {
-      await visit(page, routeForProject(STABLE_PROJECT.slug));
+      await visitStaticPage(page, routeForProject(STABLE_PROJECT.slug));
       await expect(page.getByRole("heading", { level: 1 })).toHaveText(
         STABLE_PROJECT.title,
       );
@@ -148,7 +138,7 @@ test.describe("Focused visual regression", () => {
     test("captures the home page with mobile navigation open", async ({
       page,
     }) => {
-      await visit(page, "/");
+      await visitStaticPage(page, "/");
       await expect(page.getByRole("button", { name: "菜单" })).toBeVisible();
       await stabilizePage(page);
 
