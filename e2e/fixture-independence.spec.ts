@@ -38,6 +38,7 @@ const workspaceEntries = [
   "scripts",
   "src",
   "tsconfig.json",
+  "vitest.setup.ts",
 ] as const;
 
 function wait(milliseconds: number): Promise<void> {

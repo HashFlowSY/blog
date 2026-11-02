@@ -24,7 +24,7 @@ jobs:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v6
         with:
-          version: 11.0.8
+          version: 11.28.10
       - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
@@ -33,7 +33,7 @@ jobs:
       - run: pnpm lint
       - run: pnpm exec tsc --noEmit --incremental false
       - run: pnpm test:coverage
-      - run: pnpm audit --audit-level moderate
+      - run: pnpm audit --audit-level low
       - run: pnpm exec playwright install --with-deps chromium
       - id: e2e
         run: pnpm test:e2e

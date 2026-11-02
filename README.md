@@ -33,7 +33,7 @@ A Chinese personal portfolio built with Next.js 16. It presents real Project Cas
 | [ESLint 9](https://eslint.org)                        | Linting (flat config)                 |
 | [Prettier 3](https://prettier.io)                     | Code formatting                       |
 | [husky](https://typicode.github.io/husky)             | Git hooks                             |
-| [pnpm 11.0.8](https://pnpm.io)                        | Package manager                       |
+| [pnpm 11.28.10](https://pnpm.io)                      | Package manager                       |
 
 ## Project Structure
 
@@ -70,8 +70,8 @@ src/
 
 ### Prerequisites
 
-- Node.js 24.x (the latest patch release; `.nvmrc` selects this major)
-- pnpm 11.0.8
+- Node.js 24.22.2 or a newer 24.x patch (`.nvmrc` pins the validated version)
+- pnpm 11.28.10
 
 ### Install
 
@@ -442,25 +442,25 @@ NEXT_PUBLIC_BASE_PATH=
 
 ## Scripts
 
-| Command                                      | Description                                                          |
-| -------------------------------------------- | -------------------------------------------------------------------- |
-| `pnpm dev`                                   | Start the development server                                         |
-| `pnpm build`                                 | Build the production static artifact in `out/`                       |
-| `pnpm lint`                                  | Run ESLint                                                           |
-| `pnpm lint:fix`                              | Run ESLint with auto-fix                                             |
-| `pnpm format:check`                          | Check Prettier formatting                                            |
-| `pnpm exec tsc --noEmit --incremental false` | Run the release TypeScript check                                     |
-| `pnpm test`                                  | Run unit tests                                                       |
-| `pnpm test:watch`                            | Run unit tests in watch mode                                         |
-| `pnpm test:coverage`                         | Run unit tests with coverage                                         |
-| `pnpm audit --audit-level moderate`          | Run the release dependency-audit policy                              |
-| `pnpm test:e2e`                              | Run the development-server Chromium suite                            |
-| `pnpm preview:static`                        | Serve an existing static artifact at `/blog` by default              |
-| `pnpm test:e2e:static`                       | Run static Chromium, a11y, focused visual, and WebKit smoke projects |
-| `pnpm test:e2e:static:chromium`              | Run the ordinary static Chromium suite                               |
-| `pnpm test:e2e:static:a11y`                  | Run the Chromium-only accessibility and keyboard gate                |
-| `pnpm test:e2e:static:visual`                | Run four strict Chromium visual comparisons on Linux only            |
-| `pnpm test:e2e:static:webkit`                | Run the reduced static WebKit smoke suite                            |
+| Command                                      | Description                                                             |
+| -------------------------------------------- | ----------------------------------------------------------------------- |
+| `pnpm dev`                                   | Start the development server                                            |
+| `pnpm build`                                 | Build the production static artifact in `out/`                          |
+| `pnpm lint`                                  | Run ESLint                                                              |
+| `pnpm lint:fix`                              | Run ESLint with auto-fix                                                |
+| `pnpm format:check`                          | Check Prettier formatting                                               |
+| `pnpm exec tsc --noEmit --incremental false` | Run the release TypeScript check                                        |
+| `pnpm test`                                  | Run unit tests                                                          |
+| `pnpm test:watch`                            | Run unit tests in watch mode                                            |
+| `pnpm test:coverage`                         | Run unit tests with coverage                                            |
+| `pnpm audit --audit-level low`               | Check production and development dependencies for known vulnerabilities |
+| `pnpm test:e2e`                              | Run the development-server Chromium suite                               |
+| `pnpm preview:static`                        | Serve an existing static artifact at `/blog` by default                 |
+| `pnpm test:e2e:static`                       | Run static Chromium, a11y, focused visual, and WebKit smoke projects    |
+| `pnpm test:e2e:static:chromium`              | Run the ordinary static Chromium suite                                  |
+| `pnpm test:e2e:static:a11y`                  | Run the Chromium-only accessibility and keyboard gate                   |
+| `pnpm test:e2e:static:visual`                | Run four strict Chromium visual comparisons on Linux only               |
+| `pnpm test:e2e:static:webkit`                | Run the reduced static WebKit smoke suite                               |
 
 ## License
 
