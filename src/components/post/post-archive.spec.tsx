@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { PostArchive } from "./post-archive";
@@ -48,5 +48,34 @@ describe("PostArchive", () => {
     render(<PostArchive posts={[]} tags={[]} />);
 
     expect(screen.getByText("暂无文章")).toBeInTheDocument();
+  });
+
+  it("combines keyword and topic filters and restores all articles when cleared", () => {
+    render(<PostArchive posts={posts} tags={["手记", "工程"]} />);
+    const search = screen.getByRole("searchbox", { name: "查找文章" });
+    fireEvent.change(search, { target: { value: "第二篇摘要" } });
+    expect(screen.getByRole("link", { name: "第二篇" })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "第一篇" }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "手记" }));
+    expect(screen.getByText("没有找到匹配的文章")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("0 / 2 篇文章");
+    fireEvent.click(screen.getByRole("button", { name: "清除筛选" }));
+    expect(search).toHaveValue("");
+    expect(screen.getAllByRole("article")).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "全部" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
+  it("toggles a selected topic off without losing the search query", () => {
+    render(<PostArchive posts={posts} tags={["手记", "工程"]} />);
+    const topic = screen.getByRole("button", { name: "工程" });
+    fireEvent.click(topic);
+    expect(screen.getAllByRole("article")).toHaveLength(1);
+    fireEvent.click(topic);
+    expect(screen.getAllByRole("article")).toHaveLength(2);
   });
 });

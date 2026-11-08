@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { AssemblyWorkbench } from "@/components/home/assembly-workbench";
+import { SectionNavigation } from "@/components/layout/section-navigation";
 import { getContentCatalog } from "@/lib/content-catalog";
 import { assetPath, SITE, siteUrl } from "@/lib/site";
 
@@ -16,16 +18,19 @@ const capabilities = [
   {
     index: "01",
     title: "AI 应用",
+    detail: "让工具理解任务",
     description: "把模糊需求拆成可运行的 AI 功能、Agent 流程和工具链。",
   },
   {
     index: "02",
     title: "后端系统",
+    detail: "让系统可靠运转",
     description: "从 API、数据库到性能优化，构建能长期维护的服务。",
   },
   {
     index: "03",
     title: "自动化交付",
+    detail: "让想法真正落地",
     description: "打通需求、开发、测试和部署，减少重复劳动。",
   },
 ] as const;
@@ -46,35 +51,41 @@ export default async function HomePage() {
       aria-labelledby="home-title"
     >
       <div className="workbench-grid">
-        <div className="workbench-index" aria-hidden="true">
-          <span>01</span>
-          <span>02</span>
-          <span>03</span>
-          <span>04</span>
-          <span>05</span>
-        </div>
+        <SectionNavigation
+          label="页面章节"
+          variant="rail"
+          items={[
+            { id: "workbench", label: "工作台" },
+            { id: "selected-work", label: "代表项目" },
+            { id: "capabilities", label: "能力范围" },
+            { id: "writing", label: "最近在写" },
+          ]}
+        />
 
         <div className="workbench-content">
           <div className="workbench-kicker">
-            <span>
-              {SITE.name} / {SITE.role}
-            </span>
-            <span>AI 应用 · 后端系统 · 自动化交付</span>
+            <span>独立思考，动手构建。</span>
+            <span>个人作品与工程记录 / 持续更新</span>
           </div>
 
-          <div className="workbench-hero">
+          <div className="workbench-hero" id="workbench">
             <div className="workbench-hero-copy">
-              <p className="workbench-overline">Home / profile 01</p>
+              <p className="workbench-overline">
+                <span className="studio-status" /> 开放全职机会与项目合作
+              </p>
               <h1 id="home-title" data-od-id="home-headline">
                 {SITE.name}
                 <span>{SITE.role}</span>
               </h1>
               <p className="workbench-lede">
-                把复杂需求拆成可上线、可维护的系统。
+                把复杂需求拆开，
+                <br />
+                把可用的系统
+                <span className="workbench-highlight">搭起来。</span>
               </p>
               <p className="workbench-intro">
-                我使用 AI、后端工程和自动化工具，把想法推进成真实可用的产品，
-                也记录过程中值得复用的判断和方法。
+                你好，我是 {SITE.name}。我用 AI、后端工程和自动化，
+                把零散的想法连接成真正可用的产品。
               </p>
               <div className="workbench-actions">
                 <Link
@@ -88,30 +99,35 @@ export default async function HomePage() {
                 </Link>
               </div>
               <p className="workbench-contact-line">
-                求职或合作，欢迎联系我。
-                <Link href="/about/#contact">了解合作方式 →</Link>
+                从需求到交付，也记录一路上的判断。
+                <Link href="/about/">多了解一点 →</Link>
               </p>
+              <div className="workbench-toolkit" aria-label="主要工作方向">
+                <span>AI 应用</span>
+                <span>后端系统</span>
+                <span>自动化交付</span>
+              </div>
             </div>
 
-            <figure className="workbench-hero-visual">
-              <Image
-                src={assetPath("/assets/workbench-hero.png")}
-                alt="工程师工作台的蓝图插画"
-                fill
-                preload
-                sizes="(max-width: 800px) 100vw, 52vw"
-              />
-              <figcaption>Build systems that last.</figcaption>
-            </figure>
+            <AssemblyWorkbench />
+          </div>
+
+          <div className="workbench-principle">
+            <span>构建笔记 / 01</span>
+            <p>好的系统，是让每一部分各就其位。</p>
+            <a href="#selected-work">
+              看看实际项目 <span aria-hidden="true">↓</span>
+            </a>
           </div>
 
           <section
             className="workbench-section"
+            id="selected-work"
             aria-labelledby="featured-work-title"
           >
             <div className="workbench-section-heading">
               <div>
-                <p className="workbench-overline">Projects / selected work</p>
+                <p className="workbench-overline">01 / 从构想到落地</p>
                 <h2 id="featured-work-title">代表项目</h2>
               </div>
               <Link className="workbench-text-link" href="/projects/">
@@ -170,11 +186,12 @@ export default async function HomePage() {
 
           <section
             className="workbench-section workbench-capabilities"
+            id="capabilities"
             aria-labelledby="capabilities-title"
           >
             <div className="workbench-section-heading">
               <div>
-                <p className="workbench-overline">Capabilities / how I work</p>
+                <p className="workbench-overline">02 / 一起构建的方式</p>
                 <h2 id="capabilities-title">我能帮你把什么做好</h2>
               </div>
             </div>
@@ -183,6 +200,7 @@ export default async function HomePage() {
                 <article className="capability-item" key={capability.index}>
                   <span className="capability-index">{capability.index}</span>
                   <h3>{capability.title}</h3>
+                  <span className="capability-detail">{capability.detail}</span>
                   <p>{capability.description}</p>
                 </article>
               ))}
@@ -191,11 +209,12 @@ export default async function HomePage() {
 
           <section
             className="workbench-section writing-section"
+            id="writing"
             aria-labelledby="writing-title"
           >
             <div className="workbench-section-heading">
               <div>
-                <p className="workbench-overline">Writing / recent notes</p>
+                <p className="workbench-overline">03 / 思考与工程记录</p>
                 <h2 id="writing-title">最近在写</h2>
               </div>
               <Link className="workbench-text-link" href="/posts/">
@@ -237,8 +256,8 @@ export default async function HomePage() {
             aria-labelledby="contact-title"
           >
             <div>
-              <p className="workbench-overline">Contact / open to work</p>
-              <h2 id="contact-title">求职或合作，欢迎联系我。</h2>
+              <p className="workbench-overline">04 / 下一个构想</p>
+              <h2 id="contact-title">一起，把想法搭起来。</h2>
               <p>
                 如果你正在做一个需要从想法推进到上线的项目，可以联系我聊聊。
               </p>

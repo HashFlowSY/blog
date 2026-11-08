@@ -46,4 +46,11 @@ describe("BackToTop", () => {
 
     expect(scrollToMock).toHaveBeenCalledWith({ top: 0, behavior: "smooth" });
   });
+
+  it("returns immediately when reduced motion is requested", () => {
+    vi.stubGlobal("matchMedia", () => ({ matches: true }));
+    const { container } = render(<BackToTop />);
+    fireEvent.click(container.querySelector(".back-to-top")!);
+    expect(scrollToMock).toHaveBeenCalledWith({ top: 0, behavior: "instant" });
+  });
 });

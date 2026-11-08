@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { SectionNavigation } from "@/components/layout/section-navigation";
 import { SITE } from "@/lib/site";
 
 import { CodeBlockEnhancer } from "./code-block";
@@ -160,17 +161,14 @@ export function PostDetailTemplate({
           {showToc && (
             <aside className="portfolio-reader-index" aria-label="文章目录">
               <p className="portfolio-overline">Contents</p>
-              <nav className="portfolio-toc-list" aria-label="文章章节">
-                {headings.map((heading, index) => (
-                  <a
-                    className="portfolio-toc-link"
-                    href={`#${heading.id}`}
-                    key={heading.id}
-                  >
-                    {String(index + 1).padStart(2, "0")} {heading.text}
-                  </a>
-                ))}
-              </nav>
+              <SectionNavigation
+                label="文章章节"
+                variant="contents"
+                items={headings.map((heading) => ({
+                  id: heading.id,
+                  label: heading.text,
+                }))}
+              />
             </aside>
           )}
 

@@ -1,0 +1,188 @@
+.workbench {
+  min-width: 0;
+  border: 1px solid var(--studio-line);
+  background: var(--studio-paper);
+}
+
+.heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  min-height: 72px;
+  padding: 15px 22px;
+  border-bottom: 1px solid var(--studio-line);
+}
+
+.heading h2 {
+  margin: 0;
+  color: var(--studio-ink);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.6;
+  text-transform: none;
+}
+
+.viewMode {
+  padding: 5px 8px;
+  border: 1px solid var(--studio-line);
+  color: var(--studio-muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1;
+}
+
+.scene {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1.52;
+  min-height: 0;
+  overflow: hidden;
+  isolation: isolate;
+  background-color: #f8f4e9;
+  background-image: var(--studio-paper-grain);
+  background-repeat: repeat;
+  background-size: 640px 640px;
+}
+
+.illustration {
+  position: absolute;
+  inset: 0;
+  mix-blend-mode: multiply;
+  transition:
+    opacity 1200ms cubic-bezier(0.4, 0, 0.2, 1),
+    visibility 1200ms;
+}
+
+.scene[data-model-ready="true"] .illustration {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.drawing {
+  position: absolute;
+  top: 0;
+  left: -15%;
+  width: 105%;
+  height: auto;
+  aspect-ratio: 1.5;
+}
+
+.drawing {
+  overflow: visible;
+  pointer-events: none;
+}
+
+.pencil {
+  pointer-events: none;
+}
+
+.orbit {
+  position: absolute;
+  inset: 0;
+  mix-blend-mode: multiply;
+  user-select: none;
+  -webkit-user-select: none;
+  opacity: 0;
+  transform: scale(1.045);
+  transition:
+    opacity 1200ms cubic-bezier(0.4, 0, 0.2, 1),
+    transform 1200ms cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+}
+
+.orbit[data-model-status="ready"][data-active="true"] {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+}
+
+.modelCanvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+}
+
+.modelCanvas[data-dragging="true"] {
+  cursor: grabbing;
+}
+
+.orbit:focus-visible {
+  outline: 2px solid var(--studio-ink);
+  outline-offset: -5px;
+}
+
+.buildButton {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 0 11px;
+  border: 1px solid var(--studio-ink);
+  background: var(--studio-ink);
+  color: var(--studio-paper);
+  font-size: 10px;
+  cursor: pointer;
+  transition:
+    background var(--studio-duration-fast),
+    color var(--studio-duration-fast);
+}
+
+.buildButton:hover {
+  background: var(--studio-yellow);
+  color: var(--studio-ink);
+}
+
+.buildButton:focus-visible {
+  outline: 2px solid var(--studio-ink);
+  outline-offset: 4px;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .heading {
+    min-height: 69px;
+    gap: 8px;
+    padding: 12px 16px;
+  }
+  .buildButton {
+    min-height: 44px;
+    gap: 10px;
+    padding-inline: 10px;
+  }
+  .scene {
+    aspect-ratio: 1.18;
+    min-height: 272px;
+  }
+  .drawing {
+    top: 46px;
+    left: -10%;
+    width: 95%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pencil {
+    display: none;
+  }
+  .buildButton {
+    transition: none;
+  }
+  .illustration,
+  .orbit {
+    transition: none;
+  }
+}

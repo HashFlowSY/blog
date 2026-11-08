@@ -26,43 +26,67 @@ export function Header({ siteName, siteRole }: HeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const headerRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
-    let ticking = false;
+    let frameId = 0;
 
     function syncScrollState() {
       const compact =
-        window.matchMedia?.("(max-width: 640px)").matches ?? false;
+        window.matchMedia?.("(max-width: 760px)").matches ?? false;
       const nextScrolled = window.scrollY > (compact ? 72 : 96);
       setIsScrolled(nextScrolled);
       document.body.classList.toggle("is-scrolled", nextScrolled);
-      ticking = false;
+      frameId = 0;
     }
 
     function requestScrollSync() {
-      if (ticking) return;
-      ticking = true;
-      window.requestAnimationFrame(syncScrollState);
+      if (frameId) return;
+      frameId = window.requestAnimationFrame(syncScrollState);
     }
 
     syncScrollState();
     window.addEventListener("scroll", requestScrollSync, { passive: true });
     return () => {
       window.removeEventListener("scroll", requestScrollSync);
+      window.cancelAnimationFrame(frameId);
       document.body.classList.remove("is-scrolled");
     };
   }, []);
 
   useEffect(() => {
+    if (!isMenuOpen) return;
+
     function closeOnEscape(event: KeyboardEvent) {
       if (event.key !== "Escape") return;
       setIsMenuOpen(false);
       menuButtonRef.current?.focus();
     }
 
+    function closeOutside(event: PointerEvent | FocusEvent) {
+      if (
+        event.target instanceof Node &&
+        !headerRef.current?.contains(event.target)
+      ) {
+        setIsMenuOpen(false);
+      }
+    }
+
+    function closeOnDesktop() {
+      if (window.innerWidth > 760) setIsMenuOpen(false);
+    }
+
     document.addEventListener("keydown", closeOnEscape);
-    return () => document.removeEventListener("keydown", closeOnEscape);
-  }, []);
+    document.addEventListener("pointerdown", closeOutside);
+    document.addEventListener("focusin", closeOutside);
+    window.addEventListener("resize", closeOnDesktop);
+    return () => {
+      document.removeEventListener("keydown", closeOnEscape);
+      document.removeEventListener("pointerdown", closeOutside);
+      document.removeEventListener("focusin", closeOutside);
+      window.removeEventListener("resize", closeOnDesktop);
+    };
+  }, [isMenuOpen]);
 
   const closeMenu = useCallback(() => {
     setIsMenuOpen(false);
@@ -78,9 +102,12 @@ export function Header({ siteName, siteRole }: HeaderProps) {
         .filter(Boolean)
         .join(" ")}
       aria-label="站点头部"
+      ref={headerRef}
     >
       <Link className="brand-lockup" href="/" aria-label="回到首页">
-        <span className="brand-mark">H</span>
+        <span className="brand-mark" aria-hidden="true">
+          H
+        </span>
         <span className="brand-text">
           <strong>{siteName}</strong>
           <span>{siteRole}</span>
@@ -97,7 +124,7 @@ export function Header({ siteName, siteRole }: HeaderProps) {
         菜单
       </button>
       <nav className="site-nav" id="site-nav" aria-label="主导航">
-        {navLinks.map((link) => {
+        {navLinks.map((link, index) => {
           const active = isActivePath(pathname, link.href);
           return (
             <Link
@@ -108,6 +135,9 @@ export function Header({ siteName, siteRole }: HeaderProps) {
               onClick={closeMenu}
               data-route-link={link.route}
             >
+              <span className="nav-index" aria-hidden="true">
+                0{index + 1}
+              </span>
               {link.label}
             </Link>
           );

@@ -15,7 +15,7 @@ test.describe("Workbench shell behavior", () => {
     ).toHaveCount(0);
     await expect(page.locator(".site-frame")).toBeVisible();
     await expect(page.locator(".workbench-home")).toBeVisible();
-    await expect(page.locator(".workbench-hero-visual img")).toBeVisible();
+    await expect(page.getByRole("img", { name: /工作台构建/ })).toBeVisible();
   });
 
   test("reveals the back-to-top control after scrolling", async ({ page }) => {

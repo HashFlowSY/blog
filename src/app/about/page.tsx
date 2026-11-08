@@ -84,7 +84,11 @@ export default function AboutPage() {
         <div className="portfolio-about-layout">
           <article className="portfolio-profile-card">
             <p className="portfolio-overline">Profile / 01</p>
-            <h2>工程背景，产品视角，完整交付。</h2>
+            <h2>
+              <span>工程背景，</span>
+              <span>产品视角，</span>
+              <span>完整交付。</span>
+            </h2>
             <p>
               我主要关注 AI
               应用、后端系统和自动化工具，习惯先确认问题与约束，再把方案推进到可以使用、验证和维护的状态。

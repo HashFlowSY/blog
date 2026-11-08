@@ -15,6 +15,16 @@ export function RouteState() {
 
   useEffect(() => {
     document.body.dataset["route"] = routeFromPathname(pathname);
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+
+    const animation = document.getElementById("content")?.animate?.(
+      [
+        { opacity: 0.55, transform: "translateY(8px)" },
+        { opacity: 1, transform: "translateY(0)" },
+      ],
+      { duration: 280, easing: "cubic-bezier(0.22, 1, 0.36, 1)" },
+    );
+    return () => animation?.cancel();
   }, [pathname]);
 
   return null;

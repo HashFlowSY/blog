@@ -107,7 +107,9 @@ test.describe("Focused visual regression", () => {
       await expect(
         page.getByRole("heading", { name: /Hashflow AI 全栈工程师/ }),
       ).toBeVisible();
-      await expect(page.locator(".workbench-hero-visual img")).toBeVisible();
+      await expect(
+        page.getByRole("group", { name: "可旋转的立体工作台" }),
+      ).toBeVisible({ timeout: 15000 });
       await stabilizePage(page);
       await expectStableScreenshot(page, "home-desktop.png");
     });
@@ -140,6 +142,9 @@ test.describe("Focused visual regression", () => {
     }) => {
       await visitStaticPage(page, "/");
       await expect(page.getByRole("button", { name: "菜单" })).toBeVisible();
+      await expect(
+        page.getByRole("group", { name: "可旋转的立体工作台" }),
+      ).toBeVisible({ timeout: 15000 });
       await stabilizePage(page);
 
       const menuButton = page.getByRole("button", { name: "菜单" });

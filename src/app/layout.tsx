@@ -1,9 +1,15 @@
 import "./globals.css";
+import "./studio.css";
 
 import { SiteShell } from "@/components/layout/site-shell";
-import { SITE } from "@/lib/site";
+import { assetPath, SITE } from "@/lib/site";
 
 import type { Metadata } from "next";
+import type { CSSProperties } from "react";
+
+const paperStyle: CSSProperties & { "--studio-paper-grain": string } = {
+  "--studio-paper-grain": `url("${assetPath("/assets/sketchbook-paper.webp")}")`,
+};
 
 export const metadata: Metadata = {
   title: {
@@ -20,7 +26,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="zh-CN">
-      <body>
+      <body style={paperStyle}>
         <SiteShell>{children}</SiteShell>
       </body>
     </html>

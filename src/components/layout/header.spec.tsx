@@ -83,4 +83,34 @@ describe("Header", () => {
     expect(button).toHaveAttribute("aria-expanded", "false");
     expect(header).not.toHaveClass("is-menu-open");
   });
+
+  it("dismisses the menu with Escape and returns focus to its trigger", () => {
+    render(<Header siteName={SITE.name} siteRole={SITE.role} />);
+    const button = screen.getByRole("button", { name: "菜单" });
+    fireEvent.click(button);
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(button).toHaveAttribute("aria-expanded", "false");
+    expect(button).toHaveFocus();
+  });
+
+  it("does not steal focus when Escape is pressed outside a closed menu", () => {
+    render(
+      <>
+        <Header siteName={SITE.name} siteRole={SITE.role} />
+        <button type="button">正文操作</button>
+      </>,
+    );
+    const action = screen.getByRole("button", { name: "正文操作" });
+    action.focus();
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(action).toHaveFocus();
+  });
+
+  it("closes the menu when the visitor interacts outside the header", () => {
+    render(<Header siteName={SITE.name} siteRole={SITE.role} />);
+    const button = screen.getByRole("button", { name: "菜单" });
+    fireEvent.click(button);
+    fireEvent.pointerDown(document.body);
+    expect(button).toHaveAttribute("aria-expanded", "false");
+  });
 });

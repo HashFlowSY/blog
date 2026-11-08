@@ -7,8 +7,79 @@ import {
   goToProject,
   goToRoute,
 } from "./helpers/navigation";
+import {
+  drawTo,
+  expectPencilAtStroke,
+  installDrawingClock,
+  movePencilToDrawing,
+  paintedPencilLength,
+  waitForWorkbenchModel,
+} from "./helpers/workbench";
 
 test.describe("WebKit smoke", () => {
+  test("draws contacted points and consumes the pencil before enabling the solid model", async ({
+    page,
+  }) => {
+    await installDrawingClock(page);
+    await goToHome(page);
+    const workbench = page.getByRole("region", { name: "交互工作台" });
+    const revealed = workbench.locator(
+      '[data-construction-layer="points"] circle[visibility="visible"]',
+    );
+    await expect(revealed).toHaveCount(0);
+    await drawTo(page, workbench, 1);
+    await expect(revealed).toHaveCount(0);
+    await drawTo(page, workbench, 2);
+    await expect(
+      workbench.locator('[data-pencil-point="point-topLeft"]'),
+    ).toBeVisible();
+    const early = await paintedPencilLength(page, workbench);
+    await drawTo(page, workbench, 88);
+    const late = await paintedPencilLength(page, workbench);
+    console.log(
+      "WebKit painted pencil lengths",
+      JSON.stringify({ early, late }),
+    );
+    expect(early.pixels).toBeGreaterThan(30);
+    expect(late.pixels).toBeGreaterThan(30);
+    expect(late.extent).toBeLessThan(early.extent * 0.35);
+    await drawTo(page, workbench, 95);
+    await movePencilToDrawing(page, workbench);
+    await expectPencilAtStroke(workbench);
+    await drawTo(page, workbench, 100);
+    await waitForWorkbenchModel(workbench);
+    await expect(workbench.getByRole("slider")).toHaveCount(0);
+    await expect(workbench.getByRole("button")).toHaveCount(0);
+  });
+
+  test("rotates the finished view and resets it when a refresh starts a fresh drawing", async ({
+    page,
+  }) => {
+    await installDrawingClock(page);
+    await goToHome(page);
+    const workbench = page.getByRole("region", { name: "交互工作台" });
+    await drawTo(page, workbench, 100);
+    const view = await waitForWorkbenchModel(workbench);
+    await view.press("ArrowLeft");
+    await page.clock.runFor(750);
+    await expect(view.locator("canvas")).toHaveAttribute("data-yaw", "-15");
+    for (let i = 0; i < 25; i++) await view.press("ArrowRight");
+    await page.clock.runFor(32);
+    expect(
+      Number(await view.locator("canvas").getAttribute("data-yaw")),
+    ).toBeCloseTo(360, 1);
+    await page.reload();
+    await expect(workbench.locator("[data-progress]")).toHaveAttribute(
+      "data-progress",
+      "0",
+    );
+    await expect(view).toHaveCount(0);
+    await drawTo(page, workbench, 100);
+    await waitForWorkbenchModel(workbench);
+    await expect(view.locator("canvas")).toHaveAttribute("data-yaw", "0");
+    await expect(view.locator("canvas")).toHaveAttribute("data-pitch", "0");
+  });
+
   test("renders the home page and primary navigation", async ({ page }) => {
     await goToHome(page);
 
