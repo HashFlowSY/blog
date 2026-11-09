@@ -266,14 +266,37 @@ test.describe("Home page", () => {
       path: testInfo.outputPath("transition-drawing.png"),
     });
     await drawTo(page, workbench, 100);
-    await page.waitForTimeout(450);
+    await expect(scene).toHaveAttribute("data-model-ready", "true");
+    await expect(prepared).toHaveAttribute("data-active", "true");
+    // The drawing clock controls JavaScript, while CSS uses the browser timeline.
+    // Seek the real transitions so the sample cannot miss their middle frame.
+    await scene.evaluate((element) => {
+      for (const animation of element.getAnimations({ subtree: true })) {
+        const duration = animation.effect?.getComputedTiming().duration;
+        if (typeof duration !== "number" || duration <= 0) {
+          throw new Error("Expected a finite workbench transition");
+        }
+        animation.pause();
+        animation.currentTime = duration / 2;
+      }
+    });
     const opacity = await prepared.evaluate((element) =>
       Number(getComputedStyle(element).opacity),
     );
     expect(opacity).toBeGreaterThan(0);
     expect(opacity).toBeLessThan(1);
+    const drawingOpacity = await drawing.evaluate((element) =>
+      Number(getComputedStyle(element).opacity),
+    );
+    expect(drawingOpacity).toBeGreaterThan(0);
+    expect(drawingOpacity).toBeLessThan(1);
     await workbench.screenshot({
       path: testInfo.outputPath("transition-blend.png"),
+    });
+    await scene.evaluate((element) => {
+      for (const animation of element.getAnimations({ subtree: true })) {
+        animation.play();
+      }
     });
     await waitForWorkbenchModel(workbench);
     await expect(drawing).toHaveCSS("opacity", "0");
@@ -323,7 +346,7 @@ test.describe("Home page", () => {
       type: "touchEnd",
       touchPoints: [],
     });
-    await page.clock.runFor(750);
+    await page.clock.fastForward(750);
     expect(
       Math.abs(Number(await canvas.getAttribute("data-yaw"))),
     ).toBeGreaterThan(30);
@@ -340,7 +363,7 @@ test.describe("Home page", () => {
       type: "touchEnd",
       touchPoints: [],
     });
-    await page.clock.runFor(750);
+    await page.clock.fastForward(750);
     expect(
       Math.abs(Number(await canvas.getAttribute("data-pitch"))),
     ).toBeGreaterThan(20);
@@ -365,7 +388,7 @@ test.describe("Home page", () => {
       type: "touchEnd",
       touchPoints: [],
     });
-    await page.clock.runFor(750);
+    await page.clock.fastForward(750);
     expect(Number(await canvas.getAttribute("data-zoom"))).toBeGreaterThan(1.2);
     await touch.send("Input.dispatchTouchEvent", {
       type: "touchStart",

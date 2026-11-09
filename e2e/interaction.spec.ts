@@ -62,6 +62,15 @@ test.describe("Continuous browsing interactions", () => {
       name: "技术写作",
       exact: true,
     });
+    await expect(page.locator("body")).toHaveAttribute(
+      "data-route",
+      "articles",
+    );
+    await page.locator("main").evaluate(async (element) => {
+      await Promise.all(
+        element.getAnimations().map((animation) => animation.finished),
+      );
+    });
     const originalTop = await heading.evaluate(
       (element) => element.getBoundingClientRect().top,
     );

@@ -18,13 +18,6 @@ import type { Page } from "@playwright/test";
 
 const blockingImpacts = new Set(["serious", "critical"]);
 
-const STATIC_SCAN_STABILIZATION_STYLE = `
-  *, *::before, *::after {
-    animation: none !important;
-    transition: none !important;
-  }
-`;
-
 const scannedPages = [
   ["home", "/"],
   ["post list", "/posts/"],
@@ -76,11 +69,20 @@ async function scanPage(page: Page, pageName: string): Promise<void> {
   }
 }
 
-async function prepareA11yPage(page: Page, pathname: string): Promise<void> {
-  await visitStaticPage(page, pathname);
-  // Route entry animations can leave Linux axe scans sampling a half-opacity
-  // frame. Static accessibility checks should inspect the settled artifact.
-  await page.addStyleTag({ content: STATIC_SCAN_STABILIZATION_STYLE });
+async function prepareA11yPage(
+  page: Page,
+  pathname: string,
+  expectedStatus = 200,
+): Promise<void> {
+  await visitStaticPage(page, pathname, { expectedStatus });
+  // CSS overrides cannot stop the route entry's Web Animation. Wait for the
+  // client effect and its real completion before measuring text contrast.
+  await expect(page.locator("body")).toHaveAttribute("data-route", /\S+/);
+  await page.locator("main").evaluate(async (element) => {
+    await Promise.all(
+      element.getAnimations().map((animation) => animation.finished),
+    );
+  });
 }
 
 test.describe("Accessibility scans on the static artifact", () => {
@@ -117,7 +119,7 @@ test.describe("Accessibility scans on the static artifact", () => {
     expect(documentResponse.status(), routePath(missingPath)).toBe(404);
     expect(await documentResponse.body()).toEqual(generated404);
 
-    await visitStaticPage(page, missingPath, { expectedStatus: 404 });
+    await prepareA11yPage(page, missingPath, 404);
     await expect(
       page.getByRole("heading", { name: "页面不存在" }),
     ).toBeVisible();
