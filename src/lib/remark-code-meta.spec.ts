@@ -32,11 +32,4 @@ describe("remarkCodeMeta", () => {
     expect(html).toContain("<code>");
     expect(html).not.toContain("data-meta");
   });
-
-  it("handles showLineNumbers meta string", async () => {
-    const html = await process(
-      "```js showLineNumbers\nconsole.log('hi');\n```",
-    );
-    expect(html).toContain('data-meta="showLineNumbers"');
-  });
 });

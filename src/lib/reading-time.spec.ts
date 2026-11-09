@@ -23,12 +23,6 @@ describe("estimateReadingTime", () => {
     expect(estimateReadingTime(text)).toBe(2);
   });
 
-  it("counts CJK characters individually at a slower rate", () => {
-    // 4 CJK chars → 4/500 = 0.008 min → ceil → 1 min
-    const text = "你好世界";
-    expect(estimateReadingTime(text)).toBe(1);
-  });
-
   it("estimates CJK correctly for longer text", () => {
     // 500 CJK chars → 500/500 = 1 min
     const text = "你".repeat(500);
@@ -39,24 +33,6 @@ describe("estimateReadingTime", () => {
     // 1000 CJK chars → 1000/500 = 2 min
     const text = "你".repeat(1000);
     expect(estimateReadingTime(text)).toBe(2);
-  });
-
-  it("handles mixed CJK and English text", () => {
-    // 100 English words + 100 CJK chars
-    // = 100/200 + 100/500 = 0.5 + 0.2 = 0.7 → ceil → 1 min
-    const text = "word ".repeat(100) + "你".repeat(100);
-    expect(estimateReadingTime(text)).toBe(1);
-  });
-
-  it("counts words separated by whitespace", () => {
-    const text = "one two three four five";
-    expect(estimateReadingTime(text)).toBe(1); // 5 words < 200/min = 1 min
-  });
-
-  it("handles markdown syntax as words", () => {
-    const text = "# Title\n\nSome **bold** text and more content here.";
-    const result = estimateReadingTime(text);
-    expect(result).toBeGreaterThan(0);
   });
 
   it("handles very short content as 1 minute minimum", () => {

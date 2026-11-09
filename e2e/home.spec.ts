@@ -216,7 +216,8 @@ test.describe("Home page", () => {
         { steps: 12 },
       );
       await page.mouse.up();
-      await page.clock.runFor(750);
+      // Skip intermediate inertia frames on CI's software WebGL renderer.
+      await page.clock.fastForward(750);
     }
     expect(
       Math.abs(Number(await canvas.getAttribute("data-yaw"))),

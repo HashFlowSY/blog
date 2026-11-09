@@ -14,16 +14,6 @@ vi.mock("next/navigation", () => {
 });
 
 describe("Header", () => {
-  it("renders the portfolio brand lockup without language switcher", () => {
-    render(<Header siteName={SITE.name} siteRole={SITE.role} />);
-
-    expect(screen.getByText("H")).toBeInTheDocument();
-    expect(screen.getByText("Hashflow")).toBeInTheDocument();
-    expect(screen.getByText("AI 全栈工程师")).toBeInTheDocument();
-    expect(screen.queryByText("EN")).not.toBeInTheDocument();
-    expect(screen.queryByText("中文")).not.toBeInTheDocument();
-  });
-
   it("renders the four Chinese-only primary navigation links", () => {
     render(<Header siteName={SITE.name} siteRole={SITE.role} />);
 

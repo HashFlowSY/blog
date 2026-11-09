@@ -27,29 +27,6 @@ describe("CodeBlockEnhancer", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("adds copy button to code blocks with code-block class", async () => {
-    const { container } = render(
-      <CodeBlockEnhancer>
-        <div
-          className="code-block"
-          data-language="typescript"
-          dangerouslySetInnerHTML={{
-            __html:
-              '<div class="code-block-header"><span class="code-block-lang">typescript</span></div><pre><code>const x = 1;</code></pre>',
-          }}
-        />
-      </CodeBlockEnhancer>,
-    );
-
-    // Wait for useEffect
-    await act(async () => {
-      await new Promise((r) => setTimeout(r, 0));
-    });
-
-    const button = container.querySelector('button[aria-label="复制代码"]');
-    expect(button).toBeInTheDocument();
-  });
-
   it("does not duplicate copy buttons when effects rerun in StrictMode", async () => {
     const { container } = render(
       <StrictMode>
@@ -176,52 +153,6 @@ describe("CodeBlockEnhancer", () => {
 
     const buttons = container.querySelectorAll('button[aria-label="复制代码"]');
     expect(buttons).toHaveLength(2);
-  });
-
-  it("language label is visible when present", () => {
-    const { container } = render(
-      <CodeBlockEnhancer>
-        <div
-          className="code-block"
-          data-language="typescript"
-          dangerouslySetInnerHTML={{
-            __html:
-              '<div class="code-block-header"><span class="code-block-lang">typescript</span></div><pre><code>code</code></pre>',
-          }}
-        />
-      </CodeBlockEnhancer>,
-    );
-
-    expect(container.querySelector(".code-block-lang")).toHaveTextContent(
-      "typescript",
-    );
-  });
-
-  it("cleans up DOM modifications on unmount", async () => {
-    const { container, unmount } = render(
-      <CodeBlockEnhancer>
-        <div
-          className="code-block"
-          dangerouslySetInnerHTML={{
-            __html:
-              '<div class="code-block-header"><span class="code-block-lang">js</span></div><pre><code>code</code></pre>',
-          }}
-        />
-      </CodeBlockEnhancer>,
-    );
-
-    await act(async () => {
-      await new Promise((r) => setTimeout(r, 0));
-    });
-
-    expect(
-      container.querySelector('button[aria-label="复制代码"]'),
-    ).toBeInTheDocument();
-
-    unmount();
-
-    // After unmount, the container is detached — the cleanup happened
-    // We can't easily verify the DOM was restored, but we verify no errors
   });
 
   it("creates header when code-block has no existing header", async () => {

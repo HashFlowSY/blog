@@ -167,17 +167,6 @@ describe("PostDetailTemplate", () => {
     expect(getByText("工具链")).toBeInTheDocument();
   });
 
-  it("keeps unexpected record dates readable in the rendered article", () => {
-    const { getByText } = render(
-      <PostDetailTemplate
-        post={{ ...post, date: "not-a-date", updated: "not-a-date" }}
-        relatedPosts={[]}
-      />,
-    );
-
-    expect(getByText("not-a-date")).toBeInTheDocument();
-  });
-
   it("renders numbered table-of-contents links for Catalog headings", () => {
     const { getByRole } = render(
       <PostDetailTemplate

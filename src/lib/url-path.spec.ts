@@ -3,20 +3,9 @@ import { describe, expect, it } from "vitest";
 import {
   decodeCanonicalRootRelativePathname,
   normalizeRootRelativePathname,
-  parseUrlReference,
-  URL_PATH_NORMALIZATION_BASE,
 } from "./url-path";
 
 describe("normalizeRootRelativePathname", () => {
-  it("uses the shared WHATWG normalization base", () => {
-    const url = parseUrlReference("/assets/cover.png");
-
-    expect(url.origin).toBe(URL_PATH_NORMALIZATION_BASE);
-    expect(normalizeRootRelativePathname("/assets/cover.png")).toBe(
-      "/assets/cover.png",
-    );
-  });
-
   it.each([
     "assets/cover.png",
     "//example.com/cover.png",

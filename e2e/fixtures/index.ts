@@ -9,7 +9,6 @@ const SITE_COPY = {
   recentPosts: "最近在写",
   featuredProjects: "代表项目",
   viewProjects: "查看项目",
-  minutes: "min",
   source: "源代码",
   demo: "在线演示",
   aboutTitle: "关于我",

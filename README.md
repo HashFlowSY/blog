@@ -6,10 +6,11 @@ A Chinese personal portfolio built with Next.js 16. It presents real Project Cas
 
 - **Static Export** — Pure HTML/CSS/JS, no server required
 - **Unified Portfolio UI** — One workbench and portfolio system across the home page, Project Cases, Posts, and about page
+- **Hand-Drawn Workbench** — Pencil construction from points to a textured 3D model with continuous 360-degree orbit
 - **Strict Content Catalog** — Posts and Project Cases use explicit, Zod-validated frontmatter and build as one atomic snapshot
 - **Chinese-Only Routes** — Root, posts, projects, about, RSS, sitemap, and content all target Chinese
 - **Syntax Highlighting** — Code blocks with language labels, copy button, line highlighting
-- **Writing Topics** — Post tags summarize current writing themes without client-side filtering
+- **Writing Topics** — Filter Posts by keyword and writing topic, with a resettable empty state
 - **Post Reading Template** — Shared reading page template for every Post
 - **SEO** — Sitemap, robots.txt, canonical URLs, noindex 404
 - **RSS Feed** — `/feed.xml` with autodiscovery
@@ -46,6 +47,7 @@ src/
 ├── app/
 │   ├── layout.tsx            # Root layout + site shell
 │   ├── globals.css           # Shared workbench and portfolio styles
+│   ├── studio.css            # Paper palette, layout and interaction styling
 │   ├── page.tsx              # Home
 │   ├── about/                # About page
 │   ├── posts/                # Blog posts (list + detail)
@@ -55,6 +57,7 @@ src/
 │   ├── robots.ts             # robots.txt
 │   └── feed.xml/             # RSS feed
 ├── components/
+│   ├── home/                 # Pencil drawing, construction timing and 3D workbench
 │   ├── layout/               # Header, footer, site shell, back-to-top
 │   ├── post/                 # Post archive, detail template, card, code block
 │   └── project/              # Project Case card, list
@@ -65,6 +68,10 @@ src/
     ├── site.ts               # Site URL config
     └── feed.ts               # RSS XML builder
 ```
+
+The original workbench illustration is kept at
+`docs/design/workbench-hero.png`. Browser-ready textures live under
+`public/assets/`; design source images are kept outside the static export.
 
 ## Getting Started
 
@@ -87,7 +94,6 @@ Create `.env.local` for local development:
 ```env
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 BASE_PATH=
-NEXT_PUBLIC_BASE_PATH=
 ```
 
 See [Environment Variables](#environment-variables) for the full list.
@@ -355,9 +361,10 @@ The site no longer uses locale-prefixed routes or translation files. Add Chinese
 The included GitHub Actions workflow (`deploy.yml`) handles everything:
 
 1. Push to `main` triggers the workflow
-2. `BASE_PATH` is auto-detected:
+2. `actions/configure-pages` reads `BASE_PATH` from the configured Pages URL:
    - `username.github.io` → empty (root)
    - `username.github.io/repo-name` → `/repo-name`
+   - `your-domain.com` → empty when Pages serves the site at that domain's root
 3. The reusable quality workflow runs linting, non-incremental TypeScript,
    coverage, dependency audit, and the development-server Chromium suite
 4. `pnpm build` generates static files in `out/`; Chromium, accessibility,
@@ -375,15 +382,17 @@ The included GitHub Actions workflow (`deploy.yml`) handles everything:
 
 ### Custom Domain
 
-Set `NEXT_PUBLIC_SITE_URL` to your domain in GitHub Variables, and configure DNS accordingly.
+Configure the custom domain in **Settings → Pages**, set `NEXT_PUBLIC_SITE_URL`
+to its HTTPS origin in GitHub Variables, and configure DNS accordingly. The
+workflow reads the resulting Pages URL, including its path, before building.
 
 ## Environment Variables
 
-| Variable                | Required   | Description                                                           |
-| ----------------------- | ---------- | --------------------------------------------------------------------- |
-| `NEXT_PUBLIC_SITE_URL`  | Production | Build-time origin for sitemap, robots, RSS, and canonical URLs        |
-| `BASE_PATH`             | No         | URL prefix for project pages; omitted or empty means the site root    |
-| `NEXT_PUBLIC_BASE_PATH` | No         | Client-visible mirror of `BASE_PATH`; it must match when both are set |
+| Variable                | Required   | Description                                                                               |
+| ----------------------- | ---------- | ----------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_SITE_URL`  | Production | Build-time origin for sitemap, robots, RSS, and canonical URLs                            |
+| `BASE_PATH`             | No         | URL prefix for project pages; omitted or empty means the site root                        |
+| `NEXT_PUBLIC_BASE_PATH` | No         | Automatically bundled from the resolved base path; explicit values must match `BASE_PATH` |
 
 ### NEXT_PUBLIC_SITE_URL
 
@@ -419,7 +428,9 @@ Value: https://your-domain.com
 
 ### BASE_PATH
 
-The URL prefix for GitHub Pages project sites. Automatically computed by `deploy.yml`, no manual configuration needed.
+The URL prefix for GitHub Pages project sites. `deploy.yml` reads it from the
+configured Pages URL, so repository sites and custom domains use their actual
+deployment path.
 
 Use either an empty value or a normalized root-relative path without a trailing
 slash (for example, `/blog`). It cannot contain an origin, query, or hash. When
@@ -428,7 +439,11 @@ slash (for example, `/blog`). It cannot contain an origin, query, or hash. When
 - `username.github.io` → `BASE_PATH=` (empty)
 - `username.github.io/repo-name` → `BASE_PATH=/repo-name`
 
-For a manual project-site build, set `NEXT_PUBLIC_BASE_PATH` to the same value so client components resolve public assets correctly. The GitHub Actions workflow sets both variables automatically.
+For a manual project-site build, `BASE_PATH=/blog` is sufficient. Next.js
+automatically bundles the resolved value as `NEXT_PUBLIC_BASE_PATH` for client
+components. If you also set the public variable explicitly (including in
+`.env.local`), the two values must match. The GitHub Actions workflow supplies
+`BASE_PATH` and uses this same automatic client configuration.
 
 ### Local Development
 
@@ -437,7 +452,6 @@ Create `.env.local` in the project root:
 ```env
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 BASE_PATH=
-NEXT_PUBLIC_BASE_PATH=
 ```
 
 ## Scripts

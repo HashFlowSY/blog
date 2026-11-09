@@ -19,8 +19,11 @@ jobs:
   deployment-config:
     name: Deployment Config
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: read
     outputs:
-      base-path: ${{ steps.base-path.outputs.base_path }}
+      base-path: ${{ steps.pages.outputs.base_path }}
     steps:
       - name: Validate required variables
         env:
@@ -30,14 +33,9 @@ jobs:
             echo "::error title=Missing NEXT_PUBLIC_SITE_URL::Set NEXT_PUBLIC_SITE_URL in Settings > Secrets and variables > Actions > Variables."
             exit 1
           fi
-      - name: Determine base path
-        id: base-path
-        run: |
-          if [ "${{ github.event.repository.name }}" = "${{ github.repository_owner }}.github.io" ]; then
-              echo "base_path=" >> "$GITHUB_OUTPUT"
-          else
-              echo "base_path=/${{ github.event.repository.name }}" >> "$GITHUB_OUTPUT"
-          fi
+      - name: Read GitHub Pages configuration
+        id: pages
+        uses: actions/configure-pages@v6
 
   quality-gate:
     name: Quality Gate
@@ -69,7 +67,6 @@ jobs:
         run: pnpm build
         env:
           BASE_PATH: ${{ needs.deployment-config.outputs.base-path }}
-          NEXT_PUBLIC_BASE_PATH: ${{ needs.deployment-config.outputs.base-path }}
           NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL }}
       - name: Verify static asset URLs use the base path
         if: needs.deployment-config.outputs.base-path != ''

@@ -24,15 +24,6 @@ async function clickNavAndWait(
 }
 
 test.describe("Navigation", () => {
-  test("root path / renders the Chinese home page", async ({ page }) => {
-    await goToHome(page);
-
-    expect(new URL(page.url()).pathname.endsWith("/")).toBe(true);
-    await expect(
-      page.getByRole("heading", { name: /Hashflow AI 全栈工程师/ }),
-    ).toBeVisible();
-  });
-
   test("header navigation links navigate correctly on desktop", async ({
     page,
   }) => {

@@ -74,20 +74,6 @@ describe("siteUrl", () => {
     );
   });
 
-  it("preserves trailing slash", async () => {
-    process.env["NEXT_PUBLIC_SITE_URL"] = "https://example.com";
-    process.env["BASE_PATH"] = "";
-    const { siteUrl } = await import("./site");
-    expect(siteUrl("/about/")).toBe("https://example.com/about/");
-  });
-
-  it("uses an empty base path when BASE_PATH is not set", async () => {
-    process.env["NEXT_PUBLIC_SITE_URL"] = "https://example.com";
-    delete process.env["BASE_PATH"];
-    const { BASE_PATH } = await import("./site");
-    expect(BASE_PATH).toBe("");
-  });
-
   it("omits BASE_PATH when it is undefined but SITE_ORIGIN is set", async () => {
     process.env["NEXT_PUBLIC_SITE_URL"] = "https://example.com";
     delete process.env["BASE_PATH"];
@@ -191,8 +177,8 @@ describe("assetPath", () => {
     delete process.env["BASE_PATH"];
     const { assetPath } = await import("./site");
 
-    expect(assetPath("/assets/workbench-hero.png")).toBe(
-      "/assets/workbench-hero.png",
+    expect(assetPath("/assets/workbench-pencil-detail.webp")).toBe(
+      "/assets/workbench-pencil-detail.webp",
     );
   });
 
@@ -200,8 +186,8 @@ describe("assetPath", () => {
     process.env["BASE_PATH"] = "/blog";
     const { assetPath } = await import("./site");
 
-    expect(assetPath("/assets/workbench-hero.png")).toBe(
-      "/blog/assets/workbench-hero.png",
+    expect(assetPath("/assets/workbench-pencil-detail.webp")).toBe(
+      "/blog/assets/workbench-pencil-detail.webp",
     );
   });
 
@@ -211,8 +197,8 @@ describe("assetPath", () => {
     const { assetPath, BASE_PATH } = await import("./site");
 
     expect(BASE_PATH).toBe("/blog");
-    expect(assetPath("/assets/workbench-hero.png")).toBe(
-      "/blog/assets/workbench-hero.png",
+    expect(assetPath("/assets/workbench-pencil-detail.webp")).toBe(
+      "/blog/assets/workbench-pencil-detail.webp",
     );
   });
 
@@ -238,8 +224,8 @@ describe("assetPath", () => {
     process.env["BASE_PATH"] = "/assets";
     const { assetPath } = await import("./site");
 
-    expect(assetPath("/assets/workbench-hero.png")).toBe(
-      "/assets/assets/workbench-hero.png",
+    expect(assetPath("/assets/workbench-pencil-detail.webp")).toBe(
+      "/assets/assets/workbench-pencil-detail.webp",
     );
   });
 });

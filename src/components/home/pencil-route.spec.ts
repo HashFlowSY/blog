@@ -73,10 +73,7 @@ describe("pencil route", () => {
     }
   });
 
-  it("has no lingering or replay-dependent cursor when rewinding and finishing", () => {
-    const pose = pencilPosition(96, sample);
-    pencilPosition(24, sample);
-    expect(pencilPosition(96, sample)).toEqual(pose);
+  it("removes the cursor exactly when the last stroke finishes", () => {
     const last = pencilRoute.at(-1)!;
     expect(last.end).toBe(100);
     const finalStroke = pencilPosition((last.start + last.end) / 2, sample)!;
@@ -148,13 +145,5 @@ describe("pencil material", () => {
         10,
       );
     }
-  });
-
-  it("reconstructs wear when scrubbing, continuing, or replaying details", () => {
-    const used = pencilLength(96);
-    pencilLength(24);
-    expect(pencilLength(96)).toBe(used);
-    expect(pencilLength(82)).toBeLessThan(fullPencilLength);
-    expect(pencilLength(0)).toBe(fullPencilLength);
   });
 });

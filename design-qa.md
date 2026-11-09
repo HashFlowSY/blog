@@ -4,7 +4,7 @@
 
 ## 视觉依据与截图
 
-- source visual truth path：`public/assets/workbench-hero.png`（1536 × 1024 原稿）、`qa-evidence/workbench-orbit/neutral.jpg`（原二维完成态，1440 × 1000），以及用户确认的真实 3D、手绘贴图和完整侧背面方案。
+- source visual truth path：`docs/design/workbench-hero.png`（1536 × 1024 原稿，已移出公开资源目录）、`qa-evidence/workbench-orbit/neutral.jpg`（原二维完成态，1440 × 1000），以及用户确认的真实 3D、手绘贴图和完整侧背面方案。
 - implementation screenshot path：`qa-evidence/workbench-graphite/front.jpg`、`side.jpg`、`back.jpg`、`full-turn.jpg`、`underside.jpg`、`mobile-front.jpg`、`mobile-back.jpg`。
 - viewport：桌面 1440 × 1000 CSS px、手机 320 × 844 CSS px；原始截图像素与 CSS 视口一一对应。所有对照均为浅色主题与同一完成状态。
 - full-view comparison evidence：`source-comparison.jpg` 左为二维目标、右为最终 3D；分别从同尺寸截图裁出 x=640、y=267、734 × 482 px 区域，无缩放拼接。`before-after.jpg` 同样比较上一版实体模型与本轮结果。

@@ -511,10 +511,10 @@ test.describe("generated static artifact", () => {
     await visitStaticPage(page, "/");
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 
-    const existingImage = publicUrl("/assets/workbench-hero.png");
+    const existingImage = publicUrl("/assets/workbench-pencil-detail.webp");
     const existingResponse = await requestImage(page, existingImage);
     expect(existingResponse.status()).toBe(200);
-    expect(existingResponse.headers()["content-type"]).toMatch(/image\/png/);
+    expect(existingResponse.headers()["content-type"]).toMatch(/image\/webp/);
 
     const missingImage = publicUrl("/assets/missing-static-resource.png");
     const missingResponse = await requestImage(page, missingImage);

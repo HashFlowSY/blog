@@ -47,5 +47,4 @@ export {
   goToProject,
   goToProjects,
   goToRoute,
-  relativeRoute,
 };

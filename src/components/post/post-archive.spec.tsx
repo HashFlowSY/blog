@@ -41,7 +41,6 @@ describe("PostArchive", () => {
       "href",
       "/posts/first/",
     );
-    expect(screen.queryByText("最新阅读")).not.toBeInTheDocument();
   });
 
   it("renders an empty state when there are no posts", () => {
@@ -70,7 +69,7 @@ describe("PostArchive", () => {
     );
   });
 
-  it("toggles a selected topic off without losing the search query", () => {
+  it("toggles a selected topic off", () => {
     render(<PostArchive posts={posts} tags={["手记", "工程"]} />);
     const topic = screen.getByRole("button", { name: "工程" });
     fireEvent.click(topic);

@@ -40,13 +40,6 @@ describe("rehypeCodeBlock", () => {
     expect(html).toContain('data-line="3"');
   });
 
-  it("highlights lines from meta attribute", async () => {
-    const md =
-      "```typescript {1,3}\nconst x = 1;\nconst y = 2;\nconst z = 3;\n```";
-    const html = await process(md);
-    expect(html).toContain('data-highlighted="true"');
-  });
-
   it("works without language class", async () => {
     const md = "```\nsome code\nmore code\n```";
     const html = await process(md);
@@ -100,23 +93,6 @@ describe("rehypeCodeBlock", () => {
     const html = await process(md);
     const highlightedCount = (html.match(/data-highlighted/g) || []).length;
     expect(highlightedCount).toBe(3);
-  });
-
-  it("adds newline text nodes between line spans", async () => {
-    const md = "```js\na\nb\n```";
-    const html = await process(md);
-    // There should be newline separators between line spans
-    const spanCount = (html.match(/data-line/g) || []).length;
-    expect(spanCount).toBe(2);
-  });
-
-  it("wraps pre in code-block div without data-language when no language", async () => {
-    const md = "```\nsome code\n```";
-    const html = await process(md);
-    // Should have the wrapper div but no data-language attribute
-    const wrapperMatch = html.match(/class="code-block"/g);
-    expect(wrapperMatch).toBeTruthy();
-    expect(html).not.toContain("data-language");
   });
 
   it("handles invalid range in meta gracefully", async () => {

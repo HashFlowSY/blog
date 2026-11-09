@@ -239,12 +239,4 @@ describe("renderMarkdown", () => {
     expect(Object.isFrozen(unicode.headings)).toBe(true);
     expect(Object.isFrozen(unicode.headings[0])).toBe(true);
   });
-
-  it("accepts a filename option without changing valid output", async () => {
-    const rendered = await renderMarkdown("# Valid Markdown", {
-      filename: "test.md",
-    });
-
-    expect(rendered.html).toContain("Valid Markdown");
-  });
 });
