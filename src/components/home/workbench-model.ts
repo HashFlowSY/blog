@@ -10,6 +10,7 @@ import {
   Matrix4,
   Mesh,
   MeshBasicMaterial,
+  Path,
   Quaternion,
   Shape,
   SphereGeometry,
@@ -22,13 +23,18 @@ import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.j
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 
 import { layoutWorkbenchAtlas } from "./workbench-atlas";
-import { perforatedBoard, solidSurfaces } from "./workbench-surfaces";
+import {
+  loftSurfaces,
+  perforatedBoard,
+  roundedProfile,
+  solidSurfaces,
+} from "./workbench-surfaces";
 import { artworkPoint } from "./workbench-view";
 
 import type {
   ArtworkQuad,
   ArtworkRegion,
-  SurfaceProjection,
+  InkStroke,
   WorkbenchSurface,
 } from "./workbench-atlas";
 import type { WorkbenchFinish } from "./workbench-materials";
@@ -38,14 +44,17 @@ import type { Texture } from "three";
 type Point = readonly [number, number, number];
 type Finish = WorkbenchFinish;
 type Quad<T> = readonly [T, T, T, T];
+type SurfaceOptions = Partial<
+  Omit<WorkbenchSurface, "geometry" | "finish" | "region">
+> & { rotation?: Point };
 interface SolidArtwork {
-  front?: ArtworkQuad;
-  sides?: Partial<Record<number, ArtworkQuad>>;
+  front: ArtworkQuad;
 }
 
 const xAxis = new Vector3(1, 0, 0);
 const up = new Vector3(0, 1, 0);
 const down = new Vector3(0, -1, 0);
+const origin = [0, 0, 0] as const;
 
 function rectangle(
   [a, b, c, d]: Quad<Vector3>,
@@ -85,15 +94,13 @@ export function buildWorkbenchSurfaces() {
   function add(
     geometry: BufferGeometry,
     finish: Finish,
-    position: Point,
-    rotation: Point = [0, 0, 0],
-    outline = true,
-    projection?: SurfaceProjection,
+    position: Point = origin,
+    { rotation = origin, outline = true, ...details }: SurfaceOptions = {},
   ) {
     const matrix = new Matrix4()
       .makeRotationFromEuler(new Euler(...rotation))
       .setPosition(...position);
-    const solid = geometry.index ? geometry.toNonIndexed() : geometry.clone();
+    const solid = geometry.index ? geometry.toNonIndexed() : geometry;
     solid.applyMatrix4(matrix);
     solid.clearGroups();
     surfaces.push({
@@ -101,9 +108,9 @@ export function buildWorkbenchSurfaces() {
       finish,
       region,
       outline,
-      ...(projection && { projection }),
+      ...details,
     });
-    geometry.dispose();
+    if (solid !== geometry) geometry.dispose();
   }
   function box(
     w: number,
@@ -120,7 +127,7 @@ export function buildWorkbenchSurfaces() {
         : new RoundedBoxGeometry(w, h, d, 2, radius),
       finish,
       at,
-      rotation,
+      { rotation },
     );
   }
   function cylinder(
@@ -132,12 +139,9 @@ export function buildWorkbenchSurfaces() {
     rotation: Point = [0, 0, 0],
     open = false,
   ) {
-    add(
-      new CylinderGeometry(top, bottom, height, 20, 1, open),
-      finish,
-      at,
+    add(new CylinderGeometry(top, bottom, height, 20, 1, open), finish, at, {
       rotation,
-    );
+    });
   }
   function rod(from: Point, to: Point, radius: number, finish: Finish) {
     const a = new Vector3(...from),
@@ -153,33 +157,63 @@ export function buildWorkbenchSurfaces() {
       new CylinderGeometry(radius, radius, direction.length(), 10),
       finish,
       a.add(b).multiplyScalar(0.5).toArray(),
-      [rotation.x, rotation.y, rotation.z],
+      { rotation: [rotation.x, rotation.y, rotation.z] },
     );
   }
-  function tube(points: Point[], radius: number, finish: Finish) {
+  function tube(
+    points: Point[],
+    radius: number,
+    finish: Finish,
+    sourceInk?: false,
+  ) {
+    const path = new CatmullRomCurve3(points.map((p) => new Vector3(...p)));
+    const length = path.getLength();
     add(
       new TubeGeometry(
-        new CatmullRomCurve3(points.map((p) => new Vector3(...p))),
-        16,
+        path,
+        Math.max(12, Math.min(48, Math.ceil(length * 13))),
         radius,
-        6,
+        radius < 0.013 ? 5 : 6,
         false,
       ),
       finish,
-      [0, 0, 0],
-      undefined,
-      false,
+      origin,
+      {
+        outline: false,
+        uvSize: [length, radius * 2 * Math.PI],
+        ...(sourceInk === false && { sourceInk }),
+      },
     );
   }
+  function shapedSolid(
+    rings: readonly (readonly Vector3[])[],
+    finish: Finish,
+    options: SurfaceOptions = {},
+  ) {
+    const { start, end, wall, uvSize } = loftSurfaces(rings);
+    add(mergeGeometries([start, end])!, finish, origin, options);
+    start.dispose();
+    end.dispose();
+    add(wall, finish, origin, { ...options, outline: false, uvSize });
+  }
+  function piercedPlate(
+    outline: Vector2[],
+    openings: readonly Vector2[][],
+    depth: number,
+  ) {
+    const shape = new Shape(outline);
+    shape.closePath();
+    for (const opening of openings) {
+      const hole = new Path(opening.slice().reverse());
+      hole.closePath();
+      shape.holes.push(hole);
+    }
+    return new ExtrudeGeometry(shape, { depth, bevelEnabled: false });
+  }
   function screw(at: Point, front = true) {
-    cylinder(
-      0.026,
-      0.026,
-      0.016,
-      "metal",
-      at,
-      front ? [Math.PI / 2, 0, 0] : [0, 0, 0],
-    );
+    add(new CylinderGeometry(0.026, 0.026, 0.016, 12), "metal", at, {
+      rotation: front ? [Math.PI / 2, 0, 0] : origin,
+    });
     box(0.031, front ? 0.006 : 0.003, front ? 0.003 : 0.006, "dark", [
       at[0],
       at[1] + (front ? 0 : 0.009),
@@ -193,17 +227,27 @@ export function buildWorkbenchSurfaces() {
     width: number,
     height: number,
   ) {
+    const half = width / 2 - height * 0.26;
+    const depth = height * 0.96;
     for (const side of [-1, 1])
-      box(height * 0.72, height * 1.24, height * 0.9, "metal", [
-        x + side * (width / 2 - height * 0.32),
+      box(height * 0.74, height * 0.93, height * 0.33, "metal", [
+        x + side * half,
         y,
-        z + height * 0.42,
+        z + height * 0.16,
       ]);
-    box(width, height * 0.62, height * 0.4, "dark", [
-      x,
-      y - height * 0.13,
-      z + height * 0.92,
-    ]);
+    tube(
+      [
+        [x - half, y, z + height * 0.15],
+        [x - half, y, z + depth * 0.7],
+        [x - half + height * 0.37, y, z + depth],
+        [x + half - height * 0.37, y, z + depth],
+        [x + half, y, z + depth * 0.7],
+        [x + half, y, z + height * 0.15],
+      ],
+      height * 0.234,
+      "dark",
+      false,
+    );
   }
   function pointsAt<const Points extends readonly ArtworkPoint[]>(
     points: Points,
@@ -222,25 +266,13 @@ export function buildWorkbenchSurfaces() {
   ) {
     const { front: cap, back: base, sides } = solidSurfaces(front, back);
     const plain = [base];
-    function face(
-      geometry: BufferGeometry,
-      corners: readonly Vector3[],
-      pixels: ArtworkQuad | undefined,
-    ) {
-      if (pixels)
-        add(geometry, finish, [0, 0, 0], undefined, true, { corners, pixels });
-      else plain.push(geometry);
-    }
-    face(cap, front, artwork?.front);
-    sides.forEach((side, i) => {
-      const next = (i + 1) % front.length;
-      face(
-        side,
-        [front[i]!, front[next]!, back[next]!, back[i]!],
-        artwork?.sides?.[i],
-      );
-    });
-    add(mergeGeometries(plain)!, finish, [0, 0, 0]);
+    if (artwork)
+      add(cap, finish, origin, {
+        projection: { corners: front, pixels: artwork.front },
+      });
+    else plain.push(cap);
+    plain.push(...sides);
+    add(mergeGeometries(plain)!, finish);
     plain.forEach((face) => face.dispose());
   }
   function slab(
@@ -280,6 +312,13 @@ export function buildWorkbenchSurfaces() {
   const across = new Vector3(Math.cos(deskYaw), 0, -Math.sin(deskYaw));
   const inward = up.clone().cross(across);
   const deskCenter = new Vector3(0.158813, tabletopHeight, 0.212426);
+  function deskPoint(x: number, y: number, z: number) {
+    return deskCenter
+      .clone()
+      .addScaledVector(across, x)
+      .addScaledVector(inward, z)
+      .setY(y);
+  }
   const tabletop = (
     [
       [-1, -1],
@@ -288,33 +327,63 @@ export function buildWorkbenchSurfaces() {
       [-1, 1],
     ] as const
   ).map(([x, z]) =>
-    deskCenter
-      .clone()
-      .addScaledVector(across, (x * deskWidth) / 2)
-      .addScaledVector(inward, (z * deskDepth) / 2),
+    deskPoint((x * deskWidth) / 2, tabletopHeight, (z * deskDepth) / 2),
   );
   const apronHeight = 2.94;
-  slab(tabletop, new Vector3(0, apronHeight - tabletopHeight, 0), "wood", {
-    front: [
-      [498, 540],
-      [1271, 591],
-      [1368, 530],
-      [668, 499],
-    ],
-    sides: {
-      0: [
+  const deskStrokes: InkStroke[] = [];
+  const undersideStrokes: InkStroke[] = [];
+  const deskProfile = [
+    [apronHeight, 0.018],
+    [apronHeight + 0.006, 0.006],
+    [apronHeight + 0.02, 0],
+    [tabletopHeight - 0.02, 0],
+    [tabletopHeight - 0.006, 0.006],
+    [tabletopHeight, 0.018],
+  ] as const;
+  const desk = loftSurfaces(
+    deskProfile.map(([y, inset]) =>
+      roundedProfile(
+        deskWidth - 2 * inset,
+        deskDepth - 2 * inset,
+        0.067 - inset,
+      ).map((point) => deskPoint(point.x, y, point.y)),
+    ),
+  );
+  add(desk.end, "wood", origin, {
+    projection: {
+      corners: tabletop,
+      pixels: [
         [498, 540],
         [1271, 591],
-        [1271, 611],
-        [498, 559],
-      ],
-      1: [
-        [1271, 591],
         [1368, 530],
-        [1368, 550],
-        [1271, 611],
+        [668, 499],
       ],
     },
+    strokes: deskStrokes,
+  });
+  add(desk.start, "wood", origin, {
+    strokes: undersideStrokes,
+    sourceInk: false,
+    outline: false,
+  });
+  add(desk.wall, "wood", origin, {
+    uvSize: [14, desk.uvSize[1]],
+    sourceInk: false,
+    outline: false,
+    strokes: tabletop.map((point, i) => ({
+      from: point
+        .clone()
+        .lerp(tabletop[(i + 1) % 4]!, 0.012)
+        .setY(tabletopHeight - 0.065)
+        .toArray(),
+      to: point
+        .clone()
+        .lerp(tabletop[(i + 1) % 4]!, 0.988)
+        .setY(tabletopHeight - 0.065)
+        .toArray(),
+      width: 0.023,
+      strength: 0.24,
+    })),
   });
 
   // One floor plane and the slab footprint constrain every post and foot.
@@ -429,23 +498,90 @@ export function buildWorkbenchSurfaces() {
       [angle.x, angle.y, angle.z],
     );
   }
+  function angleBracket(at: Vector3, along: Vector3) {
+    const across = along.clone().cross(up);
+    const profile = [
+      [0.004, -0.005],
+      [0.195, -0.005],
+      [0.195, -0.033],
+      [0.056, -0.033],
+      [0.031, -0.058],
+      [0.031, -0.175],
+      [0.004, -0.175],
+    ] as const;
+    shapedSolid(
+      [-0.064, 0.064].map((offset) =>
+        profile.map(([length, y]) =>
+          at
+            .clone()
+            .addScaledVector(along, length)
+            .addScaledVector(across, offset)
+            .addScaledVector(up, y),
+        ),
+      ),
+      "metal",
+      { sourceInk: false },
+    );
+    screw(
+      at
+        .clone()
+        .addScaledVector(along, 0.143)
+        .addScaledVector(up, -0.045)
+        .toArray(),
+      false,
+    );
+    const fastener = at
+      .clone()
+      .addScaledVector(along, 0.033)
+      .addScaledVector(up, -0.121);
+    rod(
+      fastener.toArray(),
+      fastener.clone().addScaledVector(along, 0.012).toArray(),
+      0.021,
+      "dark",
+    );
+  }
   for (const [a, b] of [
     [0, 3],
     [1, 2],
     [3, 2],
   ] as const) {
-    const from = legJoint(a, 2.76);
-    const to = legJoint(b, 2.76);
-    beam(from, to, 0.16, 0.19);
-    for (const point of [from, to]) {
-      box(0.28, 0.045, 0.24, "metal", [point.x, point.y - 0.105, point.z]);
-      for (const dx of [-0.08, 0.08])
-        screw([point.x + dx, point.y - 0.14, point.z], false);
+    const railHeight = 0.184;
+    const from = legJoint(a, apronHeight - railHeight / 2);
+    const to = legJoint(b, from.y);
+    const span = to.clone().sub(from);
+    const along = span.clone().normalize();
+    box(
+      span.length(),
+      railHeight,
+      0.172,
+      "wood",
+      from.clone().lerp(to, 0.5).toArray(),
+      [0, -Math.atan2(span.z, span.x), 0],
+    );
+    for (const [index, point, direction] of [
+      [a, from, along],
+      [b, to, along.clone().negate()],
+    ] as const) {
+      const halfPost = index === 0 || index === 3 ? 0.13 : 0.16;
+      const edge = Math.min(
+        halfPost / Math.abs(direction.x),
+        0.11 / Math.abs(direction.z),
+      );
+      angleBracket(
+        point
+          .clone()
+          .addScaledVector(direction, edge)
+          .setY(apronHeight - railHeight),
+        direction,
+      );
     }
-  }
-  for (const z of [-0.82, 0.29, 1.28]) {
-    box(6.6, 0.024, 0.022, "dark", [0.17, 2.933, z]);
-    for (const x of [-3.06, 3.28]) screw([x, 2.911, z], false);
+    undersideStrokes.push({
+      from: from.clone().setY(apronHeight).toArray(),
+      to: to.clone().setY(apronHeight).toArray(),
+      width: 0.128,
+      strength: 0.31,
+    });
   }
   rod(
     legJoint(0, 2.39).toArray(),
@@ -510,11 +646,44 @@ export function buildWorkbenchSurfaces() {
     1.118,
   );
   const cabinetFront = rectangle(cabinetArt, xAxis, down);
+  const [cabinetTopLeft, cabinetTopRight, cabinetBottomRight] = cabinetFront;
   const cabinetRearZ = -1.44;
-  const cabinetBack = cabinetFront.map((point) =>
-    point.clone().setZ(cabinetRearZ),
+  const cabinetWidth = cabinetTopRight.x - cabinetTopLeft.x;
+  const cabinetHeight = cabinetTopRight.y - cabinetBottomRight.y;
+  const cabinetX = (cabinetTopLeft.x + cabinetTopRight.x) / 2;
+  const cabinetY = (cabinetTopRight.y + cabinetBottomRight.y) / 2;
+  const cabinetDepth = cabinetTopRight.z - cabinetRearZ;
+  const sideZ = (cabinetTopRight.z + cabinetRearZ) / 2;
+  const wall = 0.059;
+  for (const x of [cabinetTopLeft.x + wall / 2, cabinetTopRight.x - wall / 2])
+    add(
+      new BoxGeometry(wall, cabinetHeight, cabinetDepth),
+      "wood",
+      [x, cabinetY, sideZ],
+      { sourceInk: false },
+    );
+  for (const y of [
+    cabinetBottomRight.y + wall / 2,
+    cabinetTopRight.y - wall / 2,
+  ])
+    add(
+      new BoxGeometry(cabinetWidth - wall * 2, wall, cabinetDepth),
+      "wood",
+      [cabinetX, y, sideZ],
+      { sourceInk: false, outline: false },
+    );
+  add(
+    new BoxGeometry(cabinetWidth - 2 * wall, cabinetHeight - wall * 2, 0.046),
+    "wood",
+    [cabinetX, cabinetY, cabinetRearZ + 0.037],
+    { sourceInk: false },
   );
-  solid(cabinetFront, cabinetBack, "wood");
+  // The narrow drawer gaps open against a recessed inner frame.
+  box(cabinetWidth - wall * 2, cabinetHeight - 0.12, 0.034, "dark", [
+    cabinetX,
+    cabinetY,
+    cabinetTopRight.z - 0.155,
+  ]);
   panel(
     [
       [995, 601],
@@ -568,26 +737,55 @@ export function buildWorkbenchSurfaces() {
       if (i === 2) point.y = corner < 2 ? 1.688427 : 0.659576;
     });
     const finish = i === 2 ? "yellow" : "paper";
-    slab(front, new Vector3(0, 0, -0.085), finish, { front: drawerFaces[i]! });
     const centerX = (drawerLeft + drawerRight) / 2;
     const centerY = (front[0].y + front[3].y) / 2;
     const width = drawerRight - drawerLeft;
     const height = front[0].y - front[3].y;
-    const rim = 0.031;
-    for (const y of [front[0].y - rim / 2, front[3].y + rim / 2])
-      box(width, rim, 0.016, finish, [centerX, y, drawerZ + 0.005]);
-    for (const x of [drawerLeft + rim / 2, drawerRight - rim / 2])
-      box(rim, height - 2 * rim, 0.016, finish, [x, centerY, drawerZ + 0.005]);
-    drawerPull(centerX, front[0].y - 0.143, drawerZ, 0.58, 0.067);
+    const pullY = front[0].y - 0.143;
+    const folds = loftSurfaces(
+      (
+        [
+          [-0.091, 0.032],
+          [-0.072, 0.009],
+          [-0.023, 0],
+          [0, 0.013],
+        ] as const
+      ).map(([depth, inset]) =>
+        roundedProfile(
+          width - 2 * inset,
+          height - 2 * inset,
+          0.047 - inset,
+        ).map(
+          ({ x, y }) => new Vector3(centerX + x, centerY + y, drawerZ + depth),
+        ),
+      ),
+    );
+    add(folds.end, finish, origin, {
+      projection: { corners: front, pixels: drawerFaces[i]! },
+      strokes: [
+        {
+          from: [drawerLeft + 0.065, front[3].y + 0.037, drawerZ],
+          to: [drawerRight - 0.064, front[3].y + 0.037, drawerZ],
+          width: 0.014,
+          strength: 0.17,
+        },
+        {
+          from: [centerX - 0.23, pullY - 0.046, drawerZ],
+          to: [centerX + 0.23, pullY - 0.046, drawerZ],
+          width: 0.047,
+          strength: -0.085,
+        },
+      ],
+    });
+    add(folds.start, finish, origin, { sourceInk: false, outline: false });
+    add(folds.wall, finish, origin, {
+      sourceInk: false,
+      uvSize: folds.uvSize,
+      outline: false,
+    });
+    drawerPull(centerX, pullY, drawerZ, 0.58, 0.067);
   });
-  const [cabinetTopLeft, cabinetTopRight, cabinetBottomRight] = cabinetFront;
-  const cabinetWidth = cabinetTopRight.x - cabinetTopLeft.x;
-  const cabinetHeight = cabinetTopRight.y - cabinetBottomRight.y;
-  const cabinetX = (cabinetTopLeft.x + cabinetTopRight.x) / 2;
-  const cabinetY = (cabinetTopRight.y + cabinetBottomRight.y) / 2;
-  const cabinetDepth = cabinetTopRight.z - cabinetRearZ;
   const sideX = cabinetTopRight.x + 0.019;
-  const sideZ = (cabinetTopRight.z + cabinetRearZ) / 2;
   for (const z of [cabinetRearZ + 0.092, cabinetTopRight.z - 0.092])
     box(0.049, cabinetHeight - 0.11, 0.08, "wood", [sideX, cabinetY, z]);
   for (const y of [cabinetBottomRight.y + 0.095, cabinetTopRight.y - 0.095])
@@ -605,6 +803,19 @@ export function buildWorkbenchSurfaces() {
     box(0.21, 0.17, 0.032, "metal", [x, y, frameZ - 0.047]);
     cylinder(0.022, 0.022, 0.21, "dark", [x + 0.11, y, frameZ - 0.07]);
     for (const dx of [-0.05, 0.05]) screw([x + dx, y, frameZ - 0.067]);
+  }
+  for (const x of [cabinetTopLeft.x + 0.18, cabinetTopRight.x - 0.18]) {
+    add(
+      new BoxGeometry(0.13, 0.03, cabinetDepth - 0.22),
+      "metal",
+      [x, cabinetBottomRight.y - 0.015, sideZ],
+      { sourceInk: false },
+    );
+    for (const z of [cabinetRearZ + 0.18, cabinetTopRight.z - 0.18]) {
+      screw([x, cabinetBottomRight.y - 0.034, z], false);
+      const top = Math.max(0.03, apronHeight - cabinetTopRight.y);
+      box(0.19, top, 0.22, "metal", [x, apronHeight - top / 2, z]);
+    }
   }
 
   const shelfTop = 6.139;
@@ -658,8 +869,8 @@ export function buildWorkbenchSurfaces() {
     boardDepth,
   );
   const boardOrigin = [0, 0, boardZ - boardDepth] as const;
-  add(board.panel, "pegboard", boardOrigin, undefined, false);
-  add(board.bores, "dark", boardOrigin, undefined, false);
+  add(board.panel, "pegboard", boardOrigin, { outline: false });
+  add(board.bores, "dark", boardOrigin, { outline: false });
   for (const [x, bottom, original] of [
     [
       boardTopLeft.x - 0.118,
@@ -717,27 +928,51 @@ export function buildWorkbenchSurfaces() {
   // A level shelf with separate front and rear overhangs on the board frame.
   const shelfLeft = new Vector3(-3.88, shelfTop, -0.49);
   const shelfRight = shelfLeft.clone().addScaledVector(across, 7.78);
-  const shelf = [
-    shelfLeft,
-    shelfRight,
-    shelfRight.clone().setY(shelfBottom),
-    shelfLeft.clone().setY(shelfBottom),
-  ];
-  slab(shelf, inward.clone().multiplyScalar(1.47), "wood", {
-    front: [
-      [619, 233],
-      [1318, 215],
-      [1318, 232],
-      [619, 250],
+  const shelfCenter = shelfLeft
+    .clone()
+    .lerp(shelfRight, 0.5)
+    .addScaledVector(inward, 0.735);
+  const shelf = loftSurfaces(
+    (
+      [
+        [shelfBottom, 0.014],
+        [shelfBottom + 0.016, 0],
+        [shelfTop - 0.016, 0],
+        [shelfTop, 0.014],
+      ] as const
+    ).map(([y, inset]) =>
+      roundedProfile(7.78 - 2 * inset, 1.47 - 2 * inset, 0.047 - inset).map(
+        ({ x, y: z }) =>
+          shelfCenter
+            .clone()
+            .addScaledVector(across, x)
+            .addScaledVector(inward, z)
+            .setY(y),
+      ),
+    ),
+  );
+  add(shelf.end, "wood", origin, { outline: false });
+  add(shelf.start, "wood", origin, { sourceInk: false, outline: false });
+  add(shelf.wall, "wood", origin, {
+    uvSize: [13, shelf.uvSize[1]],
+    outline: false,
+    sourceInk: false,
+    strokes: [
+      {
+        from: shelfLeft
+          .clone()
+          .addScaledVector(across, 0.081)
+          .setY(shelfTop - 0.061)
+          .toArray(),
+        to: shelfRight
+          .clone()
+          .addScaledVector(across, -0.081)
+          .setY(shelfTop - 0.061)
+          .toArray(),
+        width: 0.013,
+        strength: 0.19,
+      },
     ],
-    sides: {
-      1: [
-        [1318, 215],
-        [1318, 232],
-        [1380, 241],
-        [1380, 225],
-      ],
-    },
   });
   for (const point of [shelfLeft, shelfRight]) {
     const offset = point === shelfLeft ? 0.13 : -0.13;
@@ -750,13 +985,29 @@ export function buildWorkbenchSurfaces() {
     );
   }
   for (const x of [-3.35, 3.46]) {
-    rod(
-      [x, shelfBottom - 0.51, -1.12],
-      [x, shelfBottom, -0.68],
-      0.032,
+    add(
+      piercedPlate(
+        [
+          new Vector2(-1.24, -0.49),
+          new Vector2(-0.676, -0.035),
+          new Vector2(-0.652, 0),
+          new Vector2(-1.24, 0),
+        ],
+        [
+          [
+            new Vector2(-1.194, -0.365),
+            new Vector2(-0.826, -0.069),
+            new Vector2(-1.194, -0.069),
+          ],
+        ],
+        0.046,
+      ),
       "metal",
+      [x + 0.023, shelfBottom, 0],
+      { rotation: [0, -Math.PI / 2, 0], sourceInk: false },
     );
-    box(0.075, 0.48, 0.07, "metal", [x, shelfBottom - 0.27, -1.21]);
+    box(0.092, 0.473, 0.045, "metal", [x, shelfBottom - 0.253, -1.253]);
+    box(0.102, 0.027, 0.597, "metal", [x, shelfBottom - 0.014, -0.948]);
     for (const z of [-1.19, -0.75]) screw([x, shelfBottom - 0.008, z], false);
   }
   region = "boardHardware";
@@ -826,6 +1077,37 @@ export function buildWorkbenchSurfaces() {
   function hookPoint(x: number, y: number, depth = -0.99): Point {
     return artworkPoint([x, y], "z", depth).toArray();
   }
+  const availableHoles = holes
+    .flat()
+    .filter(
+      ({ x, y, radius }) =>
+        x > boardTopLeft.x + radius &&
+        x < boardTopRight.x - radius &&
+        y > boardBottomRight.y + radius &&
+        y < boardTopRight.y - radius,
+    );
+  function pegHook([x, y, z]: Point) {
+    const hole = availableHoles.reduce((nearest, candidate) =>
+      Math.hypot(x - candidate.x, y - candidate.y) <
+      Math.hypot(x - nearest.x, y - nearest.y)
+        ? candidate
+        : nearest,
+    );
+    tube(
+      [
+        [hole.x, hole.y + 0.029, boardOrigin[2] - 0.063],
+        [hole.x, hole.y, boardOrigin[2] - 0.029],
+        [hole.x, hole.y, boardOrigin[2] - 0.012],
+        [hole.x, hole.y, boardZ + 0.023],
+        [hole.x, hole.y, boardZ + 0.046],
+        [x, y - 0.022, z],
+        [x, y + 0.009, z + 0.032],
+      ],
+      0.0096,
+      "metal",
+      false,
+    );
+  }
   for (const [x, top, bottom, width] of [
     [888, 338, 470, 17],
     [910, 338, 455, 14],
@@ -833,6 +1115,7 @@ export function buildWorkbenchSurfaces() {
     [954, 337, 433, 15],
     [978, 338, 430, 16],
   ] as const) {
+    pegHook(hookPoint(x, top + 13, -1.04));
     const outline = new Shape();
     for (const [i, [u, v]] of wrenchProfile.entries()) {
       const [px, py] = hookPoint(x + u * width, top + v * (bottom - top));
@@ -854,6 +1137,7 @@ export function buildWorkbenchSurfaces() {
   }
   // Pliers, drivers and the hammer have working depth and separate metal jaws.
   for (const x of [738, 782]) {
+    pegHook(hookPoint(x, 362, -1.045));
     for (const side of [-1, 1]) {
       tube(
         [
@@ -886,6 +1170,7 @@ export function buildWorkbenchSurfaces() {
     [1293, 428, 57],
     [1317, 440, 53],
   ] as const) {
+    pegHook(hookPoint(x, y - 7, -1.048));
     const from = new Vector3(...hookPoint(x, y + height / 2));
     const to = new Vector3(...hookPoint(x, y - height / 2));
     const axis = to.clone().sub(from).normalize();
@@ -920,6 +1205,7 @@ export function buildWorkbenchSurfaces() {
     [1065, 342, 16, 52],
     [1273, 350, 66, 132],
   ] as const) {
+    pegHook(hookPoint(x, y - 1, -1.045));
     rod(hookPoint(x, y + 4), hookPoint(x, y + length), 0.022, "metal");
     rod(
       hookPoint(x - width / 2, y),
@@ -934,17 +1220,43 @@ export function buildWorkbenchSurfaces() {
         Math.PI / 2,
       ]);
   }
-  panel(
-    [
-      [1135, 376],
-      [1226, 383],
-      [1218, 431],
-      [1137, 425],
-    ],
-    -0.82,
-    0.27,
+  const binFront = rectangle(
+    pointsAt(
+      [
+        [1135, 376],
+        [1226, 383],
+        [1218, 431],
+        [1137, 425],
+      ],
+      "z",
+      -1.034,
+    ),
+    xAxis,
+    down,
+  );
+  const binWidth = binFront[1].x - binFront[0].x;
+  const binX = (binFront[0].x + binFront[1].x) / 2;
+  const binBottom = binFront[3].y;
+  const binTop = binFront[0].y;
+  const binZ = -1.098;
+  shapedSolid(
+    (
+      [
+        [binBottom, binWidth - 0.12, 0.105],
+        [binTop - 0.028, binWidth, 0.128],
+        [binTop, binWidth + 0.014, 0.146],
+        [binTop, binWidth - 0.06, 0.102],
+        [binBottom + 0.029, binWidth - 0.17, 0.074],
+      ] as const
+    ).map(([y, width, depth]) =>
+      roundedProfile(width, depth, 0.022, 2).map(
+        ({ x, y: z }) => new Vector3(binX + x, y, binZ + z),
+      ),
+    ),
     "metal",
   );
+  for (const x of [binX - binWidth * 0.31, binX + binWidth * 0.31])
+    pegHook([x, binTop - 0.055, binZ - 0.055]);
   for (const [x, y] of [
     [1141, 360],
     [1152, 342],
@@ -953,8 +1265,8 @@ export function buildWorkbenchSurfaces() {
     [1214, 337],
   ] as const)
     rod(
-      hookPoint(x, 405, -0.95),
-      hookPoint(x + (x - 1171) * 0.06, y, -0.93),
+      hookPoint(x, 405, -1.082),
+      hookPoint(x + (x - 1171) * 0.06, y, -1.002),
       0.019,
       "wood",
     );
@@ -994,8 +1306,40 @@ export function buildWorkbenchSurfaces() {
     ],
   ] as const;
   spines.forEach((spine, i) => {
-    const source = pointsAt(spine, "z", -0.77 - i * 0.018);
-    slab(onShelf(source), new Vector3(0, 0, -0.5 - i * 0.035), "paper");
+    const z = -0.77 - i * 0.023;
+    const front = onShelf(pointsAt(spine, "z", z));
+    const width = front[1].x - front[0].x;
+    const height = front[0].y - shelfTop;
+    const depth = 0.5 + i * 0.035;
+    const x = (front[0].x + front[1].x) / 2;
+    const y = shelfTop + height / 2;
+    slab(front, new Vector3(0, 0, -0.047), "paper", { front: spine });
+    for (const side of [-1, 1])
+      add(
+        new BoxGeometry(0.014, height, depth),
+        "wood",
+        [x + (side * (width - 0.014)) / 2, y, z - depth / 2],
+        { sourceInk: false },
+      );
+    add(
+      new BoxGeometry(width - 0.023, height - 0.035, depth - 0.041),
+      "paper",
+      [x, y, z - depth / 2 + 0.003],
+      {
+        sourceInk: false,
+        outline: false,
+        strokes: [-0.25, 0, 0.25].map((offset) => ({
+          from: [
+            x + width * offset,
+            shelfTop + height - 0.0175,
+            z - depth + 0.024,
+          ],
+          to: [x + width * offset, shelfTop + height - 0.0175, z - 0.049],
+          width: 0.0038,
+          strength: 0.21,
+        })),
+      },
+    );
   });
   const organizerZ = -0.74;
   const organizer = onShelf(
@@ -1065,15 +1409,28 @@ export function buildWorkbenchSurfaces() {
 
   // The pot and both sides of the leaves use the same graphite grain as they turn.
   const pot = artworkPoint([724, 198], "z", -0.91).setY(shelfTop + 0.275);
-  add(new CylinderGeometry(0.365, 0.315, 0.55, 24), "wood", pot.toArray());
   add(
-    new TorusGeometry(0.36, 0.013, 8, 32),
+    new LatheGeometry(
+      [
+        [0, -0.275],
+        [0.302, -0.275],
+        [0.319, -0.253],
+        [0.356, 0.222],
+        [0.374, 0.237],
+        [0.375, 0.272],
+        [0.36, 0.287],
+        [0.333, 0.285],
+        [0.326, 0.259],
+        [0.281, -0.212],
+        [0, -0.212],
+      ].map(([r, y]) => new Vector2(r, y)),
+      28,
+    ),
     "wood",
-    [pot.x, pot.y + 0.277, pot.z],
-    [Math.PI / 2, 0, 0],
-    false,
+    pot.toArray(),
+    { uvSize: [2.35, 1.15], outline: false },
   );
-  cylinder(0.349, 0.349, 0.012, "soil", [pot.x, pot.y + 0.277, pot.z]);
+  cylinder(0.318, 0.317, 0.016, "soil", [pot.x, pot.y + 0.194, pot.z]);
   const foliage = [
     [710, 70, 675, 55, 7],
     [716, 78, 736, 51, 7],
@@ -1092,7 +1449,7 @@ export function buildWorkbenchSurfaces() {
     [725, 133, 705, 128, 6],
   ] as const;
   foliage.forEach(([x, y, tipX, tipY, width], i) => {
-    const depth = -0.97 + (i % 4) * 0.045;
+    const depth = -1.083 + (i % 5) * 0.077;
     const dx = tipX - x;
     const dy = tipY - y;
     const length = Math.hypot(dx, dy);
@@ -1110,7 +1467,7 @@ export function buildWorkbenchSurfaces() {
       artworkPoint(
         [x + dx * t! + offsetX * s!, y + dy * t! + offsetY * s!],
         "z",
-        depth + 0.035 * Math.sin(t! * Math.PI),
+        depth + 0.09 * Math.sin(t! * Math.PI) - 0.042 * Math.abs(s!),
       ),
     );
     solid(
@@ -1121,10 +1478,10 @@ export function buildWorkbenchSurfaces() {
     const stem = face[0]!;
     tube(
       [
-        [pot.x, pot.y + 0.27, pot.z],
+        [pot.x, pot.y + 0.199, pot.z],
         [
           (pot.x + stem.x) / 2,
-          (pot.y + 0.27 + stem.y) / 2,
+          (pot.y + 0.199 + stem.y) / 2,
           (pot.z + stem.z) / 2 - 0.02,
         ],
         stem.toArray(),
@@ -1212,17 +1569,75 @@ export function buildWorkbenchSurfaces() {
       .add(frontRight)
       .sub(hingeRight)
       .dot(laptopForward) / 2;
-  const laptopBase = [
-    hingeLeft,
-    hingeRight,
-    hingeRight.clone().addScaledVector(laptopForward, laptopDepth),
-    hingeLeft.clone().addScaledVector(laptopForward, laptopDepth),
-  ];
-  solid(
-    laptopBase,
-    laptopBase.map((point) => point.clone().setY(laptopTop - 0.08)),
+  const laptopCenter = hingeLeft
+    .clone()
+    .lerp(hingeRight, 0.5)
+    .addScaledVector(laptopForward, laptopDepth / 2);
+  function laptopDeck(x: number, y: number, z: number) {
+    return laptopCenter
+      .clone()
+      .addScaledVector(laptopRight, x)
+      .addScaledVector(laptopForward, z)
+      .setY(y);
+  }
+  function deckRings(
+    sections: readonly (readonly [height: number, inset: number])[],
+  ) {
+    return sections.map(([y, inset]) =>
+      roundedProfile(
+        laptopWidth - 2 * inset,
+        laptopDepth - 2 * inset,
+        0.071 - inset,
+        2,
+      ).map(({ x, y: z }) => laptopDeck(x, y, z)),
+    );
+  }
+  shapedSolid(
+    deckRings([
+      [tabletopHeight, 0.042],
+      [tabletopHeight + 0.014, 0.035],
+      [laptopTop - 0.034, 0.035],
+    ]),
+    "dark",
+    { sourceInk: false },
+  );
+  shapedSolid(
+    deckRings([
+      [laptopTop - 0.034, 0.017],
+      [laptopTop - 0.019, 0],
+      [laptopTop, 0.016],
+    ]),
     "metal",
   );
+  for (const side of [-1, 1]) {
+    const sideRight = laptopForward.clone().multiplyScalar(-side);
+    const normal = laptopRight.clone().multiplyScalar(side);
+    const sideAngle = new Euler().setFromRotationMatrix(
+      new Matrix4().makeBasis(sideRight, up, normal),
+    );
+    const slots = [-0.16, -0.012, 0.137].map((x, i) =>
+      roundedProfile(i === 0 ? 0.106 : 0.072, 0.017, 0.005, 2).map((point) =>
+        point.add(new Vector2(x, 0)),
+      ),
+    );
+    add(
+      piercedPlate(
+        roundedProfile(laptopDepth * 0.59, 0.039, 0.011, 2),
+        slots,
+        0.021,
+      ),
+      "metal",
+      laptopDeck(
+        side * (laptopWidth / 2 - 0.036),
+        tabletopHeight + 0.024,
+        -0.043,
+      ).toArray(),
+      {
+        rotation: [sideAngle.x, sideAngle.y, sideAngle.z],
+        sourceInk: false,
+      },
+    );
+  }
   keyboardKeys(
     hingeLeft
       .clone()
@@ -1232,18 +1647,36 @@ export function buildWorkbenchSurfaces() {
     laptopWidth * 0.83,
     laptopDepth * 0.48,
   );
-  box(
-    laptopWidth * 0.27,
-    0.009,
-    laptopDepth * 0.22,
-    "paper",
-    hingeLeft
-      .clone()
-      .addScaledVector(laptopRight, laptopWidth / 2)
-      .addScaledVector(laptopForward, laptopDepth * 0.76)
-      .setY(laptopTop + 0.003)
-      .toArray(),
-    [0, Math.atan2(-laptopRight.z, laptopRight.x), 0],
+  add(
+    new RoundedBoxGeometry(
+      laptopWidth * 0.27,
+      0.007,
+      laptopDepth * 0.22,
+      1,
+      0.002,
+    ),
+    "metal",
+    laptopDeck(0, laptopTop + 0.002, laptopDepth * 0.258).toArray(),
+    {
+      rotation: [0, Math.atan2(-laptopRight.z, laptopRight.x), 0],
+      sourceInk: false,
+      strokes: [
+        {
+          from: laptopDeck(
+            -laptopWidth * 0.096,
+            laptopTop + 0.0055,
+            laptopDepth * 0.314,
+          ).toArray(),
+          to: laptopDeck(
+            laptopWidth * 0.096,
+            laptopTop + 0.0055,
+            laptopDepth * 0.314,
+          ).toArray(),
+          width: 0.025,
+          strength: -0.16,
+        },
+      ],
+    },
   );
   const lidArt = [
     artworkPoint([670, 398], "z", -0.36),
@@ -1262,52 +1695,80 @@ export function buildWorkbenchSurfaces() {
     hingeRight,
     hingeLeft,
   ];
-  slab(lid, lidNormal.clone().multiplyScalar(-0.075), "metal", {
-    front: [
-      [670, 398],
-      [852, 396],
-      [867, 516],
-      [681, 523],
-    ],
-  });
-  rod(hingeLeft.toArray(), hingeRight.toArray(), 0.043, "metal");
-  const lidOrientation = new Euler().setFromRotationMatrix(
-    new Matrix4().makeBasis(laptopRight, lidUp, lidNormal),
-  );
-  const lidRotation: Point = [
-    lidOrientation.x,
-    lidOrientation.y,
-    lidOrientation.z,
-  ];
-  function lidRear(x: number, y: number, depth: number): Point {
+  function lidPoint(x: number, y: number, depth: number) {
     return hingeLeft
       .clone()
       .addScaledVector(laptopRight, x)
       .addScaledVector(lidUp, y)
-      .addScaledVector(lidNormal, -depth)
-      .toArray();
+      .addScaledVector(lidNormal, -depth);
   }
-  for (let i = 0; i < 12; i++)
-    box(
-      0.06,
-      0.012,
-      0.015,
-      "dark",
-      lidRear((laptopWidth * (i + 2)) / 15, 0.14, 0.077),
-      lidRotation,
-    );
-  box(
-    0.36,
-    0.16,
-    0.012,
-    "paper",
-    lidRear(laptopWidth / 2, lidHeight * 0.54, 0.077),
-    lidRotation,
+  const lidProfile = loftSurfaces(
+    (
+      [
+        [0.081, 0.041],
+        [0.066, 0.016],
+        [0.022, 0],
+        [0, 0.014],
+      ] as const
+    ).map(([depth, inset]) =>
+      roundedProfile(
+        laptopWidth - 2 * inset,
+        lidHeight - 2 * inset,
+        0.063 - inset,
+        3,
+      ).map(({ x, y }) =>
+        lidPoint(laptopWidth / 2 + x, lidHeight / 2 + y, depth),
+      ),
+    ),
   );
+  add(lidProfile.end, "metal", origin, {
+    projection: {
+      corners: lid,
+      pixels: [
+        [670, 398],
+        [852, 396],
+        [867, 516],
+        [681, 523],
+      ],
+    },
+  });
+  add(lidProfile.start, "metal", origin, { sourceInk: false, outline: false });
+  add(lidProfile.wall, "metal", origin, {
+    sourceInk: false,
+    uvSize: lidProfile.uvSize,
+    outline: false,
+  });
+  rod(
+    lidPoint(0.054, 0.014, 0.037).toArray(),
+    lidPoint(laptopWidth - 0.054, 0.014, 0.037).toArray(),
+    0.033,
+    "dark",
+  );
+  for (const fraction of [0.13, 0.87]) {
+    const x = laptopWidth * fraction;
+    rod(
+      lidPoint(x - 0.098, 0.014, 0.037).toArray(),
+      lidPoint(x + 0.098, 0.014, 0.037).toArray(),
+      0.043,
+      "metal",
+    );
+    add(
+      new RoundedBoxGeometry(0.176, 0.043, 0.126, 1, 0.01),
+      "metal",
+      laptopDeck(
+        x - laptopWidth / 2,
+        laptopTop - 0.021,
+        -laptopDepth / 2 + 0.019,
+      ).toArray(),
+      {
+        rotation: [0, Math.atan2(-laptopRight.z, laptopRight.x), 0],
+        sourceInk: false,
+      },
+    );
+  }
 
   region = "display";
   // Fit all four screen corners with a single rigid plane.
-  const displayDepth = 0.12;
   const displayWidth = 2.048658;
   const displayHeight = 1.171991;
   const displayCenter = new Vector3(1.426579, 4.053988, -0.64);
@@ -1315,27 +1776,54 @@ export function buildWorkbenchSurfaces() {
   function displayPoint(x: number, y: number, z: number) {
     return new Vector3(x, y, z).applyEuler(displayRotation).add(displayCenter);
   }
-  const display = (
-    [
-      [-1, 1],
-      [1, 1],
-      [1, -1],
-      [-1, -1],
-    ] as const
-  ).map(([x, y]) =>
-    displayPoint((x * displayWidth) / 2, (y * displayHeight) / 2, 0),
-  );
-  slab(
-    display,
-    new Vector3(0, 0, -displayDepth).applyEuler(displayRotation),
+  const displayAngles: Point = [
+    displayRotation.x,
+    displayRotation.y,
+    displayRotation.z,
+  ];
+  const screenCorners = [
+    [-1, 1],
+    [1, 1],
+    [1, -1],
+    [-1, -1],
+  ] as const;
+  const displayPixels: ArtworkQuad = [
+    [988, 379],
+    [1188, 381],
+    [1178, 501],
+    [978, 495],
+  ];
+  const displayCorners = (z: number) =>
+    screenCorners.map(([x, y]) =>
+      displayPoint((x * displayWidth) / 2, (y * displayHeight) / 2, z),
+    );
+  const screenWidth = displayWidth - 0.108;
+  const screenHeight = displayHeight - 0.103;
+  add(
+    piercedPlate(
+      roundedProfile(displayWidth, displayHeight, 0.028),
+      [roundedProfile(screenWidth, screenHeight, 0.013)],
+      0.023,
+    ),
     "metal",
+    displayPoint(0, 0, -0.023).toArray(),
     {
-      front: [
-        [988, 379],
-        [1188, 381],
-        [1178, 501],
-        [978, 495],
-      ],
+      rotation: displayAngles,
+      projection: { corners: displayCorners(0), pixels: displayPixels },
+    },
+  );
+  const screenDepth = -0.014;
+  add(
+    new BoxGeometry(screenWidth + 0.012, screenHeight + 0.012, 0.011),
+    "paper",
+    displayPoint(0, 0, screenDepth - 0.0055).toArray(),
+    {
+      rotation: displayAngles,
+      outline: false,
+      projection: {
+        corners: displayCorners(screenDepth),
+        pixels: displayPixels,
+      },
     },
   );
 
@@ -1357,72 +1845,253 @@ export function buildWorkbenchSurfaces() {
       .addScaledVector(plateRight, (x * 0.776462) / 2)
       .addScaledVector(plateInward, (z * 0.762429) / 2),
   );
-  slab(plate, new Vector3(0, -baseHeight, 0), "dark", {
-    front: [
-      [1040.5, 528],
-      [1115.5, 534],
-      [1141.5, 523],
-      [1066, 517],
-    ],
-  });
-
-  const stemBottom = baseCenter.clone().addScaledVector(plateInward, 0.038);
-  const mount = displayPoint(0, -displayHeight * 0.38, -displayDepth);
-  const stemTop = mount.y;
-  box(0.268, stemTop - baseTop, 0.15, "dark", [
-    stemBottom.x,
-    (stemTop + baseTop) / 2,
-    stemBottom.z,
-  ]);
-  const armDepth = Math.abs(mount.z - stemBottom.z) + 0.09;
-  box(0.32, 0.14, armDepth, "dark", [
-    mount.x,
-    stemTop - 0.055,
-    (mount.z + stemBottom.z) / 2,
-  ]);
-  const displayAngles: Point = [
-    displayRotation.x,
-    displayRotation.y,
-    displayRotation.z,
-  ];
-  for (let i = 0; i < 8; i++)
-    box(
-      0.025,
-      0.19,
-      0.012,
-      "dark",
-      displayPoint((i - 3.5) * 0.1, 0.23, -displayDepth).toArray(),
-      displayAngles,
-    );
-  box(
-    0.39,
-    0.24,
-    0.014,
-    "paper",
-    displayPoint(0, -0.15, -displayDepth).toArray(),
-    displayAngles,
+  const plateRings = loftSurfaces(
+    [
+      [tabletopHeight, 0.014],
+      [tabletopHeight + 0.014, 0],
+      [baseTop, 0.018],
+    ].map(([y, inset]) =>
+      roundedProfile(
+        0.776462 - 2 * inset!,
+        0.762429 - 2 * inset!,
+        0.072 - inset!,
+      ).map(({ x, y: z }) =>
+        baseCenter
+          .clone()
+          .addScaledVector(plateRight, x)
+          .addScaledVector(plateInward, z)
+          .setY(y!),
+      ),
+    ),
   );
-  for (const x of [-0.84, 0.84])
-    for (const y of [-0.38, 0.38])
-      screw(displayPoint(x, y, -displayDepth - 0.005).toArray());
-  for (const x of [-0.41, -0.25, 0.25, 0.41])
-    box(
-      0.12,
-      0.035,
-      0.025,
-      "dark",
-      displayPoint(x, -0.44, -displayDepth).toArray(),
-      displayAngles,
+  add(plateRings.end, "dark", origin, {
+    projection: {
+      corners: plate,
+      pixels: [
+        [1040.5, 528],
+        [1115.5, 534],
+        [1141.5, 523],
+        [1066, 517],
+      ],
+    },
+  });
+  add(plateRings.start, "dark", origin, { sourceInk: false, outline: false });
+  add(plateRings.wall, "dark", origin, {
+    uvSize: plateRings.uvSize,
+    outline: false,
+  });
+  deskStrokes.push(
+    ...plate.map((point, i) => ({
+      from: point
+        .clone()
+        .lerp(plate[(i + 1) % 4]!, 0.08)
+        .setY(tabletopHeight)
+        .toArray(),
+      to: point
+        .clone()
+        .lerp(plate[(i + 1) % 4]!, 0.92)
+        .setY(tabletopHeight)
+        .toArray(),
+      width: 0.041,
+      strength: 0.3,
+    })),
+  );
+
+  shapedSolid(
+    (
+      [
+        [-0.12, displayWidth - 0.135, displayHeight - 0.14, 0.056],
+        [-0.091, displayWidth - 0.028, displayHeight - 0.027, 0.045],
+        [-0.025, displayWidth, displayHeight, 0.028],
+      ] as const
+    ).map(([z, width, height, radius]) =>
+      roundedProfile(width, height, radius).map(({ x, y }) =>
+        displayPoint(x, y, z),
+      ),
+    ),
+    "metal",
+    { sourceInk: false, outline: false },
+  );
+
+  function backProfile(
+    width: number,
+    height: number,
+    radius: number,
+    x: number,
+    y: number,
+  ) {
+    return roundedProfile(width, height, radius, 2).map((point) =>
+      point.add(new Vector2(x, y)),
     );
+  }
+  const vents = Array.from({ length: 7 }, (_, i) =>
+    backProfile(0.067, 0.047, 0.013, (i - 3) * 0.106, 0.119),
+  );
+  const ports = backProfile(1.05, 0.144, 0.022, 0, -0.349);
+  add(
+    piercedPlate(
+      backProfile(1.44, 0.655, 0.069, 0, -0.133),
+      [...vents, ports],
+      0.059,
+    ),
+    "metal",
+    displayPoint(0, 0, -0.176).toArray(),
+    { rotation: displayAngles, sourceInk: false },
+  );
+  const portSlots = [-0.34, -0.16, 0.16, 0.34];
+  for (const x of portSlots) {
+    add(
+      new BoxGeometry(0.106, 0.047, 0.018),
+      "dark",
+      displayPoint(x, -0.35, -0.129).toArray(),
+      { rotation: displayAngles, sourceInk: false },
+    );
+    add(
+      new BoxGeometry(0.066, 0.01, 0.012),
+      "metal",
+      displayPoint(x, -0.356, -0.142).toArray(),
+      { rotation: displayAngles, sourceInk: false },
+    );
+  }
+  for (let i = -3; i <= 3; i++)
+    add(
+      new BoxGeometry(0.068, 0.045, 0.007),
+      "dark",
+      displayPoint(i * 0.106, 0.119, -0.121).toArray(),
+      { rotation: displayAngles, sourceInk: false, outline: false },
+    );
+
+  const stem = baseCenter.clone().addScaledVector(plateInward, 0.038);
+  const mount = displayPoint(0, -0.188, -0.176);
+  const stemTop = mount.y - 0.03;
+  shapedSolid(
+    (
+      [
+        [baseTop, 0.254, 0.159, 0],
+        [baseTop + 0.042, 0.236, 0.142, 0],
+        [stemTop - 0.067, 0.196, 0.133, 0.022],
+        [stemTop, 0.18, 0.13, 0.042],
+      ] as const
+    ).map(([y, width, depth, back]) =>
+      roundedProfile(width, depth, 0.027, 2).map(({ x, y: z }) =>
+        stem
+          .clone()
+          .addScaledVector(plateRight, x)
+          .addScaledVector(plateInward, z + back)
+          .setY(y),
+      ),
+    ),
+    "dark",
+    { sourceInk: false },
+  );
+  const stemJoint = stem
+    .clone()
+    .addScaledVector(plateInward, 0.042)
+    .setY(stemTop - 0.016);
+  rod(stemJoint.toArray(), mount.toArray(), 0.072, "dark");
+  const hinge = displayPoint(0, -0.188, -0.203);
+  add(new CylinderGeometry(0.078, 0.078, 0.29, 18), "metal", hinge.toArray(), {
+    rotation: [0, 0, Math.PI / 2],
+    sourceInk: false,
+  });
+  for (const side of [-1, 1])
+    rod(
+      hinge
+        .clone()
+        .addScaledVector(xAxis, side * 0.141)
+        .toArray(),
+      hinge
+        .clone()
+        .addScaledVector(xAxis, side * 0.155)
+        .toArray(),
+      0.048,
+      "dark",
+    );
+
+  const plug = displayPoint(0.34, -0.35, -0.169);
+  add(new BoxGeometry(0.087, 0.041, 0.078), "dark", plug.toArray(), {
+    rotation: displayAngles,
+    sourceInk: false,
+  });
+  const rearEdge = deskPoint(1.79, tabletopHeight + 0.019, deskDepth / 2);
+  const cableX = rearEdge.x;
+  const rail = legJoint(3, apronHeight - 0.184).lerp(
+    legJoint(2, apronHeight - 0.184),
+    0.64,
+  );
+  const power = rail.clone().addScaledVector(up, -0.043);
+  const powerInlet = power.clone().addScaledVector(xAxis, 0.316);
+  add(
+    new RoundedBoxGeometry(0.626, 0.09, 0.145, 1, 0.016),
+    "dark",
+    power.toArray(),
+    { sourceInk: false },
+  );
+  for (const x of [-0.19, 0, 0.19])
+    add(
+      new BoxGeometry(0.088, 0.04, 0.009),
+      "metal",
+      [power.x + x, power.y, power.z - 0.074],
+      { sourceInk: false },
+    );
+  for (const x of [-0.25, 0.25])
+    screw([power.x + x, power.y - 0.053, power.z], false);
+  const rearBend = rearEdge
+    .clone()
+    .addScaledVector(inward, 0.116)
+    .setY(apronHeight + 0.047);
   tube(
     [
-      displayPoint(0.41, -0.44, -displayDepth - 0.03).toArray(),
-      [stemBottom.x + 0.44, baseTop + 0.15, stemBottom.z - 0.14],
-      [stemBottom.x + 0.47, baseTop + 0.02, stemBottom.z - 0.24],
-      [stemBottom.x + 0.68, tabletopHeight + 0.021, stemBottom.z - 0.29],
+      displayPoint(0.34, -0.35, -0.21).toArray(),
+      [plug.x + 0.048, plug.y - 0.073, -1.032],
+      [cableX, tabletopHeight + 0.078, -1.08],
+      [cableX, rearEdge.y, -1.164],
+      [cableX, rearEdge.y, -1.22],
+      [cableX, rearEdge.y, -1.34],
+      rearEdge.toArray(),
+      rearEdge
+        .clone()
+        .addScaledVector(inward, 0.086)
+        .setY(tabletopHeight - 0.03)
+        .toArray(),
+      rearBend.toArray(),
+      rearBend
+        .clone()
+        .setY(power.y - 0.025)
+        .toArray(),
+      powerInlet
+        .clone()
+        .addScaledVector(xAxis, 0.13)
+        .setY(power.y - 0.035)
+        .toArray(),
+      powerInlet.toArray(),
     ],
     0.012,
     "dark",
+    false,
+  );
+  const clip = rearEdge
+    .clone()
+    .addScaledVector(inward, 0.024)
+    .setY(apronHeight + 0.047);
+  add(new BoxGeometry(0.108, 0.068, 0.042), "metal", clip.toArray(), {
+    sourceInk: false,
+  });
+  rod(
+    clip.clone().addScaledVector(inward, 0.02).toArray(),
+    rearBend.clone().addScaledVector(inward, -0.02).toArray(),
+    0.019,
+    "metal",
+  );
+  add(
+    piercedPlate(
+      roundedProfile(0.061, 0.058, 0.015, 2),
+      [roundedProfile(0.033, 0.034, 0.013, 2)],
+      0.022,
+    ),
+    "metal",
+    rearBend.clone().addScaledVector(up, 0.011).toArray(),
+    { rotation: [Math.PI / 2, 0, 0], sourceInk: false },
   );
 
   region = "deskTools";
@@ -1471,8 +2140,7 @@ export function buildWorkbenchSurfaces() {
     new SphereGeometry(1, 18, 12).scale(0.16, 0.069, 0.21),
     "metal",
     mouse.toArray(),
-    [0, 0.2, 0],
-    false,
+    { rotation: [0, 0.2, 0], outline: false },
   );
   const pencilFrom = artworkPoint([902, 550], "y", 3.16);
   const pencilTo = artworkPoint([977, 531], "y", 3.16);
@@ -1490,34 +2158,106 @@ export function buildWorkbenchSurfaces() {
     profile: readonly (readonly [number, number])[],
     width: number,
   ) {
-    add(
-      new ExtrudeGeometry(
-        new Shape(profile.map(([z, y]) => new Vector2(z, y))),
-        {
-          depth: width,
-          bevelThickness: 0.009,
-          bevelSize: 0.009,
-          bevelSegments: 1,
-        },
+    const corners = profile.map(([z, y]) => new Vector2(z, y));
+    const center = corners
+      .reduce((sum, point) => sum.add(point), new Vector2())
+      .divideScalar(corners.length);
+    const outline = corners.flatMap((point, i) => {
+      const before = point
+        .clone()
+        .lerp(corners[(i - 1 + corners.length) % corners.length]!, 0.18);
+      const after = point
+        .clone()
+        .lerp(corners[(i + 1) % corners.length]!, 0.18);
+      return [
+        before,
+        before
+          .clone()
+          .lerp(point, 0.5)
+          .lerp(point.clone().lerp(after, 0.5), 0.5),
+        after,
+      ];
+    });
+    shapedSolid(
+      (
+        [
+          [-0.5, 0.86],
+          [-0.455, 0.955],
+          [-0.34, 1],
+          [0.34, 1],
+          [0.455, 0.955],
+          [0.5, 0.86],
+        ] as const
+      ).map(([x, scale]) =>
+        outline.map((point) => {
+          const { x: z, y } = point
+            .clone()
+            .sub(center)
+            .multiplyScalar(scale)
+            .add(center);
+          return new Vector3(...viseAt(x * width, y, z));
+        }),
       ),
       "metal",
-      viseAt(width / 2, 0, 0),
-      [0, -Math.PI / 2, 0],
     );
   }
-  box(0.64, 0.08, 0.7, "metal", viseAt(0, 0.04, 0.6));
+  shapedSolid(
+    (
+      [
+        [0, 0.59, 0.657],
+        [0.013, 0.645, 0.71],
+        [0.059, 0.645, 0.71],
+        [0.08, 0.602, 0.667],
+      ] as const
+    ).map(([height, width, depth]) =>
+      roundedProfile(width, depth, 0.078).map(
+        ({ x, y: z }) => new Vector3(...viseAt(x, height, z + 0.6)),
+      ),
+    ),
+    "metal",
+  );
   cylinder(0.255, 0.272, 0.074, "dark", viseAt(0, 0.114, 0.56));
-  cylinder(0.222, 0.24, 0.052, "metal", viseAt(0, 0.176, 0.56));
-  for (const x of [-0.248, 0.248])
-    for (const z of [0.32, 0.88]) screw(viseAt(x, 0.086, z), false);
+  cylinder(0.225, 0.246, 0.056, "metal", viseAt(0, 0.178, 0.56));
+  for (const x of [-0.248, 0.248]) {
+    for (const z of [0.36, 0.84]) {
+      screw(viseAt(x, 0.075, z), false);
+      add(
+        new CylinderGeometry(0.029, 0.034, 0.025, 6),
+        "metal",
+        [viseX + x, apronHeight - 0.0125, z],
+        { sourceInk: false },
+      );
+    }
+    deskStrokes.push({
+      from: viseAt(x * 1.3, 0, 0.36),
+      to: viseAt(x * 1.3, 0, 0.84),
+      width: 0.045,
+      strength: 0.28,
+    });
+  }
+  deskStrokes.push(
+    {
+      from: viseAt(-0.89, 0, 0.54),
+      to: viseAt(-0.44, 0, 0.76),
+      width: 0.009,
+      strength: 0.22,
+    },
+    {
+      from: viseAt(-0.72, 0, 0.57),
+      to: viseAt(-0.45, 0, 0.68),
+      width: 0.008,
+      strength: 0.17,
+    },
+  );
   viseCasting(
     [
       [0.25, 0.198],
       [0.78, 0.198],
       [0.78, 0.416],
-      [0.466, 0.504],
-      [0.373, 0.714],
-      [0.229, 0.714],
+      [0.51, 0.469],
+      [0.423, 0.545],
+      [0.371, 0.71],
+      [0.221, 0.71],
       [0.237, 0.49],
     ],
     0.42,
@@ -1527,6 +2267,7 @@ export function buildWorkbenchSurfaces() {
       [0.482, 0.352],
       [0.824, 0.352],
       [0.824, 0.495],
+      [0.751, 0.55],
       [0.714, 0.586],
       [0.71, 0.714],
       [0.577, 0.714],
@@ -1535,16 +2276,58 @@ export function buildWorkbenchSurfaces() {
     ],
     0.4,
   );
-  box(0.31, 0.142, 0.478, "dark", viseAt(0, 0.381, 0.588));
+  box(0.292, 0.126, 0.514, "dark", viseAt(0, 0.379, 0.585));
+  for (const x of [-0.146, 0.146])
+    add(new BoxGeometry(0.014, 0.034, 0.373), "metal", viseAt(x, 0.405, 0.58), {
+      sourceInk: false,
+      outline: false,
+    });
   for (const [z, facing] of [
     [0.305, 1],
     [0.645, -1],
   ] as const) {
-    box(0.575, 0.09, 0.18, "metal", viseAt(0, 0.725, z));
-    box(0.544, 0.072, 0.022, "dark", viseAt(0, 0.724, z + facing * 0.093));
-    for (const y of [0.705, 0.724, 0.743])
-      box(0.503, 0.004, 0.004, "metal", viseAt(0, y, z + facing * 0.105));
+    box(0.552, 0.083, 0.172, "metal", viseAt(0, 0.716, z));
+    add(
+      new RoundedBoxGeometry(0.53, 0.067, 0.024, 1, 0.006),
+      "dark",
+      viseAt(0, 0.719, z + facing * 0.086),
+      {
+        sourceInk: false,
+        strokes: [0.698, 0.715, 0.733].map((y) => ({
+          from: viseAt(-0.246, y, z + facing * 0.098),
+          to: viseAt(0.246, y, z + facing * 0.098),
+          width: 0.0045,
+          strength: -0.23,
+        })),
+      },
+    );
   }
+
+  shapedSolid(
+    (
+      [
+        [0.684, 0.208],
+        [0.773, 0.224],
+        [0.781, 0.215],
+      ] as const
+    ).map(([height, width]) =>
+      roundedProfile(width, 0.139, 0.009, 2).map(
+        ({ x, y: z }) => new Vector3(...viseAt(x + 0.105, height, z + 0.475)),
+      ),
+    ),
+    "wood",
+    {
+      sourceInk: false,
+      strokes: [
+        {
+          from: viseAt(0.119, 0.781, 0.417),
+          to: viseAt(0.124, 0.781, 0.533),
+          width: 0.007,
+          strength: 0.32,
+        },
+      ],
+    },
+  );
 
   const screwHeight = 0.371;
   const screwDirection: Point = [Math.PI / 2, 0, 0];
@@ -1559,8 +2342,7 @@ export function buildWorkbenchSurfaces() {
       new TorusGeometry(0.046, 0.006, 5, 16),
       "metal",
       viseAt(0, screwHeight, 0.842 + i * 0.022),
-      undefined,
-      false,
+      { outline: false },
     );
   cylinder(
     0.083,
@@ -1591,8 +2373,7 @@ export function buildWorkbenchSurfaces() {
       new SphereGeometry(0.032, 10, 7),
       "dark",
       viseAt(0, height, handleDepth),
-      undefined,
-      false,
+      { outline: false },
     );
 
   region = "case";
@@ -1628,48 +2409,122 @@ export function buildWorkbenchSurfaces() {
   const lidBottom = toolboxTop - toolboxLidHeight;
   const seamHeight = 0.023;
   const bodyTop = lidBottom - seamHeight;
-  box(toolboxWidth, bodyTop - toolboxBottom, toolboxDepth, "metal", [
-    toolboxX,
-    (bodyTop + toolboxBottom) / 2,
-    toolboxZ,
-  ]);
-  box(toolboxWidth - 0.02, seamHeight, toolboxDepth - 0.02, "dark", [
-    toolboxX,
-    lidBottom - seamHeight / 2,
-    toolboxZ,
-  ]);
-  box(toolboxWidth + 0.02, toolboxLidHeight, toolboxDepth + 0.02, "metal", [
-    toolboxX,
-    lidBottom + toolboxLidHeight / 2,
-    toolboxZ,
-  ]);
+  function caseRings(
+    sections: readonly (readonly [height: number, inset: number])[],
+  ) {
+    return sections.map(([y, inset]) =>
+      roundedProfile(
+        toolboxWidth - 2 * inset,
+        toolboxDepth - 2 * inset,
+        0.097 - inset,
+        3,
+      ).map(({ x, y: z }) => new Vector3(toolboxX + x, y, toolboxZ + z)),
+    );
+  }
+  shapedSolid(
+    caseRings([
+      [toolboxBottom + 0.026, 0.062],
+      [toolboxBottom + 0.052, 0.032],
+      [bodyTop - 0.051, 0.022],
+      [bodyTop - 0.025, 0],
+      [bodyTop, 0.007],
+    ]),
+    "dark",
+    {
+      sourceInk: false,
+      strokes: [
+        {
+          from: [toolboxX - 0.65, bodyTop - 0.05, toolboxFrontZ - 0.014],
+          to: [toolboxX - 0.51, bodyTop - 0.085, toolboxFrontZ - 0.014],
+          width: 0.015,
+          strength: -0.18,
+        },
+      ],
+    },
+  );
+  shapedSolid(
+    caseRings([
+      [bodyTop, 0.027],
+      [lidBottom, 0.026],
+    ]),
+    "dark",
+    { sourceInk: false, outline: false },
+  );
+  shapedSolid(
+    caseRings([
+      [lidBottom, 0.009],
+      [lidBottom + 0.023, -0.009],
+      [toolboxTop - 0.037, -0.006],
+      [toolboxTop, 0.035],
+    ]),
+    "metal",
+    { sourceInk: false },
+  );
+  for (const z of [-toolboxDepth * 0.28, toolboxDepth * 0.27]) {
+    add(
+      new RoundedBoxGeometry(toolboxWidth - 0.16, 0.023, 0.087, 1, 0.008),
+      "metal",
+      [toolboxX, toolboxTop + 0.005, toolboxZ + z],
+      { sourceInk: false },
+    );
+    for (const x of [-toolboxWidth * 0.32, toolboxWidth * 0.32])
+      add(
+        new RoundedBoxGeometry(0.15, 0.039, 0.142, 1, 0.012),
+        "dark",
+        [toolboxX + x, toolboxBottom + 0.0195, toolboxZ + z],
+        { sourceInk: false },
+      );
+  }
   for (const offset of [-0.5, 0.5]) {
     const x = toolboxX + offset;
-    box(0.126, 0.238, 0.042, "dark", [
-      x,
-      lidBottom - 0.032,
-      toolboxFrontZ + 0.02,
-    ]);
-    box(0.099, 0.282, 0.036, "metal", [
-      x,
-      toolboxTop - 0.135,
-      toolboxFrontZ + 0.026,
-    ]);
-    screw([x, lidBottom - 0.079, toolboxFrontZ + 0.046]);
-    box(0.105, 0.012, 0.17, "metal", [
-      x,
-      toolboxTop + 0.004,
-      toolboxFrontZ - 0.067,
-    ]);
+    const pivot = lidBottom - 0.119;
+    add(
+      new BoxGeometry(0.124, 0.167, 0.043),
+      "dark",
+      [x, pivot + 0.01, toolboxFrontZ + 0.002],
+      { sourceInk: false },
+    );
+    add(
+      new BoxGeometry(0.122, 0.049, 0.053),
+      "metal",
+      [x, lidBottom + 0.062, toolboxFrontZ + 0.017],
+      { sourceInk: false },
+    );
+    add(
+      new CylinderGeometry(0.023, 0.023, 0.143, 12),
+      "metal",
+      [x, pivot, toolboxFrontZ + 0.035],
+      { rotation: [0, 0, Math.PI / 2], sourceInk: false },
+    );
+    tube(
+      [
+        [x - 0.044, pivot, toolboxFrontZ + 0.037],
+        [x - 0.044, lidBottom + 0.047, toolboxFrontZ + 0.068],
+        [x - 0.032, lidBottom + 0.068, toolboxFrontZ + 0.044],
+        [x + 0.032, lidBottom + 0.068, toolboxFrontZ + 0.044],
+        [x + 0.044, lidBottom + 0.047, toolboxFrontZ + 0.068],
+        [x + 0.044, pivot, toolboxFrontZ + 0.037],
+      ],
+      0.011,
+      "metal",
+      false,
+    );
+    add(
+      new RoundedBoxGeometry(0.078, 0.118, 0.034, 1, 0.01),
+      "metal",
+      [x, pivot - 0.026, toolboxFrontZ + 0.055],
+      { sourceInk: false },
+    );
   }
   const handleY = lidBottom - 0.084;
   const handleZ = toolboxFrontZ + 0.044;
   for (const offset of [-0.255, 0.255])
-    box(0.114, 0.094, 0.047, "dark", [
-      toolboxX + offset,
-      handleY,
-      toolboxFrontZ + 0.018,
-    ]);
+    add(
+      new BoxGeometry(0.114, 0.094, 0.047),
+      "metal",
+      [toolboxX + offset, handleY, toolboxFrontZ + 0.018],
+      { sourceInk: false },
+    );
   tube(
     [
       [toolboxX - 0.255, handleY, handleZ],
@@ -1681,9 +2536,28 @@ export function buildWorkbenchSurfaces() {
     ],
     0.028,
     "metal",
+    false,
   );
-  for (const x of [toolboxFront[0].x + 0.31, toolboxFront[1].x - 0.31])
-    box(0.16, 0.11, 0.035, "metal", [x, lidBottom, toolboxRearZ - 0.014]);
+  for (const x of [toolboxFront[0].x + 0.31, toolboxFront[1].x - 0.31]) {
+    const z = toolboxRearZ - 0.017;
+    for (const y of [lidBottom - 0.056, lidBottom + 0.057])
+      add(new BoxGeometry(0.177, 0.08, 0.038), "metal", [x, y, z], {
+        sourceInk: false,
+      });
+    for (const dx of [-0.061, 0, 0.061])
+      add(
+        new CylinderGeometry(0.026, 0.026, 0.05, 10),
+        dx === 0 ? "dark" : "metal",
+        [x + dx, lidBottom - 0.007, z - 0.022],
+        { rotation: [0, 0, Math.PI / 2], sourceInk: false },
+      );
+    rod(
+      [x - 0.09, lidBottom - 0.007, z - 0.022],
+      [x + 0.09, lidBottom - 0.007, z - 0.022],
+      0.012,
+      "metal",
+    );
+  }
 
   region = "stool";
   // A single beveled profile gives the seat the same finish around its rim.
@@ -1701,37 +2575,61 @@ export function buildWorkbenchSurfaces() {
     new LatheGeometry(
       [
         new Vector2(0, -0.14),
-        new Vector2(seatRadius - 0.025, -0.14),
-        new Vector2(seatRadius, -0.114),
-        new Vector2(seatRadius, -0.026),
-        new Vector2(seatRadius - 0.025, 0),
-        new Vector2(0, 0),
+        new Vector2(seatRadius - 0.045, -0.14),
+        new Vector2(seatRadius - 0.011, -0.122),
+        new Vector2(seatRadius, -0.096),
+        new Vector2(seatRadius, -0.024),
+        new Vector2(seatRadius - 0.008, -0.009),
+        new Vector2(seatRadius - 0.05, -0.003),
+        new Vector2(seatRadius * 0.63, 0.009),
+        new Vector2(0, 0.011),
       ],
       64,
     ),
     "seat",
     stoolCenter.toArray(),
+    { uvSize: [4.7, 1.55] },
   );
   const { x: stoolX, z: stoolZ } = stoolCenter;
   cylinder(0.056, 0.063, 1.61, "metal", [stoolX, 1.08, stoolZ]);
   cylinder(0.119, 0.132, 0.58, "metal", [stoolX, 0.77, stoolZ]);
   cylinder(0.133, 0.138, 0.047, "dark", [stoolX, 1.07, stoolZ]);
-  cylinder(0.11, 0.13, 0.09, "dark", [stoolX, 1.84, stoolZ]);
-  for (let i = 0; i < 11; i++)
+  cylinder(0.123, 0.141, 0.082, "dark", [stoolX, 1.813, stoolZ]);
+  cylinder(0.272, 0.231, 0.041, "metal", [stoolX, 1.863, stoolZ]);
+  for (const [x, z] of [
+    [0.175, 0],
+    [-0.175, 0],
+    [0, 0.175],
+    [0, -0.175],
+  ])
     add(
-      new TorusGeometry(0.065, 0.007, 5, 12),
-      "metal",
-      [stoolX, 1.12 + i * 0.047, stoolZ],
-      [Math.PI / 2, 0, 0],
-      false,
+      new CylinderGeometry(0.021, 0.024, 0.026, 6),
+      "dark",
+      [stoolX + x!, 1.836, stoolZ + z!],
+      { sourceInk: false },
     );
+  const thread = new CatmullRomCurve3(
+    Array.from({ length: 106 }, (_, i) => {
+      const angle = (i / 10) * Math.PI * 2;
+      return new Vector3(
+        stoolX + Math.cos(angle) * 0.064,
+        1.113 + i * 0.0046,
+        stoolZ + Math.sin(angle) * 0.064,
+      );
+    }),
+  );
+  add(new TubeGeometry(thread, 126, 0.0065, 5, false), "metal", origin, {
+    uvSize: [thread.getLength(), 0.043],
+    outline: false,
+    sourceInk: false,
+  });
   const ringRadius = 0.735;
   const ringHeight = 0.85;
   add(
     new TorusGeometry(ringRadius, 0.029, 9, 48),
     "metal",
     [stoolX, ringHeight, stoolZ],
-    [Math.PI / 2, 0, 0],
+    { rotation: [Math.PI / 2, 0, 0] },
   );
   const stoolFeet = pointsAt(
     [
@@ -1743,16 +2641,42 @@ export function buildWorkbenchSurfaces() {
     "y",
     floorHeight - 0.053,
   );
+  cylinder(0.126, 0.137, 0.119, "metal", [stoolX, 0.291, stoolZ]);
   for (const foot of stoolFeet) {
-    const direction = foot.clone().sub(stoolCenter).setY(0).normalize();
+    const radial = foot.clone().sub(stoolCenter).setY(0);
+    const direction = radial.clone().normalize();
+    const across = direction.clone().cross(up);
     const spoke = stoolCenter
       .clone()
       .addScaledVector(direction, ringRadius)
       .setY(ringHeight);
-    rod([stoolX, 0.31, stoolZ], [foot.x, 0.14, foot.z], 0.05, "metal");
+    shapedSolid(
+      (
+        [
+          [0.08, 0.302, 0.141, 0.098],
+          [0.34, 0.274, 0.137, 0.092],
+          [0.78, 0.195, 0.105, 0.068],
+          [1.008, 0.148, 0.091, 0.062],
+        ] as const
+      ).map(([distance, height, width, depth]) =>
+        roundedProfile(width, depth, 0.017, 2).map(({ x, y }) =>
+          stoolCenter
+            .clone()
+            .addScaledVector(radial, distance)
+            .addScaledVector(across, x)
+            .setY(height + y),
+        ),
+      ),
+      "metal",
+      { sourceInk: false },
+    );
     rod([stoolX, ringHeight, stoolZ], spoke.toArray(), 0.026, "metal");
-    cylinder(0.055, 0.064, 0.15, "dark", [foot.x, 0.104, foot.z]);
-    cylinder(0.084, 0.09, 0.04, "metal", [foot.x, floorHeight - 0.053, foot.z]);
+    cylinder(0.059, 0.066, 0.115, "metal", [foot.x, 0.117, foot.z]);
+    cylinder(0.076, 0.089, 0.038, "dark", [
+      foot.x,
+      floorHeight - 0.054,
+      foot.z,
+    ]);
   }
 
   return surfaces;

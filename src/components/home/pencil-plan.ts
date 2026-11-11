@@ -109,7 +109,7 @@ const regions: readonly PencilRegion[] = [
     bounds: [1006, 595, 237, 303],
     weight: 0.8,
     contour:
-      "M 1017 612 L 1221 646 L 1221 881 L 1015 845 Z M 1022 650 L 1212 683 M 1020 716 L 1213 748",
+      "M 1017 612 L 1221 646 L 1221 881 L 1015 845 Z M 1025 661 L 1208 680 M 1207 733 L 1025 713 M 1024 825 L 1205 851",
   },
   {
     id: "cabinet-side",
@@ -130,7 +130,8 @@ const regions: readonly PencilRegion[] = [
     part: "foundation",
     bounds: toolbox,
     weight: 0.7,
-    contour: "M 590 647 Q 641 618 763 647 L 775 713 L 605 730 Z",
+    contour:
+      "M 590 647 Q 641 618 763 647 L 775 713 L 605 730 Z M 597 677 L 608 682",
   },
   {
     id: "stool",
@@ -146,7 +147,7 @@ const regions: readonly PencilRegion[] = [
     bounds: [486, 484, 895, 156],
     weight: 1,
     contour:
-      "M 499 541 L 646 486 L 1368 535 L 1270 596 Z M 500 558 L 1269 614 L 1368 549",
+      "M 499 541 L 646 486 L 1368 535 L 1270 596 Z M 503 541 L 1265 600 Q 1271 601 1277 600 L 1361 545",
   },
   {
     id: "laptop",
@@ -162,7 +163,7 @@ const regions: readonly PencilRegion[] = [
     bounds: [964, 362, 241, 182],
     weight: 0.85,
     contour:
-      "M 980 382 L 1187 384 L 1180 502 L 979 493 Z M 1085 501 L 1085 526 L 1041 532 L 1140 537",
+      "M 980 382 L 1187 384 L 1180 502 L 979 493 Z M 1085 501 L 1085 526 L 1041 532 L 1140 537 M 1138 527 Q 1122 535 1110 536",
   },
   {
     id: "keyboard-and-pen",
@@ -176,6 +177,8 @@ const regions: readonly PencilRegion[] = [
     bounds: [1194, 469, 112, 127],
     weight: 0.65,
     angle: -60,
+    contour:
+      "M 1224 485 L 1279 488 M 1284 483 L 1229 480 M 1266 478 L 1269 477",
   },
   {
     id: "pegboard",

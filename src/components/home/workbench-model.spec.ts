@@ -146,6 +146,78 @@ describe("physical workbench model", () => {
     }
   });
 
+  it("recesses the monitor vents and routes its cable through the gap under the board", () => {
+    const surfaces = buildWorkbenchSurfaces();
+    const material = new MeshBasicMaterial();
+    try {
+      const [a, b, c, d] = fittedFace(surfaces, "display", "metal").corners;
+      const right = b!.clone().sub(a!).normalize();
+      const up = a!.clone().sub(d!).normalize();
+      const normal = right.clone().cross(up);
+      const center = a!.clone().lerp(c!, 0.5);
+      const display = surfaces.filter(({ region }) => region === "display");
+      const meshes = display.map(
+        ({ geometry }) => new Mesh(geometry, material),
+      );
+      function hitAt(x: number) {
+        const origin = center
+          .clone()
+          .addScaledVector(right, x)
+          .addScaledVector(up, 0.119)
+          .addScaledVector(normal, -0.3);
+        return new Raycaster(origin, normal, 0, 0.3).intersectObjects(
+          meshes,
+        )[0]!.distance;
+      }
+      expect(hitAt(0) - hitAt(0.053)).toBeGreaterThan(0.045);
+
+      const board = surfaces.find(({ finish }) => finish === "pegboard")!;
+      board.geometry.computeBoundingBox();
+      const bounds = board.geometry.boundingBox!;
+      const cable = display.find(
+        ({ finish, uvSize }) =>
+          finish === "dark" && uvSize && uvSize[0] > 1 && uvSize[1] < 0.08,
+      )!;
+      const positions = cable.geometry.getAttribute("position");
+      let crossing = 0;
+      for (let i = 0; i < positions.count; i++) {
+        const z = positions.getZ(i);
+        if (z < bounds.min.z || z > bounds.max.z) continue;
+        expect(positions.getY(i)).toBeGreaterThan(3.13);
+        expect(positions.getY(i)).toBeLessThan(bounds.min.y);
+        crossing++;
+      }
+      expect(crossing).toBeGreaterThan(0);
+    } finally {
+      material.dispose();
+      surfaces.forEach(({ geometry }) => geometry.dispose());
+    }
+  });
+
+  it("keeps the vise opening clear beside the trial wood", () => {
+    const surfaces = buildWorkbenchSurfaces();
+    const material = new MeshBasicMaterial();
+    try {
+      const vise = surfaces.filter(({ region }) => region === "vise");
+      const meshes = vise.map(({ geometry }) => new Mesh(geometry, material));
+      const x = artworkPoint([1246, 530], "z", 0.69).x;
+      function hits(dx: number, z: number) {
+        return new Raycaster(
+          new Vector3(x + dx, 4.13, z),
+          new Vector3(0, -1, 0),
+          0,
+          0.34,
+        ).intersectObjects(meshes).length;
+      }
+      expect(hits(-0.15, 0.48)).toBe(0);
+      expect(hits(-0.15, 0.32)).toBeGreaterThan(0);
+      expect(hits(0.105, 0.48)).toBeGreaterThan(0);
+    } finally {
+      material.dispose();
+      surfaces.forEach(({ geometry }) => geometry.dispose());
+    }
+  });
+
   it("keeps the tabletop and screens rectangular in model space", () => {
     const surfaces = buildWorkbenchSurfaces();
     try {
@@ -176,12 +248,17 @@ describe("physical workbench model", () => {
       const position = seat.geometry.getAttribute("position");
       const point = new Vector3();
       const camera = createArtworkCamera();
-      const radii: number[] = [];
+      const rings = new Map<number, number[]>();
       const upperRim: [number, number][] = [];
       for (let i = 0; i < position.count; i++) {
         point.fromBufferAttribute(position, i);
-        if (Math.abs(point.y - center.y) < 0.05)
-          radii.push(Math.hypot(point.x - center.x, point.z - center.z));
+        const radius = Math.hypot(point.x - center.x, point.z - center.z);
+        if (radius > 0.02) {
+          const height = Math.round(point.y * 100000);
+          const radii = rings.get(height) ?? [];
+          radii.push(radius);
+          rings.set(height, radii);
+        }
         if (point.y > center.y) {
           point.project(camera);
           upperRim.push([
@@ -190,8 +267,11 @@ describe("physical workbench model", () => {
           ]);
         }
       }
-      expect(radii.length).toBeGreaterThan(60);
-      expect(Math.max(...radii) / Math.min(...radii)).toBeCloseTo(1, 4);
+      expect(rings.size).toBeGreaterThan(4);
+      for (const radii of rings.values()) {
+        expect(radii.length).toBeGreaterThan(60);
+        expect(Math.max(...radii) / Math.min(...radii)).toBeCloseTo(1, 4);
+      }
       for (const [x, y] of [
         [755.5, 696],
         [900.5, 698],
@@ -204,45 +284,79 @@ describe("physical workbench model", () => {
     }
   });
 
-  it("joins the laptop lid to the keyboard shell at both hinge endpoints", () => {
+  it("bridges the laptop lid and deck at both hinge mounts", () => {
     const surfaces = buildWorkbenchSurfaces();
     try {
-      const { corners } = fittedFace(surfaces, "laptop", "metal");
-      const shell = surfaces.find((surface) => surface.region === "laptop");
-      if (!shell) throw new Error("Missing laptop base");
-      const position = shell.geometry.getAttribute("position");
-      const vertices = Array.from({ length: position.count }, (_, index) =>
-        new Vector3().fromBufferAttribute(position, index),
+      const [, , right, left] = fittedFace(surfaces, "laptop", "metal").corners;
+      const forward = right!
+        .clone()
+        .sub(left!)
+        .normalize()
+        .cross(new Vector3(0, 1, 0));
+      const mounts = surfaces.filter(
+        ({ region, finish, sourceInk }) =>
+          region === "laptop" && finish === "metal" && sourceInk === false,
       );
-      for (const point of corners.slice(2))
+      for (const fraction of [0.13, 0.87]) {
+        const hinge = left!.clone().lerp(right!, fraction);
+        const pinContact = hinge
+          .clone()
+          .addScaledVector(forward, -0.027)
+          .setY(hinge.y - 0.012);
+        const deckContact = hinge
+          .clone()
+          .addScaledVector(forward, 0.06)
+          .setY(hinge.y - 0.022);
         expect(
-          vertices.some((vertex) => vertex.distanceToSquared(point) < 1e-10),
+          mounts.some(({ geometry }) => {
+            geometry.computeBoundingBox();
+            const bounds = geometry.boundingBox!;
+            return (
+              bounds.containsPoint(pinContact) &&
+              bounds.containsPoint(deckContact)
+            );
+          }),
         ).toBe(true);
+      }
     } finally {
       surfaces.forEach(({ geometry }) => geometry.dispose());
     }
   });
 
-  it("keeps the toolbox lid and case walls flat", () => {
-    const model = buildWorkbenchModel(new Texture());
-    model.group.updateMatrixWorld(true);
+  it("keeps the toolbox lid flat and tapers the case walls toward its feet", () => {
+    const surfaces = buildWorkbenchSurfaces();
+    const material = new MeshBasicMaterial();
     try {
-      const caseMesh = meshForFinish(model.group, "metal");
+      const meshes = surfaces
+        .filter(({ region }) => region === "case")
+        .map(({ geometry }) => new Mesh(geometry, material));
+      function hitFrom(origin: Vector3, normal: Vector3) {
+        const ray = new Raycaster(origin, normal.clone().negate(), 0, 0.24);
+        const [hit] = ray.intersectObjects(meshes);
+        if (!hit?.face) throw new Error("Missing toolbox surface");
+        return { normal: hit.face.normal, distance: hit.distance };
+      }
+      for (const x of [-2.93, -2.3]) {
+        const up = new Vector3(0, 1, 0);
+        expect(
+          hitFrom(new Vector3(x, 1.96, 0.31), up).normal.dot(up),
+        ).toBeCloseTo(1, 5);
+      }
       for (const [origin, normal] of [
-        [new Vector3(-2.93, 1.96, 0.56), new Vector3(0, 1, 0)],
-        [new Vector3(-2.3, 1.96, 0.02), new Vector3(0, 1, 0)],
         [new Vector3(-2.61, 1.44, 1.05), new Vector3(0, 0, 1)],
         [new Vector3(-2.61, 1.44, -0.44), new Vector3(0, 0, -1)],
         [new Vector3(-3.5, 1.44, 0.31), new Vector3(-1, 0, 0)],
         [new Vector3(-1.71, 1.44, 0.31), new Vector3(1, 0, 0)],
       ] as const) {
-        const ray = new Raycaster(origin, normal.clone().negate(), 0, 0.24);
-        const [hit] = ray.intersectObject(caseMesh);
-        if (!hit?.face) throw new Error("Missing toolbox surface");
-        expect.soft(hit.face.normal.dot(normal)).toBeCloseTo(1, 5);
+        const low = hitFrom(origin, normal);
+        const high = hitFrom(origin.clone().setY(1.48), normal);
+        expect(low.normal.dot(normal)).toBeGreaterThan(0.995);
+        expect(low.normal.dot(high.normal)).toBeCloseTo(1, 5);
+        expect(low.distance - high.distance).toBeGreaterThan(0.001);
       }
     } finally {
-      model.dispose();
+      material.dispose();
+      surfaces.forEach(({ geometry }) => geometry.dispose());
     }
   });
 

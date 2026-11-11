@@ -36,12 +36,22 @@ export interface SurfaceProjection {
   pixels: ArtworkQuad;
 }
 
+export interface InkStroke {
+  from: readonly [number, number, number];
+  to: readonly [number, number, number];
+  width: number;
+  strength: number;
+}
+
 export interface WorkbenchSurface {
   geometry: BufferGeometry;
   finish: WorkbenchFinish;
   region: ArtworkRegion;
   outline: boolean;
   projection?: SurfaceProjection;
+  uvSize?: readonly [width: number, height: number];
+  sourceInk?: false;
+  strokes?: readonly InkStroke[];
 }
 
 export const atlasWidth = 2048;
@@ -71,9 +81,9 @@ export function layoutWorkbenchAtlas(surfaces: readonly WorkbenchSurface[]) {
     c = new Vector3();
   for (const surface of surfaces) {
     const position = surface.geometry.getAttribute("position");
-    const usesProfile = surface.finish === "seat";
+    const uvSize = surface.uvSize;
     const uv = surface.geometry.getAttribute("uv");
-    const sides = Array.from({ length: 6 }, () => ({
+    const sides = Array.from({ length: uvSize ? 1 : 6 }, () => ({
       triangles: [] as number[],
       points: [] as number[],
       minU: Infinity,
@@ -93,18 +103,16 @@ export function layoutWorkbenchAtlas(surfaces: readonly WorkbenchSurface[]) {
         z = Math.abs(axis.z);
       const normal = x > y && x > z ? 0 : y > z ? 1 : 2;
       const side =
-        sides[
-          usesProfile ? 0 : normal * 2 + Number(axis.getComponent(normal) < 0)
-        ]!;
+        sides[uvSize ? 0 : normal * 2 + Number(axis.getComponent(normal) < 0)]!;
       side.triangles.push(i);
       for (let vertex = i; vertex < i + 3; vertex++) {
-        const u = usesProfile
-          ? uv.getX(vertex) * 4.7
+        const u = uvSize
+          ? uv.getX(vertex) * uvSize[0]
           : normal === 0
             ? position.getZ(vertex)
             : position.getX(vertex);
-        const v = usesProfile
-          ? uv.getY(vertex) * 1.55
+        const v = uvSize
+          ? uv.getY(vertex) * uvSize[1]
           : normal === 1
             ? position.getZ(vertex)
             : position.getY(vertex);
@@ -123,7 +131,7 @@ export function layoutWorkbenchAtlas(surfaces: readonly WorkbenchSurface[]) {
       const facing =
         (artworkCameraPosition[axis]! - center.getComponent(axis)) *
         (index % 2 === 0 ? 1 : -1);
-      const density = usesProfile || facing > 0 ? 106 : 49;
+      const density = uvSize || facing > 0 ? 106 : 49;
       const usableWidth = Math.max(
         2,
         Math.ceil((side.maxU - side.minU) * density),

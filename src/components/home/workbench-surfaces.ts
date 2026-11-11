@@ -54,6 +54,126 @@ export function solidSurfaces(
   };
 }
 
+export function roundedProfile(
+  width: number,
+  height: number,
+  radius: number,
+  segments = 3,
+) {
+  const halfWidth = width / 2 - radius;
+  const halfHeight = height / 2 - radius;
+  return (
+    [
+      [halfWidth, -halfHeight],
+      [halfWidth, halfHeight],
+      [-halfWidth, halfHeight],
+      [-halfWidth, -halfHeight],
+    ] as const
+  ).flatMap(([x, y], corner) =>
+    Array.from({ length: segments + 1 }, (_, step) => {
+      const angle = ((corner - 1 + step / segments) * Math.PI) / 2;
+      return new Vector2(
+        x + Math.cos(angle) * radius,
+        y + Math.sin(angle) * radius,
+      );
+    }),
+  );
+}
+
+// Matching rings give the rounded parts a continuous outline. Compute smooth
+// normals before splitting the UV seam, then unwrap each band by its length.
+export function loftSurfaces(rings: readonly (readonly Vector3[])[]) {
+  const first = rings[0]!;
+  const last = rings.at(-1)!;
+  const normal = new Vector3();
+  const cross = new Vector3();
+  first.forEach((point, i) => {
+    normal.add(cross.crossVectors(point, first[(i + 1) % first.length]!));
+  });
+  normal.normalize();
+  const along = centerOf(last).sub(centerOf(first));
+  const forward = normal.dot(along) > 0;
+  if (!forward) normal.negate();
+
+  function cap(ring: readonly Vector3[], side: number) {
+    const x = ring[1]!.clone().sub(ring[0]!).normalize();
+    const y = new Vector3().crossVectors(normal, x).multiplyScalar(side);
+    const plane = ring.map((point) => new Vector2(point.dot(x), point.dot(y)));
+    const positions: number[] = [];
+    const uv: number[] = [];
+    for (const triangle of ShapeUtils.triangulateShape(plane, [])) {
+      const [a, b, c] = triangle as [number, number, number];
+      const ab = plane[b]!.clone().sub(plane[a]!);
+      const ac = plane[c]!.clone().sub(plane[a]!);
+      for (const index of ab.cross(ac) > 0 ? [a, b, c] : [a, c, b]) {
+        positions.push(...ring[index]!.toArray());
+        uv.push(...plane[index]!.toArray());
+      }
+    }
+    const geometry = new BufferGeometry();
+    geometry.setAttribute("position", new Float32BufferAttribute(positions, 3));
+    geometry.setAttribute("uv", new Float32BufferAttribute(uv, 2));
+    geometry.computeVertexNormals();
+    return geometry;
+  }
+
+  const middle = rings[Math.floor(rings.length / 2)]!;
+  const length = first.length;
+  const around = [0];
+  middle.forEach((point, i) => {
+    around.push(around[i]! + point.distanceTo(middle[(i + 1) % length]!));
+  });
+  const heights = [0];
+  for (let i = 1; i < rings.length; i++) {
+    const distance = rings[i]!.reduce(
+      (sum, point, index) => sum + point.distanceTo(rings[i - 1]![index]!),
+      0,
+    );
+    heights.push(heights[i - 1]! + distance / length);
+  }
+  const width = around.at(-1)!;
+  const height = heights.at(-1)!;
+  const index: number[] = [];
+  const uv: number[] = [];
+  const winding = forward ? [0, 1, 2, 0, 2, 3] : [0, 2, 1, 0, 3, 2];
+  for (let i = 0; i < rings.length - 1; i++) {
+    for (let j = 0; j < length; j++) {
+      const next = (j + 1) % length;
+      const vertices = [
+        i * length + j,
+        i * length + next,
+        (i + 1) * length + next,
+        (i + 1) * length + j,
+      ];
+      const u = [around[j]!, around[j + 1]!, around[j + 1]!, around[j]!];
+      const v = [heights[i]!, heights[i]!, heights[i + 1]!, heights[i + 1]!];
+      for (const corner of winding) {
+        index.push(vertices[corner]!);
+        uv.push(u[corner]! / width, v[corner]! / height);
+      }
+    }
+  }
+  const indexed = new BufferGeometry();
+  indexed.setIndex(index);
+  indexed.setAttribute(
+    "position",
+    new Float32BufferAttribute(
+      rings.flatMap((ring) => ring.flatMap((point) => point.toArray())),
+      3,
+    ),
+  );
+  indexed.computeVertexNormals();
+  const wall = indexed.toNonIndexed();
+  indexed.dispose();
+  wall.setAttribute("uv", new Float32BufferAttribute(uv, 2));
+  return {
+    start: cap(first, -1),
+    end: cap(last, 1),
+    wall,
+    uvSize: [width, height] as const,
+  };
+}
+
 interface BoardHole {
   x: number;
   y: number;

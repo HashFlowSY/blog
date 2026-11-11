@@ -616,6 +616,48 @@ function sample(img: Image, x: number, y: number, channel: number) {
   return blend(first, second, v);
 }
 
+// Restore the paper grain beneath hardware that now has its own solid.
+// Sample adjacent pixels on the same drawer front before projecting.
+const foundation = source.foundation;
+const restoredFoundation = { ...foundation, pixels: foundation.pixels.slice() };
+const cabinetInk = regionIndex.get("cabinet");
+for (const [[ax, ay], [bx, by], radius, offset] of [
+  [[1084, 642], [1147, 650], 7, 13],
+  [[1084, 682], [1147, 690], 7, 14],
+  [[1084, 738], [1147, 747], 8, 17],
+] as const) {
+  const dx = bx - ax,
+    dy = by - ay;
+  for (let y = Math.min(ay, by) - radius; y <= Math.max(ay, by) + radius; y++) {
+    for (
+      let x = Math.min(ax, bx) - radius;
+      x <= Math.max(ax, bx) + radius;
+      x++
+    ) {
+      const index = y * artworkWidth + x;
+      if (owners.foundation[index] !== cabinetInk) continue;
+      const t = clamp(((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy));
+      const closestX = ax + dx * t,
+        closestY = ay + dy * t;
+      const weight =
+        1 - smooth(radius - 2, radius, Math.hypot(x - closestX, y - closestY));
+      if (weight === 0) continue;
+      const sy = closestY + offset;
+      if (owners.foundation[Math.round(sy) * artworkWidth + x] !== cabinetInk)
+        continue;
+      for (let channel = 0; channel < 3; channel++) {
+        const pixel = index * 4 + channel;
+        restoredFoundation.pixels[pixel] = blend(
+          foundation.pixels[pixel]!,
+          sample(foundation, x, sy, channel),
+          weight,
+        );
+      }
+    }
+  }
+}
+source.foundation = restoredFoundation;
+
 // Read the original wash through a neighborhood average with the drawn
 // hardware and small dark perforation marks removed. The mesh supplies holes.
 function boardWash() {
@@ -700,6 +742,24 @@ const world = new Vector3(),
   normal = new Vector3(),
   ray = new Vector3(),
   paintPoint = new Vector3();
+
+function strokeDensity(surface: WorkbenchSurface) {
+  if (!surface.strokes) return 0;
+  let density = 0;
+  for (const { from, to, width, strength } of surface.strokes) {
+    const dx = to[0] - from[0],
+      dy = to[1] - from[1],
+      dz = to[2] - from[2];
+    const x = world.x - from[0],
+      y = world.y - from[1],
+      z = world.z - from[2];
+    const t = clamp((x * dx + y * dy + z * dz) / (dx * dx + dy * dy + dz * dz));
+    const distance = Math.hypot(x - t * dx, y - t * dy, z - t * dz);
+    density += strength * (1 - smooth(width * 0.15, width, distance));
+  }
+  return clamp(density, -0.24, 0.42);
+}
+
 function pencilFinish(face: Face, a: number, b: number, c: number): Color {
   const finish = workbenchFinishes[face.surface.finish];
   const [first, second, third] = face.vertices;
@@ -726,6 +786,7 @@ function pencilFinish(face: Face, a: number, b: number, c: number): Color {
     (sum || 1);
   const light = clamp(normal.dot(key) * 0.55 + 0.5);
   const hatch = grain((x + z * 0.38) * 0.54, (y + z - x * 0.27) * 0.71, 5);
+  const ink = 1 - strokeDensity(face.surface) * (0.62 + 0.38 * hatch);
   const [edgeA, edgeB, edgeC] = face.edgeDistances;
   const edge = Math.min(a * edgeA, b * edgeB, c * edgeC);
   const stroke = (1 - smooth(0.002, 0.016, edge)) * (0.29 + (1 - hatch) * 0.16);
@@ -739,8 +800,11 @@ function pencilFinish(face: Face, a: number, b: number, c: number): Color {
     (finish.color >> 8) & 255,
     finish.color & 255,
   ];
-  const base = color.map((value) => value * shade) as Color;
+  const base = color.map((value) =>
+    Math.min(255, value * shade * ink),
+  ) as Color;
 
+  if (face.surface.sourceInk === false) return base;
   ray.copy(camera.position).sub(world).normalize();
   const facing = normal.dot(ray);
   if (facing <= 0.025) return base;
@@ -799,13 +863,15 @@ function pencilFinish(face: Face, a: number, b: number, c: number): Color {
   const upward = normal.y > 0.68 && material !== "seat";
   const transfer = upward
     ? smooth(0.17, 0.46, facing) * smooth(130, 205, red)
-    : smooth(0.025, 0.105, facing);
+    : face.surface.projection
+      ? smooth(0.085, 0.26, facing)
+      : smooth(0.17, 0.44, facing);
   const weight =
     smooth(135, 246, sample(original, px, py, 3)) * transfer * coverage;
   return [
-    blend(base[0], red, weight),
-    blend(base[1], green, weight),
-    blend(base[2], blue, weight),
+    blend(base[0], Math.min(255, red * ink), weight),
+    blend(base[1], Math.min(255, green * ink), weight),
+    blend(base[2], Math.min(255, blue * ink), weight),
   ];
 }
 
