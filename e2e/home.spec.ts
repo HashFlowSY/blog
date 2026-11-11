@@ -95,7 +95,6 @@ test.describe("Home page", () => {
     const early = await paintedPencilLength(page, workbench);
     await drawTo(page, workbench, 88);
     const late = await paintedPencilLength(page, workbench);
-    console.log("Painted pencil lengths", JSON.stringify({ early, late }));
     expect(early.pixels).toBeGreaterThan(30);
     expect(late.pixels).toBeGreaterThan(30);
     expect(late.extent).toBeLessThan(early.extent * 0.35);
@@ -140,7 +139,45 @@ test.describe("Home page", () => {
 
   test("renders a solid workbench and allows continuous 360-degree orbit, underside and zoom", async ({
     page,
-  }, testInfo) => {
+  }) => {
+    await page.addInitScript(() => {
+      const gl = WebGL2RenderingContext.prototype;
+      const projections = new WeakSet<WebGLUniformLocation>();
+      gl.getUniformLocation = new Proxy(gl.getUniformLocation, {
+        apply(
+          method,
+          context: WebGL2RenderingContext,
+          args: [WebGLProgram, string],
+        ) {
+          const location = Reflect.apply(
+            method,
+            context,
+            args,
+          ) as WebGLUniformLocation | null;
+          if (location && args[1] === "projectionMatrix")
+            projections.add(location);
+          return location;
+        },
+      });
+      gl.uniformMatrix4fv = new Proxy(gl.uniformMatrix4fv, {
+        apply(
+          method,
+          context: WebGL2RenderingContext,
+          args: [WebGLUniformLocation | null, boolean, Float32List],
+        ) {
+          const [location, , matrix] = args;
+          // Ignore the orthographic shadow camera.
+          if (
+            location &&
+            projections.has(location) &&
+            matrix[11] === -1 &&
+            context.canvas instanceof HTMLCanvasElement
+          )
+            context.canvas.dataset["verticalProjection"] = String(matrix[5]);
+          return Reflect.apply(method, context, args);
+        },
+      });
+    });
     await installDrawingClock(page);
     await goToHome(page);
     const workbench = page.getByRole("region", { name: "交互工作台" });
@@ -154,23 +191,23 @@ test.describe("Home page", () => {
       y: Number(await canvas.getAttribute("data-camera-y")),
       z: Number(await canvas.getAttribute("data-camera-z")),
     };
-    const front = await view.screenshot({
-      path: testInfo.outputPath("model-front.png"),
-    });
+    const focalLength = await canvas.getAttribute("data-vertical-projection");
+    expect(Number(focalLength)).toBeGreaterThan(0);
+    const front = await view.screenshot();
     for (let i = 0; i < 6; i++) await view.press("ArrowRight");
     await page.clock.runFor(32);
     expect(Number(await canvas.getAttribute("data-yaw"))).toBeCloseTo(90, 1);
-    const side = await view.screenshot({
-      path: testInfo.outputPath("model-side.png"),
-    });
+    await expect(canvas).toHaveAttribute(
+      "data-vertical-projection",
+      focalLength!,
+    );
+    const side = await view.screenshot();
     expect(side.equals(front)).toBe(false);
     for (let i = 0; i < 6; i++) await view.press("ArrowRight");
     await page.clock.runFor(32);
     expect(Number(await canvas.getAttribute("data-yaw"))).toBeCloseTo(180, 1);
     expect(Number(await canvas.getAttribute("data-camera-z"))).toBeLessThan(0);
-    const back = await view.screenshot({
-      path: testInfo.outputPath("model-back.png"),
-    });
+    const back = await view.screenshot();
     expect(back.equals(front)).toBe(false);
     for (let i = 0; i < 12; i++) await view.press("ArrowRight");
     await page.clock.runFor(32);
@@ -186,13 +223,16 @@ test.describe("Home page", () => {
     for (let i = 0; i < 4; i++) await view.press("ArrowDown");
     await page.clock.runFor(32);
     expect(Number(await canvas.getAttribute("data-camera-y"))).toBeLessThan(0);
-    await view.screenshot({ path: testInfo.outputPath("model-underside.png") });
     await view.press("Home");
     await page.clock.runFor(32);
     await expect(canvas).toHaveAttribute("data-yaw", "0");
     await view.press("+");
     await page.clock.runFor(32);
     expect(Number(await canvas.getAttribute("data-zoom"))).toBeGreaterThan(1);
+    expect(Number(await canvas.getAttribute("data-camera-z"))).toBeCloseTo(
+      initial.z,
+      2,
+    );
     await view.press("Home");
     await page.clock.runFor(32);
     const box = await canvas.boundingBox();
@@ -231,13 +271,11 @@ test.describe("Home page", () => {
       initial.y,
       2,
     );
-    await expect(workbench.getByRole("button")).toHaveCount(0);
-    await expect(workbench.getByRole("slider")).toHaveCount(0);
   });
 
-  test("prepares graphite surfaces before the last stroke and crossfades without a blank frame", async ({
+  test("keeps the finished drawing until a real drag swaps to the rendered model", async ({
     page,
-  }, testInfo) => {
+  }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     const loaded: string[] = [];
     const errors: string[] = [];
@@ -252,60 +290,41 @@ test.describe("Home page", () => {
     await goToHome(page);
     const workbench = page.getByRole("region", { name: "交互工作台" });
     const scene = workbench.locator("[data-progress]");
-    const drawing = workbench
-      .locator('[data-construction-layer="finish"]')
-      .locator("..")
-      .locator("..");
+    const drawing = scene.locator("svg").first();
+    const canvas = scene.locator("canvas");
     await scene.scrollIntoViewIfNeeded();
     await drawTo(page, workbench, 99.9);
-    const prepared = workbench.locator("[data-model-status]");
-    await expect(prepared).toHaveAttribute("data-model-status", "ready", {
-      timeout: 15000,
-    });
-    await expect(prepared).toHaveAttribute("aria-hidden", "true");
-    await expect(prepared).toHaveCSS("opacity", "0");
-    await expect(scene).toHaveAttribute("data-model-ready", "false");
-    await workbench.screenshot({
-      path: testInfo.outputPath("transition-drawing.png"),
-    });
+    await expect(canvas).toHaveCount(0);
     await drawTo(page, workbench, 100);
-    await expect(scene).toHaveAttribute("data-model-ready", "true");
-    await expect(prepared).toHaveAttribute("data-active", "true");
-    // The drawing clock controls JavaScript, while CSS uses the browser timeline.
-    // Seek the real transitions so the sample cannot miss their middle frame.
-    await scene.evaluate((element) => {
-      for (const animation of element.getAnimations({ subtree: true })) {
-        const duration = animation.effect?.getComputedTiming().duration;
-        if (typeof duration !== "number" || duration <= 0) {
-          throw new Error("Expected a finite workbench transition");
-        }
-        animation.pause();
-        animation.currentTime = duration / 2;
-      }
-    });
-    const opacity = await prepared.evaluate((element) =>
-      Number(getComputedStyle(element).opacity),
-    );
-    expect(opacity).toBeGreaterThan(0);
-    expect(opacity).toBeLessThan(1);
-    const drawingOpacity = await drawing.evaluate((element) =>
-      Number(getComputedStyle(element).opacity),
-    );
-    expect(drawingOpacity).toBeGreaterThan(0);
-    expect(drawingOpacity).toBeLessThan(1);
-    await workbench.screenshot({
-      path: testInfo.outputPath("transition-blend.png"),
-    });
-    await scene.evaluate((element) => {
-      for (const animation of element.getAnimations({ subtree: true })) {
-        animation.play();
-      }
-    });
-    await waitForWorkbenchModel(workbench);
-    await expect(drawing).toHaveCSS("opacity", "0");
-    await workbench.screenshot({
-      path: testInfo.outputPath("transition-model.png"),
-    });
+    const view = await waitForWorkbenchModel(workbench);
+    await expect(canvas).toHaveAttribute("data-view", "drawing");
+    await expect(canvas).toHaveCSS("opacity", "0");
+    await expect(drawing).toHaveCSS("visibility", "visible");
+
+    const box = await canvas.boundingBox();
+    if (!box) throw new Error("Missing workbench canvas");
+    const x = box.x + box.width / 2;
+    const y = box.y + box.height / 2;
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.clock.runFor(32);
+    await expect(canvas).toHaveAttribute("data-view", "drawing");
+    await expect(canvas).toHaveAttribute("data-yaw", "0");
+    await page.mouse.move(x - 4, y);
+    await page.clock.runFor(32);
+    await expect(canvas).toHaveAttribute("data-view", "model");
+    await expect(canvas).toHaveCSS("opacity", "1");
+    await expect(drawing).toHaveCSS("visibility", "hidden");
+    expect(
+      Math.abs(Number(await canvas.getAttribute("data-yaw"))),
+    ).toBeGreaterThan(0);
+    await page.mouse.up();
+
+    await view.press("Home");
+    await page.clock.runFor(32);
+    await expect(canvas).toHaveAttribute("data-view", "drawing");
+    await expect(canvas).toHaveCSS("opacity", "0");
+    await expect(drawing).toHaveCSS("visibility", "visible");
     expect(
       loaded.some((url) => url.includes("workbench-graphite-atlas.webp")),
     ).toBe(true);

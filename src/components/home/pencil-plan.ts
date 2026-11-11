@@ -350,12 +350,12 @@ export const pencilPasses = regionDrafts.map((region) => {
 // More than half of playback is reserved for drawing the final small details.
 const playbackStops = [
   [0, 0],
-  [18, 4000],
-  [58, 7200],
-  [78, 8850],
-  [82, 9150],
-  [99.6, 20150],
-  [100, 20600],
+  [18, 2800],
+  [58, 6000],
+  [78, 7650],
+  [82, 7950],
+  [99.6, 18950],
+  [100, 19400],
 ] as const;
 
 export const drawingDuration = playbackStops.at(-1)![1];

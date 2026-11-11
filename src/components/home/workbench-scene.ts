@@ -4,7 +4,6 @@ import {
   MathUtils,
   Mesh,
   PCFShadowMap,
-  PerspectiveCamera,
   PlaneGeometry,
   Scene,
   ShadowMaterial,
@@ -16,9 +15,14 @@ import {
 } from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
-import { assetPath } from "@/lib/site";
-
 import { buildWorkbenchModel } from "./workbench-model";
+import { workbenchTextures } from "./workbench-textures";
+import {
+  artworkWidth,
+  createArtworkCamera,
+  orbitTarget,
+  setArtworkView,
+} from "./workbench-view";
 
 export interface WorkbenchScene {
   rotate(azimuth: number, elevation: number): void;
@@ -32,22 +36,22 @@ export async function createWorkbenchScene(
 ): Promise<WorkbenchScene> {
   const loader = new TextureLoader();
   const textures = await Promise.allSettled([
-    loader.loadAsync(assetPath("/assets/workbench-graphite-atlas.webp")),
-    loader.loadAsync(assetPath("/assets/workbench-pencil-detail.webp")),
+    loader.loadAsync(workbenchTextures[0]),
+    loader.loadAsync(workbenchTextures[1]),
   ]);
-  const [graphiteResult, screenResult] = textures;
+  const [graphiteResult, artworkResult] = textures;
   if (
     graphiteResult.status === "rejected" ||
-    screenResult.status === "rejected"
+    artworkResult.status === "rejected"
   ) {
     for (const result of textures)
       if (result.status === "fulfilled") result.value.dispose();
     throw new Error("Unable to load the workbench drawing textures");
   }
   const graphite = graphiteResult.value,
-    screen = screenResult.value;
+    artwork = artworkResult.value;
   graphite.colorSpace = SRGBColorSpace;
-  screen.colorSpace = SRGBColorSpace;
+  artwork.colorSpace = SRGBColorSpace;
   let renderer: WebGLRenderer;
   try {
     renderer = new WebGLRenderer({
@@ -58,7 +62,7 @@ export async function createWorkbenchScene(
     });
   } catch (error) {
     graphite.dispose();
-    screen.dispose();
+    artwork.dispose();
     throw error;
   }
   renderer.debug.onShaderError = () => {
@@ -71,16 +75,20 @@ export async function createWorkbenchScene(
   renderer.shadowMap.type = PCFShadowMap;
   renderer.shadowMap.autoUpdate = false;
   renderer.shadowMap.needsUpdate = true;
-  graphite.anisotropy = screen.anisotropy = Math.min(
+  graphite.anisotropy = artwork.anisotropy = Math.min(
     8,
     renderer.capabilities.getMaxAnisotropy(),
   );
   const scene = new Scene();
-  const camera = new PerspectiveCamera(27, 1.52, 0.1, 80);
-  camera.position.set(8.3, 7.4, 18.4);
-  const controls = new OrbitControls(camera, canvas);
-  controls.target.set(0.3, 3.65, 0.25);
-  const initialDistance = camera.position.distanceTo(controls.target);
+  const camera = createArtworkCamera();
+  // OrbitControls encodes zoom as a dolly distance. Use that distance for
+  // input only so zoom never brings the rendered camera into the model.
+  const orbit = camera.clone();
+  const controls = new OrbitControls(orbit, canvas);
+  controls.target.set(...orbitTarget);
+  const restingPosition = orbit.position.clone();
+  const direction = new Vector3();
+  const initialDistance = orbit.position.distanceTo(controls.target);
   controls.enablePan = false;
   controls.enableDamping = !window.matchMedia?.(
     "(prefers-reduced-motion: reduce)",
@@ -119,11 +127,11 @@ export async function createWorkbenchScene(
   const fill = new DirectionalLight(0xffffff, 0.65);
   fill.position.set(6, 5, -7);
   scene.add(fill);
-  const model = buildWorkbenchModel(graphite, screen);
+  const model = buildWorkbenchModel(graphite, artwork);
   scene.add(model.group);
   const floor = new Mesh(
     new PlaneGeometry(15, 13),
-    new ShadowMaterial({ color: 0x716b60, opacity: 0.055, depthWrite: false }),
+    new ShadowMaterial({ color: 0x716b60, opacity: 0.035, depthWrite: false }),
   );
   floor.rotation.x = -Math.PI / 2;
   floor.position.y = 0.015;
@@ -153,13 +161,7 @@ export async function createWorkbenchScene(
         MathUtils.radToDeg(initialPolar - controls.getPolarAngle()) * 1000,
       ) / 1000,
     );
-    canvas.dataset["zoom"] = String(
-      Math.round(
-        ((camera.zoom * initialDistance) /
-          camera.position.distanceTo(controls.target)) *
-          1e6,
-      ) / 1e6,
-    );
+    canvas.dataset["zoom"] = String(Math.round(camera.zoom * 1e6) / 1e6);
     canvas.dataset["cameraX"] = String(camera.position.x);
     canvas.dataset["cameraY"] = String(camera.position.y);
     canvas.dataset["cameraZ"] = String(camera.position.z);
@@ -168,10 +170,24 @@ export async function createWorkbenchScene(
     frame = undefined;
     if (disposed) return;
     const moving = controls.update();
+    direction.copy(orbit.position).sub(controls.target);
+    const zoom = initialDistance / direction.length();
+    camera.position
+      .copy(controls.target)
+      .add(direction.setLength(initialDistance));
+    camera.quaternion.copy(orbit.quaternion);
+    if (Math.abs(camera.zoom - zoom) > 1e-10) {
+      camera.zoom = zoom;
+      camera.updateProjectionMatrix();
+    }
     renderer.render(scene, camera);
+    // Both layers change in the same paint, after the new camera frame exists.
+    if (orbit.position.distanceToSquared(restingPosition) > 1e-10)
+      canvas.dataset["view"] = "model";
+    else if (!moving && canvas.dataset["dragging"] !== "true")
+      canvas.dataset["view"] = "drawing";
     metrics();
     canvas.dataset["triangles"] = String(renderer.info.render.triangles);
-    canvas.dataset["drawCalls"] = String(renderer.info.render.calls);
     if (moving) requestRender();
   }
   function requestRender() {
@@ -184,22 +200,30 @@ export async function createWorkbenchScene(
   }
   function resize() {
     if (disposed) return;
-    const width = canvas.clientWidth || 1,
-      height = canvas.clientHeight || 1;
+    const { width, height } = canvas.getBoundingClientRect();
+    if (width === 0 || height === 0) return;
     if (width === renderWidth && height === renderHeight) return;
     renderWidth = width;
     renderHeight = height;
-    const aspect = width / height;
-    const framing = Number(
-      getComputedStyle(canvas).getPropertyValue("--workbench-framing"),
+    const style = getComputedStyle(canvas);
+    const framing = Number(style.getPropertyValue("--workbench-framing"));
+    const drawingWidth =
+      Number.parseFloat(style.getPropertyValue("--workbench-drawing-width")) /
+      100;
+    const drawingLeft =
+      Number.parseFloat(style.getPropertyValue("--workbench-drawing-left")) /
+      100;
+    const drawingTop =
+      Number.parseFloat(style.getPropertyValue("--workbench-drawing-top")) /
+      100;
+    setArtworkView(
+      camera,
+      width,
+      height,
+      (width * drawingWidth * framing) / artworkWidth,
+      width * (0.5 + (drawingLeft - 0.5) * framing),
+      height * (0.5 + (drawingTop - 0.5) * framing),
     );
-    // Both layers enlarge around the paper's center on narrow screens.
-    const halfHeight = Math.max(4.8, 7.3 / aspect) / framing;
-    camera.aspect = aspect;
-    camera.fov = MathUtils.radToDeg(
-      2 * Math.atan(halfHeight / initialDistance),
-    );
-    camera.updateProjectionMatrix();
     renderer.setSize(width, height, false);
     requestRender();
   }
@@ -225,7 +249,7 @@ export async function createWorkbenchScene(
     floor.geometry.dispose();
     floor.material.dispose();
     graphite.dispose();
-    screen.dispose();
+    artwork.dispose();
     renderer.dispose();
     renderer.forceContextLoss();
   }
@@ -238,11 +262,10 @@ export async function createWorkbenchScene(
     throw error;
   }
   canvas.dataset["renderer"] = "webgl2";
-  canvas.dataset["parts"] = String(model.partCount);
 
   return {
     rotate(azimuth, elevation) {
-      const offset = camera.position.clone().sub(controls.target);
+      const offset = orbit.position.clone().sub(controls.target);
       const spherical = new Spherical().setFromVector3(offset);
       spherical.theta += MathUtils.degToRad(azimuth);
       spherical.phi = MathUtils.clamp(
@@ -250,20 +273,20 @@ export async function createWorkbenchScene(
         controls.minPolarAngle,
         controls.maxPolarAngle,
       );
-      camera.position
+      orbit.position
         .copy(controls.target)
         .add(new Vector3().setFromSpherical(spherical));
       controls.update();
       changed();
     },
     zoom(factor) {
-      const offset = camera.position.clone().sub(controls.target);
+      const offset = orbit.position.clone().sub(controls.target);
       const distance = MathUtils.clamp(
         offset.length() / factor,
         controls.minDistance,
         controls.maxDistance,
       );
-      camera.position.copy(controls.target).add(offset.setLength(distance));
+      orbit.position.copy(controls.target).add(offset.setLength(distance));
       controls.update();
       changed();
     },

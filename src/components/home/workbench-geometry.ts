@@ -1,8 +1,6 @@
 import { schedulePencilStrokes, strokeGeometry } from "./pencil-path";
 import { hatchPath } from "./pencil-plan";
 
-import type { PencilStroke } from "./pencil-plan";
-
 export const vertices = {
   footLeft: [542, 822],
   footRight: [1248, 944],
@@ -281,37 +279,28 @@ export const shadedPlanes = schedulePencilStrokes(
   1501.5,
 );
 
-const pendingPoints = Object.entries(vertices);
-const orderedPoints: typeof pendingPoints = [];
-let previousPoint: readonly [number, number] = vertices.topLeft;
-while (pendingPoints.length) {
-  let closest = 0;
-  for (let index = 1; index < pendingPoints.length; index++) {
-    const candidate = pendingPoints[index]![1];
-    const best = pendingPoints[closest]![1];
-    if (
-      Math.hypot(
-        candidate[0] - previousPoint[0],
-        candidate[1] - previousPoint[1],
-      ) < Math.hypot(best[0] - previousPoint[0], best[1] - previousPoint[1])
-    )
-      closest = index;
-  }
-  const next = pendingPoints.splice(closest, 1)[0]!;
-  orderedPoints.push(next);
-  previousPoint = next[1];
-}
+const outlinePoints = [
+  "topLeft",
+  "footLeft",
+  "footRight",
+  "topRight",
+  "shelfFrontRight",
+  "shelfFrontLeft",
+] as const satisfies readonly VertexId[];
 
-export const pointStrokes: readonly PencilStroke[] = schedulePencilStrokes(
-  orderedPoints.map(([id, point]) => ({
-    id: `point-${id}`,
-    point,
-    path: "",
-    from: point,
-    to: point,
-    minY: point[1],
-    length: 2,
-  })),
+export const pointStrokes = schedulePencilStrokes(
+  outlinePoints.map((id) => {
+    const point = vertices[id];
+    return {
+      id: `point-${id}`,
+      point,
+      path: "",
+      from: point,
+      to: point,
+      minY: point[1],
+      length: 2,
+    };
+  }),
   1.4,
   17.2,
   1275,

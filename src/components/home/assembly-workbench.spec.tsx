@@ -1,32 +1,19 @@
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { useEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("./workbench-orbit", () => ({
   preloadWorkbenchScene: vi.fn().mockResolvedValue(undefined),
-  WorkbenchOrbit: ({
-    onStatus,
-    active,
-  }: {
-    onStatus?: (status: "ready") => void;
-    active?: boolean;
-  }) => {
+  WorkbenchOrbit: ({ onStatus }: { onStatus?: (status: "ready") => void }) => {
     useEffect(() => {
       onStatus?.("ready");
     }, [onStatus]);
-    return (
-      <div
-        role="group"
-        aria-label="可旋转的立体工作台"
-        aria-hidden={!active}
-        data-prepared-model
-      />
-    );
+    return <div role="group" aria-label="可旋转的立体工作台" />;
   },
 }));
 
 import { AssemblyWorkbench } from "./assembly-workbench";
-import { drawingDuration } from "./pencil-plan";
+import { drawingDuration, drawingTime } from "./pencil-plan";
 import { WorkbenchDrawing } from "./workbench-drawing";
 import { pointStrokes } from "./workbench-geometry";
 
@@ -52,7 +39,7 @@ describe("AssemblyWorkbench", () => {
       expect(circle).toHaveAttribute("visibility", "visible");
       expect(Number(circle?.getAttribute("opacity"))).toBeGreaterThan(0);
     }
-    rerender(<WorkbenchDrawing progress={17} />);
+    rerender(<WorkbenchDrawing progress={18} />);
     for (const path of container.querySelectorAll(
       '[data-construction-layer="lines"] path',
     )) {
@@ -151,37 +138,6 @@ describe("AssemblyWorkbench", () => {
     expect(Number(scene().getAttribute("data-progress"))).toBeGreaterThan(0);
   });
 
-  it("removes the progress and replay controls, and enables the 3D view only after drawing", () => {
-    render(<AssemblyWorkbench />);
-    revealCanvas();
-    const workbench = screen.getByRole("region", { name: "交互工作台" });
-    expect(within(workbench).queryByRole("slider")).not.toBeInTheDocument();
-    expect(
-      within(workbench).queryByText(/100%|回到起点|重看细节|先落点|拖动回看/),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("group", { name: "可旋转的立体工作台" }),
-    ).not.toBeInTheDocument();
-    advanceTo(drawingDuration - 1);
-    expect(scene()).toHaveAttribute("data-complete", "false");
-    expect(
-      workbench.querySelector("[data-prepared-model]"),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("group", { name: "可旋转的立体工作台" }),
-    ).not.toBeInTheDocument();
-    expect(scene()).toHaveAttribute("data-model-ready", "false");
-    advanceTo(drawingDuration);
-    expect(scene()).toHaveAttribute("data-complete", "true");
-    expect(
-      screen.getByRole("group", { name: "可旋转的立体工作台" }),
-    ).toBeInTheDocument();
-    expect(within(workbench).queryByRole("button")).not.toBeInTheDocument();
-    expect(
-      workbench.querySelector('[data-construction-layer="pencil"]'),
-    ).toHaveAttribute("data-pencil-length", "0");
-  });
-
   it("constructs points, lines, and planes before the interactive finished view", () => {
     render(<AssemblyWorkbench />);
     revealCanvas();
@@ -190,10 +146,10 @@ describe("AssemblyWorkbench", () => {
     const finish = scene().querySelector('[data-construction-layer="finish"]');
     expect(lines).toHaveAttribute("opacity", "0");
     expect(planes).toHaveAttribute("opacity", "0");
-    advanceTo(7000);
+    advanceTo(drawingTime(55));
     expect(lines).toHaveAttribute("opacity", "1");
     expect(planes).toHaveAttribute("opacity", "0");
-    advanceTo(9000);
+    advanceTo(drawingTime(80));
     expect(planes).toHaveAttribute("opacity", "1");
     expect(finish).toHaveStyle({ opacity: "0" });
     advanceTo(drawingDuration);

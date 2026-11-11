@@ -72,22 +72,6 @@ describe("WorkbenchOrbit", () => {
     expect(engine.dispose).toHaveBeenCalledTimes(1);
   });
 
-  it("prepares the model without showing it over unfinished pencil strokes", async () => {
-    const { container, rerender } = render(<WorkbenchOrbit active={false} />);
-    await waitFor(() => expect(engine.create).toHaveBeenCalledTimes(1));
-    await waitFor(() =>
-      expect(container.firstChild).toHaveAttribute(
-        "data-model-status",
-        "ready",
-      ),
-    );
-    expect(screen.queryByRole("group")).not.toBeInTheDocument();
-    expect(container.firstChild).toHaveAttribute("tabindex", "-1");
-    rerender(<WorkbenchOrbit active />);
-    expect(screen.getByRole("group")).toHaveAttribute("tabindex", "0");
-    expect(engine.create).toHaveBeenCalledTimes(1);
-  });
-
   it("disposes a renderer that finishes loading after its page has gone away", async () => {
     let finish: ((value: typeof engine) => void) | undefined;
     engine.create.mockImplementation(

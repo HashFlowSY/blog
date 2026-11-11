@@ -11,10 +11,6 @@ import {
 import { WorkbenchPencil } from "./workbench-pencil";
 import { WorkbenchReveal } from "./workbench-reveal";
 
-const pointSchedules = new Map(
-  pointStrokes.map((stroke) => [stroke.id, stroke]),
-);
-
 export function WorkbenchDrawing({ progress }: { progress: number }) {
   const drawingId = useId().replaceAll(":", "");
   const hatchId = `${drawingId}-pencil-hatch`;
@@ -23,11 +19,6 @@ export function WorkbenchDrawing({ progress }: { progress: number }) {
   const planeOpacity = constructionFraction((progress - 57.8) / 0.2);
   const drawingOpacity = progress >= 100 ? 0 : 1;
   const pointOpacity = 1 - constructionFraction((progress - 50) / 35) * 0.7;
-  const anchorReveal = strokeFraction(
-    progress,
-    pointSchedules.get("point-topLeft")!,
-  );
-
   return (
     <svg
       className={styles["drawing"]}
@@ -114,7 +105,6 @@ export function WorkbenchDrawing({ progress }: { progress: number }) {
 
       <g
         style={{ opacity: drawingOpacity }}
-        data-construction-layer="drawing"
         mask={progress > 82 ? `url(#${drawingId}-remaining)` : undefined}
       >
         <g opacity={planeOpacity} data-construction-layer="planes">
@@ -182,35 +172,22 @@ export function WorkbenchDrawing({ progress }: { progress: number }) {
         </g>
 
         <g opacity={pointOpacity} data-construction-layer="points">
-          {Object.entries(vertices).map(([id, [x, y]], index) => {
-            const reveal = strokeFraction(
-              progress,
-              pointSchedules.get(`point-${id}`)!,
-            );
+          {pointStrokes.map((stroke, index) => {
+            const [x, y] = stroke.point;
+            const reveal = strokeFraction(progress, stroke);
             return (
               <circle
-                key={id}
+                key={stroke.id}
                 cx={x}
                 cy={y}
-                r={(index < 8 ? 5.8 : 4.2) * (0.6 + reveal * 0.4)}
-                fill={index === 4 ? "#bca244" : "#5b5348"}
+                r={5.8 * (0.6 + reveal * 0.4)}
+                fill={index === 0 ? "#bca244" : "#5b5348"}
                 opacity={reveal}
                 visibility={reveal > 0 ? "visible" : "hidden"}
-                data-pencil-point={`point-${id}`}
+                data-pencil-point={stroke.id}
               />
             );
           })}
-          <circle
-            cx={vertices.topLeft[0]}
-            cy={vertices.topLeft[1]}
-            r="15"
-            fill="none"
-            stroke="#a39779"
-            strokeWidth="0.65"
-            vectorEffect="non-scaling-stroke"
-            opacity={anchorReveal}
-            visibility={anchorReveal > 0 ? "visible" : "hidden"}
-          />
         </g>
       </g>
       <WorkbenchReveal progress={Math.max(82, progress)} id={drawingId} />

@@ -20,10 +20,8 @@ export type WorkbenchModelStatus = "loading" | "ready" | "failed";
 
 export function WorkbenchOrbit({
   onStatus,
-  active = true,
 }: {
   onStatus?: (status: WorkbenchModelStatus) => void;
-  active?: boolean;
 }) {
   const instructionsId = useId();
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -51,9 +49,13 @@ export function WorkbenchOrbit({
         onStatus?.("failed");
       }
     }
-    void initialize();
+    // Let the completed illustration reach the screen before compiling WebGL.
+    let frame = window.requestAnimationFrame(() => {
+      frame = window.requestAnimationFrame(() => void initialize());
+    });
     return () => {
       cancelled = true;
+      window.cancelAnimationFrame(frame);
       engine.current = undefined;
       viewer?.dispose();
     };
@@ -98,11 +100,10 @@ export function WorkbenchOrbit({
       aria-label="可旋转的立体工作台"
       aria-roledescription="三维模型"
       aria-describedby={instructionsId}
-      aria-hidden={!active || status !== "ready"}
+      aria-hidden={status !== "ready"}
       aria-busy={status === "loading"}
       data-model-status={status}
-      data-active={active}
-      tabIndex={active && status === "ready" ? 0 : -1}
+      tabIndex={status === "ready" ? 0 : -1}
       onKeyDown={handleKey}
       onDoubleClick={() => engine.current?.reset()}
       onPointerDown={(event) =>
@@ -117,11 +118,6 @@ export function WorkbenchOrbit({
       <span id={instructionsId} className={styles["srOnly"]}>
         拖动可360度旋转，滚轮或双指缩放。方向键旋转，加号和减号缩放，Home键或双击复位。
       </span>
-      {status === "failed" && (
-        <span className={styles["srOnly"]} role="status">
-          当前设备无法启用立体视图，已保留手绘工作台。
-        </span>
-      )}
     </div>
   );
 }

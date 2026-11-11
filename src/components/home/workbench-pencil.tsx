@@ -95,7 +95,6 @@ export function WorkbenchPencil({ progress }: { progress: number }) {
           height="83.333"
           viewBox={`228.006 0 ${Math.max(0.001, capWidth)} 83.333`}
           style={{ overflow: "hidden" }}
-          data-pencil-cap="true"
         >
           <image href={source} width="250" height="83.333" />
         </svg>

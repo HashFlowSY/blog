@@ -22,6 +22,8 @@ export async function drawTo(page: Page, workbench: Locator, progress: number) {
   await expect
     .poll(async () => Number(await scene.getAttribute("data-progress")))
     .toBeGreaterThanOrEqual(progress);
+  // Let the finished illustration paint before the renderer's deferred setup.
+  if (progress === 100) await page.clock.runFor(48);
 }
 
 export async function waitForWorkbenchModel(workbench: Locator) {
@@ -29,7 +31,6 @@ export async function waitForWorkbenchModel(workbench: Locator) {
   await expect(view).toHaveAttribute("data-model-status", "ready", {
     timeout: 15000,
   });
-  await expect(view).toHaveCSS("opacity", "1");
   const canvas = view.locator("canvas");
   await expect(canvas).toHaveAttribute("data-renderer", "webgl2");
   expect(Number(await canvas.getAttribute("data-triangles"))).toBeGreaterThan(

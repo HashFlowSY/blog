@@ -36,10 +36,6 @@ test.describe("WebKit smoke", () => {
     const early = await paintedPencilLength(page, workbench);
     await drawTo(page, workbench, 88);
     const late = await paintedPencilLength(page, workbench);
-    console.log(
-      "WebKit painted pencil lengths",
-      JSON.stringify({ early, late }),
-    );
     expect(early.pixels).toBeGreaterThan(30);
     expect(late.pixels).toBeGreaterThan(30);
     expect(late.extent).toBeLessThan(early.extent * 0.35);

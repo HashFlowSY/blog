@@ -9,7 +9,7 @@ import type { WorkbenchPart } from "./pencil-plan";
 
 const parts: readonly WorkbenchPart[] = ["tools", "foundation", "surface"];
 
-function BrushPass({
+const BrushPass = memo(function BrushPass({
   pass,
   progress,
   color,
@@ -21,7 +21,10 @@ function BrushPass({
   id: string;
 }) {
   return (
-    <g clipPath={`url(#${id}-${pass.id}-clip)`}>
+    <g
+      clipPath={`url(#${id}-${pass.id}-clip)`}
+      visibility={progress > pass.start ? "visible" : "hidden"}
+    >
       {pass.strokes.map((stroke) => {
         const fraction = strokeFraction(progress, stroke);
         return (
@@ -41,7 +44,7 @@ function BrushPass({
       })}
     </g>
   );
-}
+});
 
 export const WorkbenchReveal = memo(function WorkbenchReveal({
   progress,
@@ -98,7 +101,7 @@ export const WorkbenchReveal = memo(function WorkbenchReveal({
             <BrushPass
               key={pass.id}
               pass={pass}
-              progress={progress}
+              progress={Math.min(pass.end, Math.max(pass.start, progress))}
               color="black"
               id={id}
             />
@@ -122,7 +125,7 @@ export const WorkbenchReveal = memo(function WorkbenchReveal({
                 <BrushPass
                   key={pass.id}
                   pass={pass}
-                  progress={progress}
+                  progress={Math.min(pass.end, Math.max(pass.start, progress))}
                   color="white"
                   id={id}
                 />

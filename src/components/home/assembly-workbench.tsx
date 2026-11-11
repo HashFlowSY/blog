@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { preload } from "react-dom";
 
 import styles from "./assembly-workbench.module.css";
 import { drawingProgress, drawingTime } from "./pencil-plan";
 import { WorkbenchDrawing } from "./workbench-drawing";
 import { preloadWorkbenchScene, WorkbenchOrbit } from "./workbench-orbit";
+import { workbenchTextures } from "./workbench-textures";
 
 import type { WorkbenchModelStatus } from "./workbench-orbit";
 
@@ -81,19 +83,29 @@ export function AssemblyWorkbench() {
   const sceneRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef(0);
   const complete = progress >= 100;
+  const finishing = progress >= 82;
   const modelReady = complete && modelStatus === "ready";
-  const stage =
-    progress >= 82
-      ? "整件"
-      : progress >= 58
-        ? "面"
-        : progress >= 18
-          ? "线"
-          : "点";
+  const stage = finishing
+    ? "整件"
+    : progress >= 58
+      ? "面"
+      : progress >= 18
+        ? "线"
+        : "点";
 
   useEffect(() => {
     void preloadWorkbenchScene().catch(() => undefined);
   }, []);
+
+  useEffect(() => {
+    if (!finishing) return;
+    for (const source of workbenchTextures)
+      preload(source, {
+        as: "image",
+        type: "image/webp",
+        crossOrigin: "anonymous",
+      });
+  }, [finishing]);
 
   useEffect(() => {
     const reducedMotion = prefersReducedMotion();
@@ -200,9 +212,7 @@ export function AssemblyWorkbench() {
         >
           <WorkbenchDrawing progress={progress} />
         </div>
-        {progress >= 82 && (
-          <WorkbenchOrbit active={complete} onStatus={setModelStatus} />
-        )}
+        {complete && <WorkbenchOrbit onStatus={setModelStatus} />}
       </div>
       <span className={styles["srOnly"]} role="status">
         {complete
