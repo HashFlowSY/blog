@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import { PostArchive } from "./post-archive";
 
@@ -27,20 +27,8 @@ const posts: PostMeta[] = [
 ];
 
 describe("PostArchive", () => {
-  it("renders topic context and one article list", () => {
-    const { container } = render(
-      <PostArchive posts={posts} tags={["手记", "工程"]} />,
-    );
-
-    expect(screen.getByLabelText("当前写作主题")).toBeInTheDocument();
-    expect(screen.getByText("当前主题")).toBeInTheDocument();
-    expect(container.querySelectorAll(".portfolio-article-row")).toHaveLength(
-      2,
-    );
-    expect(screen.getByRole("link", { name: "第一篇" })).toHaveAttribute(
-      "href",
-      "/posts/first/",
-    );
+  beforeEach(() => {
+    window.history.replaceState(null, "", "/posts/");
   });
 
   it("renders an empty state when there are no posts", () => {
@@ -62,6 +50,7 @@ describe("PostArchive", () => {
     expect(screen.getByRole("status")).toHaveTextContent("0 / 2 篇文章");
     fireEvent.click(screen.getByRole("button", { name: "清除筛选" }));
     expect(search).toHaveValue("");
+    expect(search).toHaveFocus();
     expect(screen.getAllByRole("article")).toHaveLength(2);
     expect(screen.getByRole("button", { name: "全部" })).toHaveAttribute(
       "aria-pressed",

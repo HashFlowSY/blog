@@ -222,6 +222,7 @@ test.describe("Home page", () => {
     expect(
       Math.abs(Number(await canvas.getAttribute("data-yaw"))),
     ).toBeGreaterThan(360);
+    await expect(view).toBeFocused();
     await view.dblclick();
     await page.clock.runFor(32);
     await expect(canvas).toHaveAttribute("data-yaw", "0");
@@ -237,6 +238,7 @@ test.describe("Home page", () => {
   test("prepares graphite surfaces before the last stroke and crossfades without a blank frame", async ({
     page,
   }, testInfo) => {
+    await page.setViewportSize({ width: 390, height: 844 });
     const loaded: string[] = [];
     const errors: string[] = [];
     page.on("response", (response) => {
@@ -254,6 +256,7 @@ test.describe("Home page", () => {
       .locator('[data-construction-layer="finish"]')
       .locator("..")
       .locator("..");
+    await scene.scrollIntoViewIfNeeded();
     await drawTo(page, workbench, 99.9);
     const prepared = workbench.locator("[data-model-status]");
     await expect(prepared).toHaveAttribute("data-model-status", "ready", {
@@ -312,14 +315,22 @@ test.describe("Home page", () => {
     expect(errors).toEqual([]);
   });
 
-  test("supports touch orbit and pinch zoom while the page scrolls outside the model", async ({
+  test("waits for the canvas on a short screen and supports touch orbit, pinch and scrolling", async ({
     page,
   }) => {
-    await page.setViewportSize({ width: 320, height: 844 });
+    await page.setViewportSize({ width: 320, height: 568 });
     await installDrawingClock(page);
     await goToHome(page);
     const workbench = page.getByRole("region", { name: "交互工作台" });
+    const scene = workbench.locator("[data-progress]");
+    await page.clock.fastForward(1000);
+    await expect(scene).toHaveAttribute("data-progress", "0");
+    await expect(
+      workbench.getByRole("button", { name: "暂停构建" }),
+    ).toHaveCount(0);
+    await scene.scrollIntoViewIfNeeded();
     await drawTo(page, workbench, 100);
+    await page.setViewportSize({ width: 320, height: 844 });
     const view = await waitForWorkbenchModel(workbench);
     await view.scrollIntoViewIfNeeded();
     const canvas = view.locator("canvas");
@@ -412,7 +423,9 @@ test.describe("Home page", () => {
     await touch.detach();
   });
 
-  test("renders hero section", async ({ page }) => {
+  test("links the hero to the featured project and the footer to contact", async ({
+    page,
+  }) => {
     const copy = SITE_COPY;
 
     await goToHome(page);
@@ -422,14 +435,26 @@ test.describe("Home page", () => {
     ).toBeVisible();
 
     const viewProjectsLink = page.getByRole("link", {
-      name: copy.viewProjects,
+      name: copy.viewFeaturedProject,
       exact: true,
     });
     await expect(viewProjectsLink).toBeVisible();
-    await expect(viewProjectsLink).toHaveAttribute("href", /\/projects\/$/);
+    await viewProjectsLink.click();
+    await expect(page).toHaveURL(/#selected-work$/);
+    await expect(
+      page.getByRole("heading", { name: copy.featuredProjects }),
+    ).toBeInViewport();
 
-    const contactLinks = page.locator('a[href$="/about/#contact"]');
-    expect(await contactLinks.count()).toBeGreaterThan(0);
+    await page
+      .getByRole("region", { name: "求职与合作" })
+      .getByRole("link", { name: "联系我", exact: true })
+      .click();
+    await expect(page).toHaveURL(/\/about\/#contact$/);
+    await expect(
+      page
+        .getByRole("region", { name: "求职或合作，欢迎联系我。" })
+        .getByRole("link", { name: /GitHub/ }),
+    ).toBeInViewport();
   });
 
   test("shows recent posts section", async ({ page }) => {

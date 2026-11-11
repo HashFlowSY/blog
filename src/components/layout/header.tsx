@@ -133,7 +133,6 @@ export function Header({ siteName, siteRole }: HeaderProps) {
               href={link.href}
               aria-current={active ? "page" : "false"}
               onClick={closeMenu}
-              data-route-link={link.route}
             >
               <span className="nav-index" aria-hidden="true">
                 0{index + 1}

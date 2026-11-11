@@ -20,25 +20,15 @@ export default async function ProjectsPage() {
 
   return (
     <section
-      className="page portfolio-page portfolio-projects-page is-active"
-      data-route-page="projects"
+      className="portfolio-page content-page"
       aria-labelledby="projects-title"
     >
       <div className="portfolio-shell">
-        <header className="portfolio-page-intro">
-          <div>
-            <p className="portfolio-overline">Projects / case studies</p>
-            <h1 id="projects-title">项目案例</h1>
-            <p className="portfolio-lede">
-              从问题、角色和关键决策出发，说明一个项目如何被推进到可用、可维护的状态。
-            </p>
-          </div>
+        <header className="content-list-intro">
+          <h1 id="projects-title">项目案例</h1>
         </header>
 
-        <section
-          className="portfolio-section portfolio-projects-section"
-          aria-label="项目案例列表"
-        >
+        <section className="content-list-section" aria-label="项目案例列表">
           <ProjectList projects={projectCases} />
         </section>
 
@@ -47,7 +37,6 @@ export default async function ProjectsPage() {
           aria-labelledby="projects-contact-title"
         >
           <div>
-            <p className="portfolio-overline">Contact / open to work</p>
             <h2 id="projects-contact-title">有类似的问题需要推进？</h2>
             <p>可以从需求、技术方案或现有系统开始聊。</p>
           </div>

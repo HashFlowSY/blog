@@ -108,7 +108,7 @@ test.describe("WebKit smoke", () => {
     expect(new URL(page.url()).pathname).toMatch(/\/projects\/$/);
   });
 
-  test("opens the explicitly selected post and real project details", async ({
+  test("opens the article contents and project image preview", async ({
     page,
   }) => {
     await goToPost(page, STABLE_POST.slug);
@@ -118,6 +118,11 @@ test.describe("WebKit smoke", () => {
     expect(new URL(page.url()).pathname).toMatch(
       new RegExp(`/posts/${STABLE_POST.slug}/$`),
     );
+    await page.getByRole("button", { name: "目录", exact: true }).click();
+    const contents = page.getByRole("navigation", { name: "文章章节" });
+    await expect(contents).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(contents).toBeHidden();
 
     await goToProject(page, STABLE_PROJECT.slug);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
@@ -126,6 +131,15 @@ test.describe("WebKit smoke", () => {
     expect(new URL(page.url()).pathname).toMatch(
       new RegExp(`/projects/${STABLE_PROJECT.slug}/$`),
     );
+    const preview = page.getByRole("button", { name: "查看项目大图" });
+    await preview.click();
+    const dialog = page.getByRole("dialog", {
+      name: `${STABLE_PROJECT.title}项目大图`,
+    });
+    await expect(dialog).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
+    await expect(preview).toBeFocused();
   });
 
   test("supports mobile menu open, close, navigation, and basic layout", async ({

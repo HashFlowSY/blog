@@ -226,13 +226,13 @@ test.describe("fixture independence", () => {
 
       await expect(
         page.getByRole("link", {
-          name: `阅读${STABLE_POST.title}`,
+          name: STABLE_POST.title,
           exact: true,
         }),
       ).toBeVisible();
       await expect(
         page.getByRole("link", {
-          name: `阅读${fixtureTitle}`,
+          name: fixtureTitle,
           exact: true,
         }),
       ).toBeVisible();

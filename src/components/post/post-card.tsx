@@ -1,39 +1,43 @@
 import Link from "next/link";
 
+import { collectionCardId } from "@/lib/content-navigation";
+
 import type { PostMeta } from "@/lib/content-catalog";
 
 interface PostCardProps {
-  index?: number;
   post: PostMeta;
+  filterSearch?: string;
+  titleElement?: "h2" | "h3";
 }
 
-function formatDateStamp(date: string): string {
-  return date.replaceAll("-", ".");
-}
-
-export function PostCard({ index = 1, post }: PostCardProps) {
-  const primaryTag = post.tags[0];
+export function PostCard({
+  post,
+  filterSearch = "",
+  titleElement: Title = "h2",
+}: PostCardProps) {
+  const cardId = collectionCardId("posts", post.slug);
+  const titleId = `${cardId}-title`;
 
   return (
-    <article className="portfolio-article-row" data-filter-item={primaryTag}>
-      <span className="portfolio-article-index">
-        {index.toString().padStart(2, "0")}
-      </span>
-      <div className="portfolio-article-copy">
-        <p className="portfolio-overline">
-          {formatDateStamp(post.date)} / {primaryTag} / {post.readingTime} min
-        </p>
-        <h2>
-          <Link href={`/posts/${post.slug}/`}>{post.title}</Link>
-        </h2>
-        <p>{post.summary}</p>
-      </div>
+    <article>
       <Link
-        className="portfolio-text-link"
-        href={`/posts/${post.slug}/`}
-        aria-label={`阅读${post.title}`}
+        id={cardId}
+        className="content-card-link article-card-link"
+        href={`/posts/${post.slug}/${filterSearch}`}
+        aria-labelledby={titleId}
       >
-        阅读文章
+        <div className="article-card-copy">
+          <p className="content-card-meta">
+            <time dateTime={post.date}>{post.date.replaceAll("-", ".")}</time>
+            <span>{post.tags[0]}</span>
+            <span>{post.readingTime} 分钟</span>
+          </p>
+          <Title id={titleId}>{post.title}</Title>
+          <p className="content-card-summary">{post.summary}</p>
+        </div>
+        <span className="content-card-action" aria-hidden="true">
+          阅读 <span>→</span>
+        </span>
       </Link>
     </article>
   );

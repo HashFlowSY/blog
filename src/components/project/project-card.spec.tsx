@@ -24,7 +24,6 @@ describe("ProjectCard", () => {
   it("renders project positioning, facts, and tags", () => {
     render(<ProjectCard project={baseProject} />);
 
-    expect(screen.getByText("项目案例")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent(
       "My Project",
     );
@@ -35,24 +34,15 @@ describe("ProjectCard", () => {
     expect(screen.getByText("industrial")).toBeInTheDocument();
   });
 
-  it("links to detail, source, and demo destinations", () => {
+  it("makes the preview and copy part of one project detail link", () => {
     render(<ProjectCard project={baseProject} />);
 
-    expect(screen.getByRole("link", { name: "My Project" })).toHaveAttribute(
-      "href",
-      "/projects/my-project/",
+    const link = screen.getByRole("link", { name: "My Project" });
+    expect(link).toHaveAttribute("href", "/projects/my-project/");
+    expect(link).toContainElement(
+      screen.getByRole("img", { name: "My Project界面预览" }),
     );
-    expect(screen.getByRole("link", { name: "查看案例" })).toHaveAttribute(
-      "href",
-      "/projects/my-project/",
-    );
-    expect(screen.getByRole("link", { name: "源代码" })).toHaveAttribute(
-      "href",
-      "https://github.com/example/repo",
-    );
-    expect(screen.getByRole("link", { name: "在线演示" })).toHaveAttribute(
-      "href",
-      "https://example.com",
-    );
+    expect(link).toContainElement(screen.getByText("A cool project"));
+    expect(screen.getAllByRole("link")).toHaveLength(1);
   });
 });

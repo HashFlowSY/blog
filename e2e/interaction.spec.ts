@@ -66,11 +66,6 @@ test.describe("Continuous browsing interactions", () => {
       "data-route",
       "articles",
     );
-    await page.locator("main").evaluate(async (element) => {
-      await Promise.all(
-        element.getAnimations().map((animation) => animation.finished),
-      );
-    });
     const originalTop = await heading.evaluate(
       (element) => element.getBoundingClientRect().top,
     );
@@ -95,18 +90,37 @@ test.describe("Continuous browsing interactions", () => {
     await expect(menu).toHaveAttribute("aria-expanded", "false");
   });
 
-  test("tracks the active homepage section and article heading", async ({
+  test("opens the mobile contents, jumps to a heading, and keeps its highlight", async ({
     page,
   }) => {
-    await goToHome(page);
-    const index = page.getByRole("navigation", { name: "页面章节" });
-    const projects = index.getByRole("link", { name: "02 代表项目" });
-    await projects.click();
-    await expect(projects).toHaveAttribute("aria-current", "location");
+    await page.setViewportSize({ width: 390, height: 844 });
     await goToPost(page, STABLE_POST.slug);
+    await expect(page.locator("#article-body")).toBeInViewport();
+    const toggle = page.getByRole("button", { name: "目录", exact: true });
     const contents = page.getByRole("navigation", { name: "文章章节" });
-    const headingLink = contents.getByRole("link").nth(1);
+    await expect(contents).toBeHidden();
+    await toggle.click();
+    const section = "Anthropic 官方（Claude）";
+    const headingLink = contents.getByRole("link", {
+      name: section,
+      exact: true,
+    });
     await headingLink.click();
+    await expect(contents).toBeHidden();
+    const heading = page.getByRole("heading", { name: section, exact: true });
+    await expect(heading).toBeFocused();
+    await expect(heading).toBeInViewport();
+    const readingPosition = await page.evaluate(() => window.scrollY);
+    const toggleBox = await toggle.boundingBox();
+    if (!toggleBox)
+      throw new Error("The fixed contents button must be visible");
+    await page.mouse.click(
+      toggleBox.x + toggleBox.width / 2,
+      toggleBox.y + toggleBox.height / 2,
+    );
     await expect(headingLink).toHaveAttribute("aria-current", "location");
+    expect(await page.evaluate(() => window.scrollY)).toBe(readingPosition);
+    await page.keyboard.press("Escape");
+    await expect(contents).toBeHidden();
   });
 });

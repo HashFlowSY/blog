@@ -14,8 +14,14 @@ export function RouteState() {
   const pathname = usePathname();
 
   useEffect(() => {
-    document.body.dataset["route"] = routeFromPathname(pathname);
-    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    const route = routeFromPathname(pathname);
+    document.body.dataset["route"] = route;
+    if (
+      route === "articles" ||
+      route === "projects" ||
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+    )
+      return;
 
     const animation = document.getElementById("content")?.animate?.(
       [

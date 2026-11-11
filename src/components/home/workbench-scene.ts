@@ -190,9 +190,11 @@ export async function createWorkbenchScene(
     renderWidth = width;
     renderHeight = height;
     const aspect = width / height;
-    // Match the width-driven SVG drawing at both desktop and phone sizes.
-    // Extra height on a narrow phone must not enlarge the finished object.
-    const halfHeight = Math.max(4.8, 7.3 / aspect);
+    const framing = Number(
+      getComputedStyle(canvas).getPropertyValue("--workbench-framing"),
+    );
+    // Both layers enlarge around the paper's center on narrow screens.
+    const halfHeight = Math.max(4.8, 7.3 / aspect) / framing;
     camera.aspect = aspect;
     camera.fov = MathUtils.radToDeg(
       2 * Math.atan(halfHeight / initialDistance),

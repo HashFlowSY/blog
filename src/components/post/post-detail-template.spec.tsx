@@ -148,27 +148,23 @@ describe("PostDetailTemplate", () => {
       />,
     );
 
-    expect(container.querySelector(".article-shell")).toBeInTheDocument();
-    expect(container.querySelector(".detail-hero")).toBeInTheDocument();
-    expect(
-      container.querySelector(".portfolio-article-meta"),
-    ).toBeInTheDocument();
-    expect(container.querySelector(".reader-card")).toBeInTheDocument();
-    expect(container.querySelector(".article-body")).toBeInTheDocument();
-    expect(container.querySelector(".related-section")).toBeInTheDocument();
     expect(container.querySelector(".read-progress")).toBeInTheDocument();
 
     expect(
       getByRole("heading", { level: 1, name: "第一篇记录" }),
     ).toBeInTheDocument();
     expect(getByText("2026.04.02")).toBeInTheDocument();
-    expect(getByText("6 min")).toBeInTheDocument();
+    expect(getByText("6 分钟")).toBeInTheDocument();
     expect(getByText("手记")).toBeInTheDocument();
     expect(getByText("工具链")).toBeInTheDocument();
+    expect(getByRole("link", { name: "返回文章列表" })).toHaveAttribute(
+      "href",
+      "/posts/#posts-hello-world",
+    );
   });
 
-  it("renders numbered table-of-contents links for Catalog headings", () => {
-    const { getByRole } = render(
+  it("renders a contents control with Catalog heading links", () => {
+    const { getByRole, getByText } = render(
       <PostDetailTemplate
         post={post}
         relatedPosts={relatedPosts}
@@ -176,10 +172,14 @@ describe("PostDetailTemplate", () => {
       />,
     );
 
-    expect(
-      getByRole("link", { name: "01 这个博客会写什么？" }),
-    ).toHaveAttribute("href", "#topic");
-    expect(getByRole("link", { name: "02 技术栈" })).toHaveAttribute(
+    expect(getByRole("button", { name: "目录" })).toHaveAttribute(
+      "popovertarget",
+    );
+    expect(getByText("这个博客会写什么？", { selector: "a" })).toHaveAttribute(
+      "href",
+      "#topic",
+    );
+    expect(getByText("技术栈", { selector: "a" })).toHaveAttribute(
       "href",
       "#stack",
     );
@@ -198,11 +198,11 @@ describe("PostDetailTemplate", () => {
       "href",
       "/posts/interface-notes/",
     );
-    expect(getByText("2026.03.29 / Interface")).toBeInTheDocument();
+    expect(getByText("Interface")).toBeInTheDocument();
   });
 
   it("omits the table of contents for short articles", () => {
-    const { queryByLabelText } = render(
+    const { queryByRole } = render(
       <PostDetailTemplate
         post={{
           ...post,
@@ -212,7 +212,7 @@ describe("PostDetailTemplate", () => {
       />,
     );
 
-    expect(queryByLabelText("文章目录")).not.toBeInTheDocument();
+    expect(queryByRole("button", { name: "目录" })).not.toBeInTheDocument();
   });
 
   it("renders a latest-posts heading for fallback recommendations", () => {

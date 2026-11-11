@@ -89,6 +89,7 @@ test.describe("Navigation", () => {
     const copy = SITE_COPY;
 
     await goToHome(page);
+    const homePathname = new URL(page.url()).pathname;
     await clickNavAndWait(
       page,
       'nav[aria-label="主导航"]',
@@ -98,7 +99,7 @@ test.describe("Navigation", () => {
     expect(new URL(page.url()).pathname).toMatch(/\/posts\/$/);
 
     const stablePostLink = page.getByRole("link", {
-      name: `阅读${STABLE_POST.title}`,
+      name: STABLE_POST.title,
       exact: true,
     });
     await Promise.all([
@@ -116,8 +117,7 @@ test.describe("Navigation", () => {
     expect(new URL(page.url()).pathname).toMatch(/\/posts\/$/);
 
     await page.goBack();
-    await page.waitForURL((url) => /\/$/.test(url.pathname));
-    expect(new URL(page.url()).pathname).toMatch(/\/$/);
+    await expect(page).toHaveURL((url) => url.pathname === homePathname);
 
     await page.goForward();
     await page.waitForURL((url) => url.pathname.endsWith("/posts/"));

@@ -11,11 +11,7 @@ export const metadata: Metadata = {
 
 export default function NotFound() {
   return (
-    <section
-      className="page portfolio-page portfolio-not-found is-active"
-      data-route-page="home"
-      aria-labelledby="not-found-title"
-    >
+    <section className="portfolio-page" aria-labelledby="not-found-title">
       <div className="portfolio-shell">
         <div className="studio-not-found">
           <p className="portfolio-overline">404 / missing signal</p>

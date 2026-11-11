@@ -1,10 +1,8 @@
-import Link from "next/link";
-
-import { SectionNavigation } from "@/components/layout/section-navigation";
+import { DetailToolbar } from "@/components/layout/detail-toolbar";
 import { SITE } from "@/lib/site";
 
 import { CodeBlockEnhancer } from "./code-block";
-import { ReadingProgress } from "./reading-progress";
+import { PostCard } from "./post-card";
 
 import type { Post, PostMeta } from "@/lib/content-catalog";
 interface PostDetailTemplateProps {
@@ -71,10 +69,6 @@ export function selectRelatedReading(
   };
 }
 
-function formatMetaLine(post: PostMeta): string {
-  return `${formatDetailDate(post.date)} / ${post.tags[0]}`;
-}
-
 function compareByLatestDate(a: PostMeta, b: PostMeta): number {
   const aTimestamp = getDateTimestamp(a.date) ?? Number.NEGATIVE_INFINITY;
   const bTimestamp = getDateTimestamp(b.date) ?? Number.NEGATIVE_INFINITY;
@@ -115,32 +109,28 @@ export function PostDetailTemplate({
 }: PostDetailTemplateProps) {
   const tags = post.tags;
   const { headings, html } = post.renderedContent;
-  const showToc = headings.length >= 2;
 
   return (
     <article
-      className="page article-shell portfolio-page portfolio-article-page is-active"
-      data-route-page="articles"
+      className="portfolio-page content-page content-detail-page"
       aria-labelledby="post-title"
     >
-      <ReadingProgress />
       <div className="portfolio-shell">
-        <Link className="portfolio-back-link" href="/posts/">
-          返回技术写作
-        </Link>
+        <DetailToolbar
+          collection="posts"
+          slug={post.slug}
+          headings={headings}
+        />
 
         <header
-          className="portfolio-article-hero detail-hero"
+          className="portfolio-article-hero content-reading-width"
           aria-labelledby="post-title"
         >
-          <p className="portfolio-overline">Writing / engineering note</p>
-          <h1 id="post-title" data-od-id="detail-headline">
-            {post.title}
-          </h1>
+          <h1 id="post-title">{post.title}</h1>
           <p className="portfolio-lede">{post.summary}</p>
           <div className="portfolio-article-meta" aria-label="文章信息">
-            <span>{formatDetailDate(post.date)}</span>
-            <span>{post.readingTime} min</span>
+            <time dateTime={post.date}>{formatDetailDate(post.date)}</time>
+            <span>{post.readingTime} 分钟</span>
             {post.updated !== post.date && (
               <span>更新于 {formatDetailDate(post.updated)}</span>
             )}
@@ -152,66 +142,29 @@ export function PostDetailTemplate({
           </div>
         </header>
 
-        <div
-          className={[
-            "portfolio-reader-layout",
-            showToc ? "has-toc" : "without-toc",
-          ].join(" ")}
-        >
-          {showToc && (
-            <aside className="portfolio-reader-index" aria-label="文章目录">
-              <p className="portfolio-overline">Contents</p>
-              <SectionNavigation
-                label="文章章节"
-                variant="contents"
-                items={headings.map((heading) => ({
-                  id: heading.id,
-                  label: heading.text,
-                }))}
-              />
-            </aside>
-          )}
-
-          <article className="portfolio-reader-card reader-card">
-            <CodeBlockEnhancer>
-              <div
-                className="article-body portfolio-prose prose"
-                id="article-body"
-                data-od-id="detail-body"
-                dangerouslySetInnerHTML={{ __html: html }}
-              />
-            </CodeBlockEnhancer>
-          </article>
+        <div className="content-reading-body content-reading-width">
+          <CodeBlockEnhancer>
+            <div
+              className="portfolio-prose prose"
+              id="article-body"
+              dangerouslySetInnerHTML={{ __html: html }}
+            />
+          </CodeBlockEnhancer>
         </div>
 
         {relatedPosts.length > 0 && (
           <section
-            className="portfolio-related-section related-section"
+            className="content-related content-reading-width"
             aria-labelledby="related-title"
           >
-            <div className="portfolio-section-heading">
-              <div>
-                <p className="portfolio-overline">Continue reading</p>
-                <h2 id="related-title">{relatedTitle}</h2>
-              </div>
-            </div>
-            <div
-              className="portfolio-related-list"
-              data-od-id="detail-related-grid"
-            >
-              {relatedPosts.map((relatedPost, index) => (
-                <Link
-                  className="portfolio-related-row"
-                  href={`/posts/${relatedPost.slug}/`}
+            <h2 id="related-title">{relatedTitle}</h2>
+            <div className="portfolio-article-list">
+              {relatedPosts.map((relatedPost) => (
+                <PostCard
                   key={relatedPost.slug}
-                >
-                  <span>{String(index + 1).padStart(2, "0")}</span>
-                  <span>
-                    <small>{formatMetaLine(relatedPost)}</small>
-                    <strong>{relatedPost.title}</strong>
-                    <span>{relatedPost.summary}</span>
-                  </span>
-                </Link>
+                  post={relatedPost}
+                  titleElement="h3"
+                />
               ))}
             </div>
           </section>
@@ -222,7 +175,6 @@ export function PostDetailTemplate({
           aria-labelledby="writing-contact-title"
         >
           <div>
-            <p className="portfolio-overline">Contact / discuss</p>
             <h2 id="writing-contact-title">想继续讨论这个问题？</h2>
             <p>欢迎通过 GitHub 继续讨论。</p>
           </div>

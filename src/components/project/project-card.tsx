@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { collectionCardId } from "@/lib/content-navigation";
 import { assetPath } from "@/lib/site";
 
 import type { ProjectCaseMeta } from "@/lib/content-catalog";
@@ -10,90 +11,46 @@ interface ProjectCardProps {
 }
 
 export function ProjectCard({ project }: ProjectCardProps) {
-  const cover = assetPath(project.cover);
+  const cardId = collectionCardId("projects", project.slug);
+  const titleId = `${cardId}-title`;
 
   return (
-    <article
-      className={[
-        "portfolio-project-card",
-        project.featured ? "is-featured" : "",
-      ]
-        .filter(Boolean)
-        .join(" ")}
-      data-filter-item={project.tags[0]}
-    >
+    <article>
       <Link
-        className="portfolio-project-media"
+        id={cardId}
+        className="content-card-link project-card-link"
         href={`/projects/${project.slug}/`}
-        aria-label={`查看${project.title}案例`}
+        aria-labelledby={titleId}
       >
-        <Image
-          src={cover}
-          alt={`${project.title}界面预览`}
-          fill
-          preload={project.featured}
-          sizes={
-            project.featured
-              ? "(max-width: 760px) 100vw, 58vw"
-              : "(max-width: 760px) 100vw, 46vw"
-          }
-        />
-        <span className="portfolio-project-kind">项目案例</span>
-      </Link>
-
-      <div className="portfolio-project-copy">
-        <p className="portfolio-overline">
-          {project.date.replaceAll("-", ".")} /{" "}
-          {project.tags.slice(0, 3).join(" · ")}
-        </p>
-        <h2>
-          <Link href={`/projects/${project.slug}/`}>{project.title}</Link>
-        </h2>
-        <p className="portfolio-project-description">{project.description}</p>
-        <dl className="portfolio-project-facts">
-          <div>
+        <div className="project-card-heading">
+          <h2 id={titleId}>{project.title}</h2>
+          <p className="project-card-result">{project.result}</p>
+        </div>
+        <div className="portfolio-project-media">
+          <Image
+            src={assetPath(project.cover)}
+            alt={`${project.title}界面预览`}
+            fill
+            preload={project.featured}
+            sizes="(max-width: 760px) 100vw, 48vw"
+          />
+        </div>
+        <div className="project-card-details">
+          <p className="content-card-summary">{project.description}</p>
+          <dl className="project-card-role">
             <dt>我的角色</dt>
             <dd>{project.role}</dd>
+          </dl>
+          <div className="portfolio-tags" aria-label="项目标签">
+            {project.tags.slice(0, 5).map((tag) => (
+              <span key={tag}>{tag}</span>
+            ))}
           </div>
-          <div>
-            <dt>项目结果</dt>
-            <dd>{project.result}</dd>
-          </div>
-        </dl>
-        <div className="portfolio-tags" aria-label="项目标签">
-          {project.tags.slice(0, 5).map((tag) => (
-            <span key={tag}>{tag}</span>
-          ))}
+          <span className="content-card-action" aria-hidden="true">
+            查看案例 <span>→</span>
+          </span>
         </div>
-        <div className="portfolio-link-row">
-          <Link
-            className="portfolio-button portfolio-button-primary"
-            href={`/projects/${project.slug}/`}
-          >
-            查看案例
-          </Link>
-          {project.source && (
-            <a
-              className="portfolio-text-link"
-              href={project.source}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              源代码
-            </a>
-          )}
-          {project.demo && (
-            <a
-              className="portfolio-text-link"
-              href={project.demo}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              在线演示
-            </a>
-          )}
-        </div>
-      </div>
+      </Link>
     </article>
   );
 }

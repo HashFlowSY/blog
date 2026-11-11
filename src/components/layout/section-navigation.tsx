@@ -1,30 +1,32 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+
+import type { MarkdownHeading } from "@/lib/markdown";
 
 interface SectionNavigationProps {
-  items: readonly { id: string; label: string }[];
+  headings: readonly MarkdownHeading[];
   label: string;
-  variant: "rail" | "contents";
 }
 
-export function SectionNavigation({
-  items,
-  label,
-  variant,
-}: SectionNavigationProps) {
-  const [activeId, setActiveId] = useState(items[0]?.id);
+export function SectionNavigation({ headings, label }: SectionNavigationProps) {
+  const [activeId, setActiveId] = useState(headings[0]?.id);
+  const panelId = useId();
+  const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const sections = items.flatMap((item) => {
-      const element = document.getElementById(item.id);
-      return element ? [{ id: item.id, element }] : [];
+    const toolbar = panelRef.current?.parentElement;
+    if (!toolbar) return;
+
+    const sections = headings.flatMap(({ id }) => {
+      const element = document.getElementById(id);
+      return element ? [{ id, element }] : [];
     });
     let frameId = 0;
 
-    function syncSection() {
+    const syncSection = () => {
       let current = sections[0]?.id;
-      const readingLine = Math.min(220, window.innerHeight * 0.3);
+      const readingLine = toolbar.getBoundingClientRect().bottom + 48;
       for (const section of sections) {
         if (section.element.getBoundingClientRect().top <= readingLine) {
           current = section.id;
@@ -38,7 +40,7 @@ export function SectionNavigation({
       }
       setActiveId(current);
       frameId = 0;
-    }
+    };
 
     function requestSync() {
       if (!frameId) frameId = window.requestAnimationFrame(syncSection);
@@ -52,32 +54,52 @@ export function SectionNavigation({
       window.removeEventListener("resize", requestSync);
       window.cancelAnimationFrame(frameId);
     };
-  }, [items]);
+  }, [headings]);
 
   return (
-    <nav
-      className={variant === "rail" ? "workbench-index" : "portfolio-toc-list"}
-      aria-label={label}
-    >
-      {items.map((item, index) => (
-        <a
-          key={item.id}
-          className={variant === "contents" ? "portfolio-toc-link" : undefined}
-          href={`#${item.id}`}
-          aria-label={`${String(index + 1).padStart(2, "0")} ${item.label}`}
-          aria-current={activeId === item.id ? "location" : undefined}
-        >
-          <span className="section-index" aria-hidden="true">
-            {String(index + 1).padStart(2, "0")}
-          </span>{" "}
-          <span className="section-label">{item.label}</span>
-        </a>
-      ))}
-      {variant === "rail" && (
-        <span className="workbench-rail-label" aria-hidden="true">
-          想法 / 构建 / 交付
-        </span>
-      )}
-    </nav>
+    <>
+      <button
+        type="button"
+        className="detail-toolbar-control"
+        popoverTarget={panelId}
+      >
+        目录 <span className="detail-contents-chevron" aria-hidden="true" />
+      </button>
+      <div
+        className="detail-contents"
+        id={panelId}
+        popover="auto"
+        ref={panelRef}
+      >
+        <nav className="detail-contents-links" aria-label={label}>
+          {headings.map(({ id, text, level }) => (
+            <a
+              key={id}
+              className="detail-contents-link"
+              data-depth={level}
+              href={`#${id}`}
+              aria-current={activeId === id ? "location" : undefined}
+              onClick={(event) => {
+                if (
+                  event.metaKey ||
+                  event.ctrlKey ||
+                  event.shiftKey ||
+                  event.altKey
+                )
+                  return;
+                panelRef.current?.hidePopover();
+                const heading = document.getElementById(id);
+                if (heading) {
+                  heading.tabIndex = -1;
+                  heading.focus({ preventScroll: true });
+                }
+              }}
+            >
+              {text}
+            </a>
+          ))}
+        </nav>
+      </div>
+    </>
   );
 }

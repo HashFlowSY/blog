@@ -113,10 +113,9 @@ export function WorkbenchOrbit({
         ref={canvas}
         className={styles["modelCanvas"]}
         aria-hidden="true"
-        tabIndex={-1}
       />
       <span id={instructionsId} className={styles["srOnly"]}>
-        拖动可360度旋转，滚轮或双指缩放；方向键调整角度，Home键或双击复位。
+        拖动可360度旋转，滚轮或双指缩放。方向键旋转，加号和减号缩放，Home键或双击复位。
       </span>
       {status === "failed" && (
         <span className={styles["srOnly"]} role="status">

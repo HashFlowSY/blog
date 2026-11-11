@@ -19,34 +19,16 @@ export default async function PostsPage() {
 
   return (
     <section
-      className="page portfolio-page portfolio-posts-page is-active"
-      data-route-page="articles"
+      className="portfolio-page content-page"
       aria-labelledby="articles-title"
     >
       <div className="portfolio-shell">
-        <header className="portfolio-page-intro">
-          <div>
-            <p className="portfolio-overline">Writing / engineering notes</p>
-            <h1 id="articles-title" data-od-id="article-headline">
-              技术写作
-            </h1>
-            <p className="portfolio-lede">
-              记录 AI 工具、工程实现和技术取舍，也保留验证过程与复盘。
-            </p>
-          </div>
-          <dl className="portfolio-page-stats">
-            <div>
-              <dt>文章</dt>
-              <dd>{posts.length.toString().padStart(2, "0")}</dd>
-            </div>
-            <div>
-              <dt>主题</dt>
-              <dd>{tags.length.toString().padStart(2, "0")}</dd>
-            </div>
-          </dl>
+        <header className="content-list-intro">
+          <h1 id="articles-title">技术写作</h1>
+          <p>记录 AI 工具、工程实现和技术取舍。</p>
         </header>
 
-        <section className="portfolio-section" aria-label="文章列表">
+        <section className="content-list-section" aria-label="文章列表">
           <PostArchive posts={posts} tags={tags} />
         </section>
       </div>

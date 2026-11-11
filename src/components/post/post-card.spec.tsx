@@ -19,25 +19,24 @@ describe("PostCard", () => {
   it("renders the article row with date stamp and metadata", () => {
     render(<PostCard post={basePost} />);
 
-    expect(
-      screen.getByText("2026.01.15 / typescript / 5 min"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("2026.01.15")).toHaveAttribute(
+      "datetime",
+      "2026-01-15",
+    );
+    expect(screen.getByText("typescript")).toBeInTheDocument();
+    expect(screen.getByText("5 分钟")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent(
       "Test Post",
     );
     expect(screen.getByText("A test summary")).toBeInTheDocument();
   });
 
-  it("links to the Chinese-only post route", () => {
+  it("makes the title and summary part of one post link", () => {
     render(<PostCard post={basePost} />);
 
-    expect(screen.getByRole("link", { name: "Test Post" })).toHaveAttribute(
-      "href",
-      "/posts/test-post/",
-    );
-    expect(screen.getByRole("link", { name: "阅读Test Post" })).toHaveAttribute(
-      "href",
-      "/posts/test-post/",
-    );
+    const link = screen.getByRole("link", { name: "Test Post" });
+    expect(link).toHaveAttribute("href", "/posts/test-post/");
+    expect(link).toContainElement(screen.getByText("A test summary"));
+    expect(screen.getAllByRole("link")).toHaveLength(1);
   });
 });

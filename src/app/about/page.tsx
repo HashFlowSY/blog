@@ -55,11 +55,7 @@ const timeline = [
 
 export default function AboutPage() {
   return (
-    <section
-      className="page portfolio-page portfolio-about-page is-active"
-      data-route-page="about"
-      aria-labelledby="about-title"
-    >
+    <section className="portfolio-page" aria-labelledby="about-title">
       <div className="portfolio-shell">
         <header className="portfolio-page-intro portfolio-about-intro">
           <div>

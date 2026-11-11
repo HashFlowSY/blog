@@ -1,6 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useRef, useState } from "react";
+
+import { CollectionReturnFocus } from "@/components/layout/collection-return-focus";
+import { articleFilterSearch } from "@/lib/content-navigation";
 
 import { PostCard } from "./post-card";
 
@@ -11,9 +15,28 @@ interface PostArchiveProps {
   tags: string[];
 }
 
+function ArchiveSearchSync({
+  onChange,
+}: {
+  onChange: (search: string) => void;
+}) {
+  const search = useSearchParams().toString();
+
+  useEffect(() => {
+    onChange(window.location.search);
+  }, [onChange, search]);
+
+  return null;
+}
+
 export function PostArchive({ posts, tags }: PostArchiveProps) {
-  const [query, setQuery] = useState("");
-  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const searchInput = useRef<HTMLInputElement>(null);
+  const params = new URLSearchParams(search);
+  const query = params.get("q") ?? "";
+  const topic = params.get("topic");
+  const selectedTag = topic && tags.includes(topic) ? topic : null;
+  const filterSearch = articleFilterSearch(query, selectedTag);
   const searchTerm = query.trim().toLocaleLowerCase();
   const filteredPosts = posts.filter((post) => {
     if (selectedTag && !post.tags.includes(selectedTag)) return false;
@@ -27,70 +50,85 @@ export function PostArchive({ posts, tags }: PostArchiveProps) {
   });
   const hasFilters = Boolean(query || selectedTag);
 
-  function clearFilters() {
-    setQuery("");
-    setSelectedTag(null);
+  function updateFilters(nextQuery: string, nextTag: string | null) {
+    const nextSearch = articleFilterSearch(nextQuery, nextTag);
+    window.history.replaceState(
+      null,
+      "",
+      window.location.pathname + nextSearch,
+    );
+    setSearch(nextSearch);
   }
 
   return (
-    <div className="portfolio-writing-archive">
+    <>
+      <Suspense fallback={null}>
+        <ArchiveSearchSync onChange={setSearch} />
+      </Suspense>
       <div className="archive-toolbar">
         <label className="archive-search">
           <span>查找文章</span>
           <input
+            ref={searchInput}
             type="search"
             placeholder="标题、主题或关键词"
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => updateFilters(event.target.value, selectedTag)}
           />
         </label>
-        <div className="archive-result-summary">
-          <p className="archive-result-count" role="status">
-            {hasFilters
-              ? `${filteredPosts.length} / ${posts.length} 篇文章`
-              : `共 ${posts.length} 篇文章`}
-          </p>
-          <button
-            type="button"
-            className="archive-clear"
-            disabled={!hasFilters}
-            onClick={clearFilters}
-          >
-            清除筛选
-          </button>
-        </div>
-      </div>
-      {tags.length > 0 && (
-        <div className="portfolio-topic-row" aria-label="当前写作主题">
-          <span>当前主题</span>
-          <button
-            type="button"
-            aria-pressed={selectedTag === null}
-            onClick={() => setSelectedTag(null)}
-          >
-            全部
-          </button>
-          {tags.map((tag) => (
-            <button
-              key={tag}
-              type="button"
-              aria-pressed={selectedTag === tag}
-              onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
+        {tags.length > 0 && (
+          <div className="archive-topics">
+            <span id="archive-topics-label">主题</span>
+            <div
+              className="portfolio-topic-row"
+              role="group"
+              aria-labelledby="archive-topics-label"
             >
-              {tag}
-            </button>
-          ))}
-        </div>
-      )}
-      <div
-        key={`${selectedTag ?? "all"}-${searchTerm}`}
-        className="portfolio-article-list"
-        aria-label="文章列表"
-        data-od-id="article-list"
-      >
+              <button
+                type="button"
+                aria-pressed={selectedTag === null}
+                onClick={() => updateFilters(query, null)}
+              >
+                全部
+              </button>
+              {tags.map((tag) => (
+                <button
+                  key={tag}
+                  type="button"
+                  aria-pressed={selectedTag === tag}
+                  onClick={() =>
+                    updateFilters(query, selectedTag === tag ? null : tag)
+                  }
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+      <div className="archive-result-summary">
+        <p className="archive-result-count" role="status">
+          {hasFilters
+            ? `${filteredPosts.length} / ${posts.length} 篇文章`
+            : `共 ${posts.length} 篇文章`}
+        </p>
+        <button
+          type="button"
+          className="archive-clear"
+          disabled={!hasFilters}
+          onClick={() => {
+            updateFilters("", null);
+            searchInput.current?.focus();
+          }}
+        >
+          清除筛选
+        </button>
+      </div>
+      <div className="portfolio-article-list">
         {filteredPosts.length > 0 ? (
-          filteredPosts.map((post, index) => (
-            <PostCard index={index + 1} key={post.slug} post={post} />
+          filteredPosts.map((post) => (
+            <PostCard key={post.slug} post={post} filterSearch={filterSearch} />
           ))
         ) : (
           <div className="portfolio-empty-state">
@@ -99,6 +137,7 @@ export function PostArchive({ posts, tags }: PostArchiveProps) {
           </div>
         )}
       </div>
-    </div>
+      <CollectionReturnFocus collection="posts" search={search} />
+    </>
   );
 }

@@ -9,8 +9,8 @@
   justify-content: space-between;
   align-items: center;
   gap: 16px;
-  min-height: 72px;
-  padding: 15px 22px;
+  min-height: 61px;
+  padding: 8px 20px;
   border-bottom: 1px solid var(--studio-line);
 }
 
@@ -18,7 +18,7 @@
   margin: 0;
   color: var(--studio-ink);
   font-family: var(--font-body);
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   letter-spacing: 0;
   line-height: 1.6;
@@ -30,11 +30,13 @@
   border: 1px solid var(--studio-line);
   color: var(--studio-muted);
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1;
 }
 
 .scene {
+  --workbench-framing: 1;
+
   position: relative;
   width: 100%;
   aspect-ratio: 1.52;
@@ -51,6 +53,7 @@
   position: absolute;
   inset: 0;
   mix-blend-mode: multiply;
+  transform: scale(var(--workbench-framing));
   transition:
     opacity 1200ms cubic-bezier(0.4, 0, 0.2, 1),
     visibility 1200ms;
@@ -117,7 +120,7 @@
 
 .buildButton {
   display: inline-flex;
-  min-height: 40px;
+  min-height: 44px;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
@@ -125,7 +128,7 @@
   border: 1px solid var(--studio-ink);
   background: var(--studio-ink);
   color: var(--studio-paper);
-  font-size: 10px;
+  font-size: 13px;
   cursor: pointer;
   transition:
     background var(--studio-duration-fast),
@@ -154,21 +157,21 @@
 
 @media (max-width: 760px) {
   .heading {
-    min-height: 69px;
     gap: 8px;
-    padding: 12px 16px;
+    padding-inline: 16px;
   }
   .buildButton {
-    min-height: 44px;
     gap: 10px;
     padding-inline: 10px;
   }
   .scene {
+    --workbench-framing: 1.3;
+
     aspect-ratio: 1.18;
     min-height: 272px;
   }
   .drawing {
-    top: 46px;
+    top: 12%;
     left: -10%;
     width: 95%;
   }

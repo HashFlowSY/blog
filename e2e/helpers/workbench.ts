@@ -12,6 +12,9 @@ export async function installDrawingClock(page: Page) {
 
 export async function drawTo(page: Page, workbench: Locator, progress: number) {
   const scene = workbench.locator("[data-progress]");
+  await expect(
+    workbench.getByRole("button", { name: "暂停构建" }),
+  ).toBeVisible();
   const current = Number(await scene.getAttribute("data-progress"));
   await page.clock.fastForward(
     Math.max(0, drawingTime(progress) - drawingTime(current)) + 16,

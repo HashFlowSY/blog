@@ -1,5 +1,6 @@
 import "./globals.css";
 import "./studio.css";
+import "./content.css";
 
 import { SiteShell } from "@/components/layout/site-shell";
 import { assetPath, SITE } from "@/lib/site";

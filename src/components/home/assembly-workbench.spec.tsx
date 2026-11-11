@@ -63,8 +63,17 @@ describe("AssemblyWorkbench", () => {
   let time: number;
   let nextId: number;
   let frames: Map<number, FrameRequestCallback>;
+  type VisibilityEntry = Pick<
+    IntersectionObserverEntry,
+    "isIntersecting" | "intersectionRatio"
+  >;
+  let visibilityChanged: (entries: VisibilityEntry[]) => void;
 
   beforeEach(() => {
+    document.documentElement.style.setProperty(
+      "--studio-header-height",
+      "82px",
+    );
     time = 0;
     nextId = 0;
     frames = new Map();
@@ -80,9 +89,29 @@ describe("AssemblyWorkbench", () => {
       "matchMedia",
       vi.fn(() => ({ matches: false })),
     );
+    vi.spyOn(document, "hidden", "get").mockReturnValue(false);
+    vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(292);
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        constructor(callback: typeof visibilityChanged) {
+          visibilityChanged = callback;
+        }
+        observe() {}
+        disconnect() {}
+      },
+    );
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        observe() {}
+        disconnect() {}
+      },
+    );
   });
 
   afterEach(() => {
+    document.documentElement.style.removeProperty("--studio-header-height");
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
@@ -100,21 +129,31 @@ describe("AssemblyWorkbench", () => {
       .querySelector("[data-progress]")!;
   }
 
-  it("automatically draws from a blank canvas on every mount", () => {
+  function revealCanvas(intersectionRatio = 1) {
+    act(() => visibilityChanged([{ isIntersecting: true, intersectionRatio }]));
+  }
+
+  it("waits for a visible canvas and draws from the start on each mount", () => {
     const first = render(<AssemblyWorkbench />);
-    expect(scene()).toHaveAttribute("data-progress", "0");
+    revealCanvas(0.39);
     advanceTo(1200);
+    expect(scene()).toHaveAttribute("data-progress", "0");
+    expect(screen.queryByRole("button", { name: "暂停构建" })).toBeNull();
+    revealCanvas(0.6);
+    advanceTo(2400);
     expect(Number(scene().getAttribute("data-progress"))).toBeGreaterThan(0);
     first.unmount();
     expect(frames.size).toBe(0);
     render(<AssemblyWorkbench />);
     expect(scene()).toHaveAttribute("data-progress", "0");
-    advanceTo(2400);
+    revealCanvas();
+    advanceTo(3600);
     expect(Number(scene().getAttribute("data-progress"))).toBeGreaterThan(0);
   });
 
   it("removes the progress and replay controls, and enables the 3D view only after drawing", () => {
     render(<AssemblyWorkbench />);
+    revealCanvas();
     const workbench = screen.getByRole("region", { name: "交互工作台" });
     expect(within(workbench).queryByRole("slider")).not.toBeInTheDocument();
     expect(
@@ -145,6 +184,7 @@ describe("AssemblyWorkbench", () => {
 
   it("constructs points, lines, and planes before the interactive finished view", () => {
     render(<AssemblyWorkbench />);
+    revealCanvas();
     const lines = scene().querySelector('[data-construction-layer="lines"]');
     const planes = scene().querySelector('[data-construction-layer="planes"]');
     const finish = scene().querySelector('[data-construction-layer="finish"]');
@@ -165,6 +205,7 @@ describe("AssemblyWorkbench", () => {
 
   it("pauses and resumes drawing without leaving a stuck or interrupted pencil", () => {
     render(<AssemblyWorkbench />);
+    revealCanvas();
     advanceTo(1200);
     const paused = scene().getAttribute("data-progress");
     fireEvent.click(screen.getByRole("button", { name: "暂停构建" }));
@@ -177,6 +218,7 @@ describe("AssemblyWorkbench", () => {
 
   it("restarts after history-cache restoration, while ordinary pageshow leaves it unchanged", () => {
     render(<AssemblyWorkbench />);
+    revealCanvas();
     advanceTo(drawingDuration);
     fireEvent(
       window,
@@ -188,6 +230,7 @@ describe("AssemblyWorkbench", () => {
     expect(
       screen.queryByRole("group", { name: "可旋转的立体工作台" }),
     ).not.toBeInTheDocument();
+    revealCanvas();
     advanceTo(drawingDuration + 1200);
     expect(Number(scene().getAttribute("data-progress"))).toBeGreaterThan(0);
     expect(Number(scene().getAttribute("data-progress"))).toBeLessThan(18);
@@ -195,10 +238,12 @@ describe("AssemblyWorkbench", () => {
 
   it("starts a fresh timeline when history restores an unfinished playing drawing", () => {
     render(<AssemblyWorkbench />);
+    revealCanvas();
     advanceTo(1200);
     time = 100000;
     fireEvent(window, new PageTransitionEvent("pageshow", { persisted: true }));
     expect(scene()).toHaveAttribute("data-progress", "0");
+    revealCanvas();
     advanceTo(101200);
     expect(Number(scene().getAttribute("data-progress"))).toBeGreaterThan(0);
     expect(Number(scene().getAttribute("data-progress"))).toBeLessThan(18);
@@ -223,6 +268,7 @@ describe("AssemblyWorkbench", () => {
 
   it("pauses when hidden and cleans up its frame when unmounted", () => {
     const { unmount } = render(<AssemblyWorkbench />);
+    revealCanvas();
     advanceTo(1200);
     const paused = scene().getAttribute("data-progress");
     vi.spyOn(document, "hidden", "get").mockReturnValue(true);
