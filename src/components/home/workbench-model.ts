@@ -1,20 +1,15 @@
 import {
-  BackSide,
   BoxGeometry,
   type BufferGeometry,
   CatmullRomCurve3,
   CylinderGeometry,
-  EdgesGeometry,
   Euler,
   ExtrudeGeometry,
   Group,
   LatheGeometry,
-  LineBasicMaterial,
-  LineSegments,
   Matrix4,
   Mesh,
   MeshBasicMaterial,
-  Path,
   Quaternion,
   Shape,
   SphereGeometry,
@@ -26,22 +21,27 @@ import {
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 
-import { createGraphiteMaterial } from "./workbench-materials";
-import {
-  perforatedBoard,
-  setSurfaceArtwork,
-  solidSurfaces,
-} from "./workbench-surfaces";
+import { layoutWorkbenchAtlas } from "./workbench-atlas";
+import { perforatedBoard, solidSurfaces } from "./workbench-surfaces";
 import { artworkPoint } from "./workbench-view";
 
+import type {
+  ArtworkQuad,
+  ArtworkRegion,
+  SurfaceProjection,
+  WorkbenchSurface,
+} from "./workbench-atlas";
 import type { WorkbenchFinish } from "./workbench-materials";
-import type { SolidArtwork } from "./workbench-surfaces";
 import type { ArtworkPoint } from "./workbench-view";
-import type { Material, Texture } from "three";
+import type { Texture } from "three";
 
 type Point = readonly [number, number, number];
 type Finish = WorkbenchFinish;
 type Quad<T> = readonly [T, T, T, T];
+interface SolidArtwork {
+  front?: ArtworkQuad;
+  sides?: Partial<Record<number, ArtworkQuad>>;
+}
 
 const xAxis = new Vector3(1, 0, 0);
 const up = new Vector3(0, 1, 0);
@@ -77,33 +77,10 @@ export interface WorkbenchModel {
   dispose(): void;
 }
 
-// The workbench is built from closed solids in world space, including its rear
-// and underside. Static geometry is batched by material to keep orbiting light.
-export function buildWorkbenchModel(
-  graphite: Texture,
-  artwork: Texture,
-): WorkbenchModel {
-  const group = new Group();
-  group.name = "handcrafted-workbench";
-  const finishes: Finish[] = [
-    "wood",
-    "seat",
-    "paper",
-    "pegboard",
-    "metal",
-    "dark",
-    "yellow",
-    "leaf",
-    "soil",
-  ];
-  const materials = new Map(
-    finishes.map((finish) => [
-      finish,
-      createGraphiteMaterial(finish, graphite, artwork),
-    ]),
-  );
-  const batches = new Map<Material, BufferGeometry[]>();
-  const outlines: BufferGeometry[] = [];
+// The asset generator and the interactive view consume the same rigid solids.
+export function buildWorkbenchSurfaces() {
+  const surfaces: WorkbenchSurface[] = [];
+  let region: ArtworkRegion = "desk";
 
   function add(
     geometry: BufferGeometry,
@@ -111,20 +88,21 @@ export function buildWorkbenchModel(
     position: Point,
     rotation: Point = [0, 0, 0],
     outline = true,
+    projection?: SurfaceProjection,
   ) {
-    const material = materials.get(finish)!;
     const matrix = new Matrix4()
       .makeRotationFromEuler(new Euler(...rotation))
       .setPosition(...position);
-    if (outline)
-      outlines.push(new EdgesGeometry(geometry, 28).applyMatrix4(matrix));
     const solid = geometry.index ? geometry.toNonIndexed() : geometry.clone();
     solid.applyMatrix4(matrix);
     solid.clearGroups();
-    setSurfaceArtwork(solid);
-    const batch = batches.get(material) ?? [];
-    batch.push(solid);
-    batches.set(material, batch);
+    surfaces.push({
+      geometry: solid,
+      finish,
+      region,
+      outline,
+      ...(projection && { projection }),
+    });
     geometry.dispose();
   }
   function box(
@@ -242,32 +220,40 @@ export function buildWorkbenchModel(
     finish: Finish,
     artwork?: SolidArtwork,
   ) {
-    const surfaces = solidSurfaces(front, back, artwork);
-    const faces = [surfaces.front, surfaces.back, ...surfaces.sides];
-    const graphite = faces.filter(
-      (face) => !face.hasAttribute("artworkPosition"),
-    );
-    const painted = faces.filter((face) =>
-      face.hasAttribute("artworkPosition"),
-    );
-    add(mergeGeometries(graphite)!, finish, [0, 0, 0]);
-    if (painted.length)
-      add(mergeGeometries(painted)!, finish, [0, 0, 0], undefined, false);
-    faces.forEach((face) => face.dispose());
+    const { front: cap, back: base, sides } = solidSurfaces(front, back);
+    const plain = [base];
+    function face(
+      geometry: BufferGeometry,
+      corners: readonly Vector3[],
+      pixels: ArtworkQuad | undefined,
+    ) {
+      if (pixels)
+        add(geometry, finish, [0, 0, 0], undefined, true, { corners, pixels });
+      else plain.push(geometry);
+    }
+    face(cap, front, artwork?.front);
+    sides.forEach((side, i) => {
+      const next = (i + 1) % front.length;
+      face(
+        side,
+        [front[i]!, front[next]!, back[next]!, back[i]!],
+        artwork?.sides?.[i],
+      );
+    });
+    add(mergeGeometries(plain)!, finish, [0, 0, 0]);
+    plain.forEach((face) => face.dispose());
   }
-  function paintedSlab(
+  function slab(
     front: readonly Vector3[],
-    source: Quad<Vector3>,
     offset: Vector3,
     finish: Finish,
+    artwork?: SolidArtwork,
   ) {
     solid(
       front,
       front.map((point) => point.clone().add(offset)),
       finish,
-      {
-        front: source,
-      },
+      artwork,
     );
   }
 
@@ -286,128 +272,116 @@ export function buildWorkbenchModel(
     return front;
   }
 
-  // Keep the pictured front edge and fit a rectangular footprint behind it.
-  function rectangularFootprint([
-    left,
-    right,
-    rearRight,
-    rearLeft,
-  ]: Quad<Vector3>) {
-    const front = right.clone().sub(left).normalize();
-    const inward = up.clone().cross(front);
-    const depth =
-      rearRight.clone().sub(right).add(rearLeft).sub(left).dot(inward) / 2;
-    return [
-      left,
-      right,
-      right.clone().addScaledVector(inward, depth),
-      left.clone().addScaledVector(inward, depth),
-    ] as const;
-  }
-
-  const tabletopArt = pointsAt(
+  // The rectangle is fitted to all four observed corners in the reference camera.
+  const tabletopHeight = 3.13;
+  const deskWidth = 7.744724;
+  const deskDepth = 3.260258;
+  const deskYaw = 0.024078;
+  const across = new Vector3(Math.cos(deskYaw), 0, -Math.sin(deskYaw));
+  const inward = up.clone().cross(across);
+  const deskCenter = new Vector3(0.158813, tabletopHeight, 0.212426);
+  const tabletop = (
     [
+      [-1, -1],
+      [1, -1],
+      [1, 1],
+      [-1, 1],
+    ] as const
+  ).map(([x, z]) =>
+    deskCenter
+      .clone()
+      .addScaledVector(across, (x * deskWidth) / 2)
+      .addScaledVector(inward, (z * deskDepth) / 2),
+  );
+  const apronHeight = 2.94;
+  slab(tabletop, new Vector3(0, apronHeight - tabletopHeight, 0), "wood", {
+    front: [
       [498, 540],
       [1271, 591],
       [1368, 530],
       [668, 499],
     ],
-    "y",
-    3.13,
-  );
-  const tabletop = rectangularFootprint(tabletopArt);
-  const apronHeight = 2.94;
-  const tabletopBottomArt = pointsAt(
+    sides: {
+      0: [
+        [498, 540],
+        [1271, 591],
+        [1271, 611],
+        [498, 559],
+      ],
+      1: [
+        [1271, 591],
+        [1368, 530],
+        [1368, 550],
+        [1271, 611],
+      ],
+    },
+  });
+
+  // One floor plane and the slab footprint constrain every post and foot.
+  region = "frame";
+  const floorHeight = 0.095;
+  const postFaces: readonly ArtworkQuad[] = [
     [
-      [498, 559],
-      [1271, 611],
-      [1368, 550],
+      [520, 560],
+      [550, 563],
+      [550, 803],
+      [521, 800],
+    ],
+    [
+      [1212, 622],
+      [1257, 627],
+      [1256, 928],
+      [1216, 923],
+    ],
+    [
+      [1316, 578],
+      [1346, 554],
+      [1345, 828],
+      [1317, 826],
+    ],
+    [
+      [646, 516],
+      [686, 512],
+      [686, 756],
+      [646, 752],
+    ],
+  ];
+  const feet = pointsAt(
+    [
+      [536, 809],
+      [1238, 936],
+      [1330, 833],
+      [668, 758],
     ],
     "y",
-    apronHeight,
+    floorHeight - 0.034,
   );
-  // Keep the wood grain continuous across the top and the original ink on its edges.
-  solid(
-    tabletop,
-    tabletop.map((point) => point.clone().setY(apronHeight)),
-    "wood",
-    {
-      sides: [
-        [
-          tabletopArt[0],
-          tabletopArt[1],
-          tabletopBottomArt[1],
-          tabletopBottomArt[0],
-        ],
-        [
-          tabletopArt[1],
-          tabletopArt[2],
-          tabletopBottomArt[2],
-          tabletopBottomArt[1],
-        ],
-      ],
-    },
-  );
-
-  // Tie the feet, underside bracing and lower shelf to the same leg geometry.
-  const frontLegArtwork = [
-    {
-      face: [
-        [523, 570],
-        [553, 573],
-        [551, 799],
-        [524, 802],
-      ],
-      topY: 2.81,
-      baseY: 0.18,
-    },
-    {
-      face: [
-        [1216, 626],
-        [1257, 629],
-        [1256, 928],
-        [1216, 924],
-      ],
-      topY: 2.79,
-      baseY: 0.12,
-    },
-  ] as const;
-  const across = tabletop[1].clone().sub(tabletop[0]).normalize();
-  const inward = tabletop[3].clone().sub(tabletop[0]).normalize();
-  const floorHeight = 0.095;
-  const legs = tabletop.map((corner, index) => {
-    const drawing = frontLegArtwork[index];
-    const left = index === 0 || index === 3;
-    const center = corner
+  const legs = feet.map((foot, index) => {
+    const local = foot.clone().sub(deskCenter);
+    const halfWidth = index === 0 || index === 3 ? 0.13 : 0.16;
+    const limitX = deskWidth / 2 - halfWidth - 0.045;
+    const limitZ = deskDepth / 2 - 0.12;
+    const center = deskCenter
       .clone()
-      .addScaledVector(across, left ? 0.15 : -0.15)
-      .addScaledVector(inward, drawing ? 0.42 : -0.2);
-    const x = center.x;
-    const z = center.z + 0.11;
-    const halfWidth = left ? 0.13 : 0.16;
+      .addScaledVector(
+        across,
+        Math.min(limitX, Math.max(-limitX, local.dot(across))),
+      )
+      .addScaledVector(
+        inward,
+        Math.min(limitZ, Math.max(-limitZ, local.dot(inward))),
+      );
+    const { x, z } = center;
     const front = [
-      new Vector3(x - halfWidth, apronHeight, z),
-      new Vector3(x + halfWidth, apronHeight, z),
-      new Vector3(x + halfWidth, floorHeight, z),
-      new Vector3(x - halfWidth, floorHeight, z),
+      new Vector3(x - halfWidth, apronHeight, z + 0.11),
+      new Vector3(x + halfWidth, apronHeight, z + 0.11),
+      new Vector3(x + halfWidth, floorHeight, z + 0.11),
+      new Vector3(x - halfWidth, floorHeight, z + 0.11),
     ];
-    const back = front.map((point) => point.clone().setZ(z - 0.22));
-    solid(
-      front,
-      back,
-      "wood",
-      drawing && {
-        front: [
-          artworkPoint(drawing.face[0], "y", drawing.topY),
-          artworkPoint(drawing.face[1], "y", drawing.topY),
-          artworkPoint(drawing.face[2], "y", drawing.baseY),
-          artworkPoint(drawing.face[3], "y", drawing.baseY),
-        ],
-      },
-    );
-    box(0.44, 0.078, 0.3, "metal", [x, floorHeight - 0.034, center.z]);
+    slab(front, new Vector3(0, 0, -0.22), "wood", { front: postFaces[index]! });
+    box(0.44, 0.078, 0.3, "metal", [x, floorHeight - 0.034, z]);
     for (const dx of [-0.14, 0.14])
-      screw([x + dx, floorHeight + 0.008, center.z + 0.083], false);
+      screw([x + dx, floorHeight + 0.008, z + 0.083], false);
     return center;
   });
   const leftApron = legs[0]!
@@ -424,22 +398,16 @@ export function buildWorkbenchModel(
     rightApron.setY(2.69),
     leftApron.setY(2.69),
   ];
-  const apronArt = pointsAt(
-    [
+  region = "desk";
+  slab(apron, inward.clone().multiplyScalar(0.21), "wood", {
+    front: [
       [524, 559],
       [1270, 610],
       [1268, 634],
       [524, 583],
     ],
-    "z",
-    1.48,
-  );
-  solid(
-    apron,
-    apron.map((point) => point.clone().addScaledVector(inward, 0.21)),
-    "wood",
-    { front: apronArt },
-  );
+  });
+  region = "frame";
   function legJoint(index: number, y: number) {
     return legs[index]!.clone().setY(y);
   }
@@ -498,6 +466,14 @@ export function buildWorkbenchModel(
     1.21,
   );
   const lowShelf = rectangle(lowShelfArt, across, inward);
+  const shelfInset = Math.max(
+    0,
+    Math.max(legs[0]!.dot(across), legs[3]!.dot(across)) -
+      lowShelf[0].dot(across) -
+      0.08,
+  );
+  lowShelf[0].addScaledVector(across, shelfInset);
+  lowShelf[3].addScaledVector(across, shelfInset);
   solid(
     lowShelf,
     lowShelf.map((point) => point.clone().setY(1.09)),
@@ -521,6 +497,7 @@ export function buildWorkbenchModel(
     screw([point.x, 1.035, point.z], false);
   }
 
+  region = "cabinet";
   // Recessed drawer fronts and a closed cabinet with a framed rear panel.
   const cabinetArt = pointsAt(
     [
@@ -582,23 +559,16 @@ export function buildWorkbenchModel(
   ] as const;
   const drawerZ = 1.17;
   const drawerPanels = drawerFaces.map((face) => pointsAt(face, "z", drawerZ));
-  const yellowDrawerCorner = drawerPanels[2]![0];
-  const drawerLeft = yellowDrawerCorner.x;
-  const drawerRight =
-    drawerPanels.reduce((sum, face) => sum + face[1].x + face[2].x, 0) / 6;
+  const drawerLeft = 1.549263;
+  const drawerRight = 3.392495;
   drawerPanels.forEach((source, i) => {
     const front = rectangle(source, xAxis, down);
-    const lift = i === 2 ? yellowDrawerCorner.y - front[0].y : 0;
     front.forEach((point, corner) => {
       point.x = corner === 0 || corner === 3 ? drawerLeft : drawerRight;
-      point.y += lift;
+      if (i === 2) point.y = corner < 2 ? 1.688427 : 0.659576;
     });
     const finish = i === 2 ? "yellow" : "paper";
-    solid(
-      front,
-      front.map((point) => point.clone().setZ(drawerZ - 0.085)),
-      finish,
-    );
+    slab(front, new Vector3(0, 0, -0.085), finish, { front: drawerFaces[i]! });
     const centerX = (drawerLeft + drawerRight) / 2;
     const centerY = (front[0].y + front[3].y) / 2;
     const width = drawerRight - drawerLeft;
@@ -637,14 +607,17 @@ export function buildWorkbenchModel(
     for (const dx of [-0.05, 0.05]) screw([x + dx, y, frameZ - 0.067]);
   }
 
+  const shelfTop = 6.139;
+  const shelfBottom = 5.97;
+  region = "board";
   // The holes are registered to the rows in the drawing and run through the board.
   const boardZ = -1.2;
   const boardFace = rectangle(
     pointsAt(
       [
         [701, 251],
-        [1359, 239],
-        [1364, 531],
+        [1334, 239],
+        [1334, 531],
         [697, 499],
       ],
       "z",
@@ -654,6 +627,7 @@ export function buildWorkbenchModel(
     down,
   );
   const [boardTopLeft, boardTopRight, boardBottomRight] = boardFace;
+  boardTopLeft.y = boardTopRight.y = shelfBottom - 0.025;
   const columns = [
     717, 737, 758, 780, 802, 824, 846, 868, 890, 912, 935, 957, 981, 1006, 1030,
     1054, 1078, 1101, 1124, 1147, 1170, 1193, 1216, 1239, 1262, 1286, 1310,
@@ -686,28 +660,45 @@ export function buildWorkbenchModel(
   const boardOrigin = [0, 0, boardZ - boardDepth] as const;
   add(board.panel, "pegboard", boardOrigin, undefined, false);
   add(board.bores, "dark", boardOrigin, undefined, false);
-  panel(
+  for (const [x, bottom, original] of [
     [
-      [676, 246],
-      [705, 249],
-      [705, 499],
-      [681, 500],
+      boardTopLeft.x - 0.118,
+      boardBottomRight.y,
+      [
+        [676, 246],
+        [705, 249],
+        [705, 585],
+        [681, 588],
+      ],
     ],
-    -1.1,
-    0.24,
-    "wood",
-  );
-  const rightBoardPost = panel(
     [
-      [1349, 240],
-      [1378, 235],
-      [1376, 600],
-      [1349, 606],
+      boardTopRight.x + 0.118,
+      boardBottomRight.y - 0.34,
+      [
+        [1338, 239],
+        [1360, 244],
+        [1359, 600],
+        [1338, 594],
+      ],
     ],
-    -1.1,
-    0.24,
-    "wood",
-  );
+  ] as const) {
+    slab(
+      [
+        new Vector3(x - 0.12, shelfBottom, -1.095),
+        new Vector3(x + 0.12, shelfBottom, -1.095),
+        new Vector3(x + 0.12, bottom, -1.095),
+        new Vector3(x - 0.12, bottom, -1.095),
+      ],
+      new Vector3(0, 0, -0.24),
+      "wood",
+      { front: original },
+    );
+  }
+  box(boardTopRight.x - boardTopLeft.x, 0.06, 0.24, "wood", [
+    (boardTopRight.x + boardTopLeft.x) / 2,
+    shelfBottom - 0.03,
+    -1.22,
+  ]);
   const boardWidth = boardTopRight.x - boardTopLeft.x;
   const boardHeight = boardTopRight.y - boardBottomRight.y;
   const boardX = (boardTopLeft.x + boardTopRight.x) / 2;
@@ -722,28 +713,42 @@ export function buildWorkbenchModel(
     for (const y of rails) screw([x, y, -1.405]);
     box(0.145, 0.21, 0.032, "metal", [x, boardTopRight.y - 0.06, -1.397]);
   }
-  const shelfArt = pointsAt(
-    [
+  region = "shelf";
+  // A level shelf with separate front and rear overhangs on the board frame.
+  const shelfLeft = new Vector3(-3.88, shelfTop, -0.49);
+  const shelfRight = shelfLeft.clone().addScaledVector(across, 7.78);
+  const shelf = [
+    shelfLeft,
+    shelfRight,
+    shelfRight.clone().setY(shelfBottom),
+    shelfLeft.clone().setY(shelfBottom),
+  ];
+  slab(shelf, inward.clone().multiplyScalar(1.47), "wood", {
+    front: [
       [619, 233],
       [1318, 215],
       [1318, 232],
       [619, 250],
     ],
-    "z",
-    -0.64,
-  );
-  const shelf = rectangle(shelfArt, xAxis, down);
-  const shelfRight = rightBoardPost[1].x + 0.07;
-  shelf[1].x = shelf[2].x = shelfRight;
-  solid(
-    shelf,
-    shelf.map((point) => point.clone().add(new Vector3(0, 0, -0.82))),
-    "wood",
-  );
-  const shelfTop = shelf[0].y;
-  const shelfBottom = shelf[3].y;
-  for (const x of [shelf[0].x + 0.13, shelfRight - 0.13])
-    screw([x, (shelfTop + shelfBottom) / 2, -0.634]);
+    sides: {
+      1: [
+        [1318, 215],
+        [1318, 232],
+        [1380, 241],
+        [1380, 225],
+      ],
+    },
+  });
+  for (const point of [shelfLeft, shelfRight]) {
+    const offset = point === shelfLeft ? 0.13 : -0.13;
+    screw(
+      point
+        .clone()
+        .addScaledVector(across, offset)
+        .setY((shelfTop + shelfBottom) / 2)
+        .toArray(),
+    );
+  }
   for (const x of [-3.35, 3.46]) {
     rod(
       [x, shelfBottom - 0.51, -1.12],
@@ -754,6 +759,7 @@ export function buildWorkbenchModel(
     box(0.075, 0.48, 0.07, "metal", [x, shelfBottom - 0.27, -1.21]);
     for (const z of [-1.19, -0.75]) screw([x, shelfBottom - 0.008, z], false);
   }
+  region = "boardHardware";
   const lamp = rectangle(
     pointsAt(
       [
@@ -790,57 +796,61 @@ export function buildWorkbenchModel(
       -0.83,
     ]);
 
-  // Extruded open-ended wrenches.
-  function wrench(x: number, y: number, size: number) {
-    const outline = new Shape();
-    const points = [
-      [0.04, 0],
-      [0.07, 0.12],
-      [0.045, 0.56],
-      [0.13, 0.67],
-      [0.14, 0.82],
-      [0.07, 0.85],
-      [0.07, 0.72],
-      [-0.07, 0.72],
-      [-0.07, 0.85],
-      [-0.14, 0.82],
-      [-0.13, 0.67],
-      [-0.045, 0.56],
-      [-0.07, 0.12],
-      [-0.04, 0],
-    ];
-    points.forEach(([px, py], i) => {
-      if (i === 0) outline.moveTo(px! * size * 0.8, py! * size);
-      else outline.lineTo(px! * size * 0.8, py! * size);
-    });
-    outline.closePath();
-    const ring = new Path();
-    ring.absarc(0, 0.1 * size, 0.024 * size, 0, Math.PI * 2, true);
-    outline.holes.push(ring);
-    add(
-      new ExtrudeGeometry(outline, {
-        depth: 0.045,
-        bevelEnabled: true,
-        bevelSize: 0.006,
-        bevelThickness: 0.006,
-        bevelSegments: 1,
-      }),
-      "metal",
-      [x, y, -1.12],
-    );
-  }
+  // Trace the drawn wrench heads and handles before giving them thickness.
+  const wrenchProfile = [
+    [-0.48, 0.012],
+    [-0.23, 0],
+    [-0.23, 0.077],
+    [0.23, 0.077],
+    [0.23, 0],
+    [0.48, 0.012],
+    [0.56, 0.084],
+    [0.43, 0.146],
+    [0.19, 0.175],
+    [0.2, 0.81],
+    [0.43, 0.852],
+    [0.55, 0.921],
+    [0.45, 0.98],
+    [0.23, 1],
+    [0.23, 0.93],
+    [-0.23, 0.93],
+    [-0.23, 1],
+    [-0.45, 0.98],
+    [-0.55, 0.921],
+    [-0.43, 0.852],
+    [-0.2, 0.81],
+    [-0.19, 0.175],
+    [-0.43, 0.146],
+    [-0.56, 0.084],
+  ] as const;
   function hookPoint(x: number, y: number, depth = -0.99): Point {
     return artworkPoint([x, y], "z", depth).toArray();
   }
-  for (const [x, y] of [
-    [888, 458],
-    [911, 443],
-    [935, 430],
-    [956, 426],
-    [980, 426],
+  for (const [x, top, bottom, width] of [
+    [888, 338, 470, 17],
+    [910, 338, 455, 14],
+    [931, 337, 440, 14],
+    [954, 337, 433, 15],
+    [978, 338, 430, 16],
   ] as const) {
-    const [px, py] = hookPoint(x, y);
-    wrench(px, py, (hookPoint(x, 340)[1] - py) / 0.85);
+    const outline = new Shape();
+    for (const [i, [u, v]] of wrenchProfile.entries()) {
+      const [px, py] = hookPoint(x + u * width, top + v * (bottom - top));
+      if (i === 0) outline.moveTo(px, py);
+      else outline.lineTo(px, py);
+    }
+    outline.closePath();
+    add(
+      new ExtrudeGeometry(outline, {
+        depth: 0.05,
+        bevelEnabled: true,
+        bevelThickness: 0.008,
+        bevelSize: 0.006,
+        bevelSegments: 1,
+      }),
+      "metal",
+      [0, 0, -1.04],
+    );
   }
   // Pliers, drivers and the hammer have working depth and separate metal jaws.
   for (const x of [738, 782]) {
@@ -950,6 +960,7 @@ export function buildWorkbenchModel(
     );
 
   // Keep the spine ink on the books and build each storage pull once in depth.
+  region = "shelfObjects";
   function onShelf(source: Quad<Vector3>) {
     const front = rectangle(source, xAxis, down);
     const lift = shelfTop - front[3].y;
@@ -984,12 +995,7 @@ export function buildWorkbenchModel(
   ] as const;
   spines.forEach((spine, i) => {
     const source = pointsAt(spine, "z", -0.77 - i * 0.018);
-    paintedSlab(
-      onShelf(source),
-      source,
-      new Vector3(0, 0, -0.5 - i * 0.035),
-      "paper",
-    );
+    slab(onShelf(source), new Vector3(0, 0, -0.5 - i * 0.035), "paper");
   });
   const organizerZ = -0.74;
   const organizer = onShelf(
@@ -1177,6 +1183,7 @@ export function buildWorkbenchModel(
     }
   }
 
+  region = "laptop";
   // Both laptop shells use the same hinge, with constant width and thickness.
   const laptopTop = 3.21;
   const [frontRight, frontLeft] = pointsAt(
@@ -1255,7 +1262,14 @@ export function buildWorkbenchModel(
     hingeRight,
     hingeLeft,
   ];
-  paintedSlab(lid, lidArt, lidNormal.clone().multiplyScalar(-0.075), "metal");
+  slab(lid, lidNormal.clone().multiplyScalar(-0.075), "metal", {
+    front: [
+      [670, 398],
+      [852, 396],
+      [867, 516],
+      [681, 523],
+    ],
+  });
   rod(hingeLeft.toArray(), hingeRight.toArray(), 0.043, "metal");
   const lidOrientation = new Euler().setFromRotationMatrix(
     new Matrix4().makeBasis(laptopRight, lidUp, lidNormal),
@@ -1291,101 +1305,127 @@ export function buildWorkbenchModel(
     lidRotation,
   );
 
-  // Register the display and its stand to the same reference view.
-  const displayZ = -0.64;
+  region = "display";
+  // Fit all four screen corners with a single rigid plane.
   const displayDepth = 0.12;
-  const displayRear = displayZ - displayDepth;
-  const displayArt = pointsAt(
+  const displayWidth = 2.048658;
+  const displayHeight = 1.171991;
+  const displayCenter = new Vector3(1.426579, 4.053988, -0.64);
+  const displayRotation = new Euler(-0.291923, 0.040854, 0.033233);
+  function displayPoint(x: number, y: number, z: number) {
+    return new Vector3(x, y, z).applyEuler(displayRotation).add(displayCenter);
+  }
+  const display = (
     [
-      [988, 379],
-      [1188, 381],
-      [1178, 501],
-      [978, 495],
-    ],
-    "z",
-    displayZ,
+      [-1, 1],
+      [1, 1],
+      [1, -1],
+      [-1, -1],
+    ] as const
+  ).map(([x, y]) =>
+    displayPoint((x * displayWidth) / 2, (y * displayHeight) / 2, 0),
   );
-  const display = rectangle(displayArt, xAxis, down);
-  const displayOffset = displayArt[0].clone().sub(display[0]);
-  display.forEach((point) => point.add(displayOffset));
-  paintedSlab(display, displayArt, new Vector3(0, 0, -displayDepth), "metal");
-  const displayX = (display[0].x + display[1].x) / 2;
-  const displayBottom = display[3].y;
-  const displayHeight = display[0].y - displayBottom;
+  slab(
+    display,
+    new Vector3(0, 0, -displayDepth).applyEuler(displayRotation),
+    "metal",
+    {
+      front: [
+        [988, 379],
+        [1188, 381],
+        [1178, 501],
+        [978, 495],
+      ],
+    },
+  );
 
-  // Fit the plate to the drawn corners while keeping it flush with the desk.
   const baseHeight = 0.045;
-  const baseZ = -0.827;
-  const baseTop = tabletop[0].y + baseHeight;
-  box(0.774, baseHeight, 0.74, "dark", [
-    displayX,
-    tabletop[0].y + baseHeight / 2,
-    baseZ,
-  ]);
-
-  const standZ = -0.9;
-  const standTop = displayBottom + 0.025;
-  const standHalfWidth = 0.138;
-  const standArt = pointsAt(
+  const baseTop = tabletopHeight + baseHeight;
+  const baseCenter = new Vector3(1.472954, baseTop, -0.828561);
+  const plateRight = new Vector3(Math.cos(0.009477), 0, -Math.sin(0.009477));
+  const plateInward = up.clone().cross(plateRight);
+  const plate = (
     [
-      [1083, 501.5],
-      [1107, 502],
-      [1107, 525.3],
-      [1083, 524.1],
-    ],
-    "z",
-    standZ,
+      [-1, -1],
+      [1, -1],
+      [1, 1],
+      [-1, 1],
+    ] as const
+  ).map(([x, z]) =>
+    baseCenter
+      .clone()
+      .addScaledVector(plateRight, (x * 0.776462) / 2)
+      .addScaledVector(plateInward, (z * 0.762429) / 2),
   );
-  paintedSlab(
-    [
-      new Vector3(displayX - standHalfWidth, standTop, standZ),
-      new Vector3(displayX + standHalfWidth, standTop, standZ),
-      new Vector3(displayX + standHalfWidth, baseTop, standZ),
-      new Vector3(displayX - standHalfWidth, baseTop, standZ),
+  slab(plate, new Vector3(0, -baseHeight, 0), "dark", {
+    front: [
+      [1040.5, 528],
+      [1115.5, 534],
+      [1141.5, 523],
+      [1066, 517],
     ],
-    standArt,
-    new Vector3(0, 0, -0.18),
-    "dark",
-  );
-  const mountFront = displayRear + 0.01;
-  const mountBack = standZ - 0.06;
-  box(0.36, 0.18, mountFront - mountBack, "dark", [
-    displayX,
-    displayBottom + 0.09,
-    (mountFront + mountBack) / 2,
-  ]);
+  });
 
+  const stemBottom = baseCenter.clone().addScaledVector(plateInward, 0.038);
+  const mount = displayPoint(0, -displayHeight * 0.38, -displayDepth);
+  const stemTop = mount.y;
+  box(0.268, stemTop - baseTop, 0.15, "dark", [
+    stemBottom.x,
+    (stemTop + baseTop) / 2,
+    stemBottom.z,
+  ]);
+  const armDepth = Math.abs(mount.z - stemBottom.z) + 0.09;
+  box(0.32, 0.14, armDepth, "dark", [
+    mount.x,
+    stemTop - 0.055,
+    (mount.z + stemBottom.z) / 2,
+  ]);
+  const displayAngles: Point = [
+    displayRotation.x,
+    displayRotation.y,
+    displayRotation.z,
+  ];
   for (let i = 0; i < 8; i++)
-    box(0.025, 0.19, 0.008, "dark", [
-      displayX + (i - 3.5) * 0.1,
-      displayBottom + displayHeight * 0.69,
-      displayRear - 0.003,
-    ]);
-  box(0.39, 0.24, 0.012, "paper", [
-    displayX,
-    displayBottom + displayHeight * 0.38,
-    displayRear - 0.003,
-  ]);
-  for (const x of [display[0].x + 0.16, display[1].x - 0.16])
-    for (const fraction of [0.17, 0.9])
-      screw([x, displayBottom + displayHeight * fraction, displayRear - 0.006]);
-  const portY = displayBottom + displayHeight * 0.14;
-  for (const offset of [-0.41, -0.25, 0.25, 0.41])
-    box(0.12, 0.035, 0.02, "dark", [
-      displayX + offset,
-      portY,
-      displayRear - 0.006,
-    ]);
+    box(
+      0.025,
+      0.19,
+      0.012,
+      "dark",
+      displayPoint((i - 3.5) * 0.1, 0.23, -displayDepth).toArray(),
+      displayAngles,
+    );
+  box(
+    0.39,
+    0.24,
+    0.014,
+    "paper",
+    displayPoint(0, -0.15, -displayDepth).toArray(),
+    displayAngles,
+  );
+  for (const x of [-0.84, 0.84])
+    for (const y of [-0.38, 0.38])
+      screw(displayPoint(x, y, -displayDepth - 0.005).toArray());
+  for (const x of [-0.41, -0.25, 0.25, 0.41])
+    box(
+      0.12,
+      0.035,
+      0.025,
+      "dark",
+      displayPoint(x, -0.44, -displayDepth).toArray(),
+      displayAngles,
+    );
   tube(
     [
-      [displayX + 0.41, portY, displayRear - 0.02],
-      [displayX + 0.43, baseTop + 0.15, standZ - 0.16],
-      [displayX + 0.47, baseTop + 0.02, baseZ - 0.29],
-      [displayX + 0.68, tabletop[0].y + 0.021, baseZ - 0.29],
+      displayPoint(0.41, -0.44, -displayDepth - 0.03).toArray(),
+      [stemBottom.x + 0.44, baseTop + 0.15, stemBottom.z - 0.14],
+      [stemBottom.x + 0.47, baseTop + 0.02, stemBottom.z - 0.24],
+      [stemBottom.x + 0.68, tabletopHeight + 0.021, stemBottom.z - 0.29],
     ],
     0.012,
     "dark",
   );
+
+  region = "deskTools";
   const keyboard = pointsAt(
     [
       [1007, 540],
@@ -1440,10 +1480,11 @@ export function buildWorkbenchModel(
   const lead = pencilFrom.clone().lerp(pencilTo, 0.09);
   rod(pencilFrom.toArray(), lead.toArray(), 0.013, "dark");
 
+  region = "vise";
   // The vise's castings, jaws and screw share the same axis above the tabletop.
   const viseX = artworkPoint([1246, 530], "z", 0.69).x;
   function viseAt(x: number, height: number, depth: number): Point {
-    return [viseX + x, tabletop[0].y + height, depth];
+    return [viseX + x, tabletopHeight + height, depth];
   }
   function viseCasting(
     profile: readonly (readonly [number, number])[],
@@ -1554,6 +1595,7 @@ export function buildWorkbenchModel(
       false,
     );
 
+  region = "case";
   // Keep the dimensions from the drawing and shade each part in model space.
   const toolboxArt = pointsAt(
     [
@@ -1643,6 +1685,7 @@ export function buildWorkbenchModel(
   for (const x of [toolboxFront[0].x + 0.31, toolboxFront[1].x - 0.31])
     box(0.16, 0.11, 0.035, "metal", [x, lidBottom, toolboxRearZ - 0.014]);
 
+  region = "stool";
   // A single beveled profile gives the seat the same finish around its rim.
   const [seatLeft, seatRight] = pointsAt(
     [
@@ -1682,15 +1725,15 @@ export function buildWorkbenchModel(
       [Math.PI / 2, 0, 0],
       false,
     );
-  const ringRadius = 0.68;
-  const ringHeight = 0.72;
+  const ringRadius = 0.735;
+  const ringHeight = 0.85;
   add(
     new TorusGeometry(ringRadius, 0.029, 9, 48),
     "metal",
     [stoolX, ringHeight, stoolZ],
     [Math.PI / 2, 0, 0],
   );
-  const [leftFoot, rightFoot, frontFoot, backFoot] = pointsAt(
+  const stoolFeet = pointsAt(
     [
       [724, 907],
       [927, 900],
@@ -1698,26 +1741,10 @@ export function buildWorkbenchModel(
       [830, 870],
     ],
     "y",
-    0.055,
+    floorHeight - 0.053,
   );
-  const footRight = rightFoot
-    .clone()
-    .sub(leftFoot)
-    .add(up.clone().cross(frontFoot.clone().sub(backFoot)))
-    .normalize();
-  const footForward = footRight.clone().cross(up);
-  const footRadius =
-    [leftFoot, rightFoot, frontFoot, backFoot].reduce(
-      (total, point) => total + Math.hypot(point.x - stoolX, point.z - stoolZ),
-      0,
-    ) / 4;
-  for (const direction of [
-    footRight,
-    footRight.clone().negate(),
-    footForward,
-    footForward.clone().negate(),
-  ]) {
-    const foot = stoolCenter.clone().addScaledVector(direction, footRadius);
+  for (const foot of stoolFeet) {
+    const direction = foot.clone().sub(stoolCenter).setY(0).normalize();
     const spoke = stoolCenter
       .clone()
       .addScaledVector(direction, ringRadius)
@@ -1728,93 +1755,40 @@ export function buildWorkbenchModel(
     cylinder(0.084, 0.09, 0.04, "metal", [foot.x, floorHeight - 0.053, foot.z]);
   }
 
-  // Batch the painted and unpainted surfaces together by finish.
-  const silhouette = new MeshBasicMaterial({
-    color: 0x514636,
-    side: BackSide,
-    toneMapped: false,
-  });
-  silhouette.onBeforeCompile = (shader) => {
-    shader.vertexShader = shader.vertexShader
-      .replace(
-        "#include <common>",
-        "#include <common>\nattribute vec4 pencilUv;",
-      )
-      .replace(
-        "#include <begin_vertex>",
-        `#include <begin_vertex>
-      float pressure = 0.52 + 0.24 * sin(dot(position, vec3(29.0, 18.0, 36.0)))
-        + 0.12 * cos(dot(position, vec3(-71.0, 39.0, 46.0)));
-      transformed += normal * (0.004 + 0.009 * pressure) * (1.0 - pencilUv.w * 0.74);`,
-      );
-  };
-  for (const [material, geometries] of batches) {
-    const geometry = mergeGeometries(geometries, false);
-    if (!geometry) throw new Error("Incompatible workbench geometry");
-    const mesh = new Mesh(geometry, material);
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    group.add(mesh);
-    group.add(new Mesh(geometry, silhouette));
-    geometries.forEach((g) => g.dispose());
-  }
-  const inkGeometry = mergeGeometries(outlines, false);
-  if (inkGeometry) {
-    const pencil = new LineBasicMaterial({
-      color: 0x4d4132,
-      transparent: true,
-      opacity: 0.69,
-      toneMapped: false,
-      depthWrite: false,
-    });
-    pencil.onBeforeCompile = (shader) => {
-      shader.vertexShader = shader.vertexShader
-        .replace(
-          "#include <common>",
-          "#include <common>\nvarying vec3 vPencilLine;",
-        )
-        .replace(
-          "#include <begin_vertex>",
-          "#include <begin_vertex>\nvPencilLine = position;",
-        );
-      shader.fragmentShader = shader.fragmentShader
-        .replace(
-          "#include <common>",
-          "#include <common>\nvarying vec3 vPencilLine;",
-        )
-        .replace(
-          "#include <color_fragment>",
-          `#include <color_fragment>
-        float pressure = 0.71 + 0.16 * sin(dot(vPencilLine, vec3(25.0, 36.0, 47.0)))
-          + 0.11 * cos(dot(vPencilLine, vec3(-68.0, 57.0, 27.0)));
-        diffuseColor.a *= pressure;`,
-        );
-    };
-    group.add(new LineSegments(inkGeometry, pencil));
-  }
-  outlines.forEach((g) => g.dispose());
+  return surfaces;
+}
 
-  return {
-    group,
-    dispose() {
-      const disposed = new Set<Material>();
-      const geometries = new Set<BufferGeometry>();
-      group.traverse((object) => {
-        if (object instanceof Mesh || object instanceof LineSegments) {
-          if (!geometries.has(object.geometry)) {
-            object.geometry.dispose();
-            geometries.add(object.geometry);
-          }
-          const values = Array.isArray(object.material)
-            ? object.material
-            : [object.material];
-          for (const value of values)
-            if (!disposed.has(value)) {
-              value.dispose();
-              disposed.add(value);
-            }
-        }
-      });
-    },
-  };
+export function buildWorkbenchModel(atlas: Texture): WorkbenchModel {
+  const surfaces = buildWorkbenchSurfaces();
+  const group = new Group();
+  group.name = "handcrafted-workbench";
+  function dispose() {
+    for (const child of group.children) {
+      if (!(child instanceof Mesh) || Array.isArray(child.material)) continue;
+      child.geometry.dispose();
+      child.material.dispose();
+    }
+  }
+  try {
+    layoutWorkbenchAtlas(surfaces);
+    const batches = new Map<WorkbenchFinish, BufferGeometry[]>();
+    for (const { finish, geometry } of surfaces) {
+      const batch = batches.get(finish) ?? [];
+      batch.push(geometry);
+      batches.set(finish, batch);
+    }
+    for (const [finish, geometries] of batches) {
+      const geometry = mergeGeometries(geometries);
+      if (!geometry) throw new Error("Incompatible workbench geometry");
+      const material = new MeshBasicMaterial({ map: atlas, toneMapped: false });
+      material.name = `graphite-${finish}`;
+      group.add(new Mesh(geometry, material));
+    }
+  } catch (error) {
+    dispose();
+    throw error;
+  } finally {
+    surfaces.forEach(({ geometry }) => geometry.dispose());
+  }
+  return { group, dispose };
 }

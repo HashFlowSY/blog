@@ -1,12 +1,6 @@
 import {
-  DirectionalLight,
-  HemisphereLight,
   MathUtils,
-  Mesh,
-  PCFShadowMap,
-  PlaneGeometry,
   Scene,
-  ShadowMaterial,
   Spherical,
   SRGBColorSpace,
   TextureLoader,
@@ -16,7 +10,7 @@ import {
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
 import { buildWorkbenchModel } from "./workbench-model";
-import { workbenchTextures } from "./workbench-textures";
+import { workbenchTexture } from "./workbench-textures";
 import {
   artworkWidth,
   createArtworkCamera,
@@ -34,24 +28,8 @@ export interface WorkbenchScene {
 export async function createWorkbenchScene(
   canvas: HTMLCanvasElement,
 ): Promise<WorkbenchScene> {
-  const loader = new TextureLoader();
-  const textures = await Promise.allSettled([
-    loader.loadAsync(workbenchTextures[0]),
-    loader.loadAsync(workbenchTextures[1]),
-  ]);
-  const [graphiteResult, artworkResult] = textures;
-  if (
-    graphiteResult.status === "rejected" ||
-    artworkResult.status === "rejected"
-  ) {
-    for (const result of textures)
-      if (result.status === "fulfilled") result.value.dispose();
-    throw new Error("Unable to load the workbench drawing textures");
-  }
-  const graphite = graphiteResult.value,
-    artwork = artworkResult.value;
-  graphite.colorSpace = SRGBColorSpace;
-  artwork.colorSpace = SRGBColorSpace;
+  const atlas = await new TextureLoader().loadAsync(workbenchTexture);
+  atlas.colorSpace = SRGBColorSpace;
   let renderer: WebGLRenderer;
   try {
     renderer = new WebGLRenderer({
@@ -61,8 +39,7 @@ export async function createWorkbenchScene(
       powerPreference: "low-power",
     });
   } catch (error) {
-    graphite.dispose();
-    artwork.dispose();
+    atlas.dispose();
     throw error;
   }
   renderer.debug.onShaderError = () => {
@@ -71,14 +48,7 @@ export async function createWorkbenchScene(
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.setClearColor(0x000000, 0);
   renderer.outputColorSpace = SRGBColorSpace;
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = PCFShadowMap;
-  renderer.shadowMap.autoUpdate = false;
-  renderer.shadowMap.needsUpdate = true;
-  graphite.anisotropy = artwork.anisotropy = Math.min(
-    8,
-    renderer.capabilities.getMaxAnisotropy(),
-  );
+  atlas.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
   const scene = new Scene();
   const camera = createArtworkCamera();
   // OrbitControls encodes zoom as a dolly distance. Use that distance for
@@ -107,36 +77,17 @@ export async function createWorkbenchScene(
   controls.maxAzimuthAngle = Infinity;
   controls.update();
   controls.saveState();
-  scene.add(new HemisphereLight(0xffffff, 0xd8d4c9, 1.4));
-  const key = new DirectionalLight(0xffffff, 1.7);
-  key.position.set(-4, 11, 8);
-  key.castShadow = true;
-  key.shadow.mapSize.set(1024, 1024);
-  Object.assign(key.shadow.camera, {
-    left: -7,
-    right: 7,
-    top: 8,
-    bottom: -6,
-    near: 0.5,
-    far: 32,
-  });
-  key.shadow.normalBias = 0.025;
-  key.shadow.bias = -0.0002;
-  key.shadow.radius = 3;
-  scene.add(key);
-  const fill = new DirectionalLight(0xffffff, 0.65);
-  fill.position.set(6, 5, -7);
-  scene.add(fill);
-  const model = buildWorkbenchModel(graphite, artwork);
+  let model: ReturnType<typeof buildWorkbenchModel>;
+  try {
+    model = buildWorkbenchModel(atlas);
+  } catch (error) {
+    controls.dispose();
+    atlas.dispose();
+    renderer.dispose();
+    renderer.forceContextLoss();
+    throw error;
+  }
   scene.add(model.group);
-  const floor = new Mesh(
-    new PlaneGeometry(15, 13),
-    new ShadowMaterial({ color: 0x716b60, opacity: 0.035, depthWrite: false }),
-  );
-  floor.rotation.x = -Math.PI / 2;
-  floor.position.y = 0.015;
-  floor.receiveShadow = true;
-  scene.add(floor);
 
   let frame: number | undefined;
   let disposed = false;
@@ -246,10 +197,7 @@ export async function createWorkbenchScene(
     observer.disconnect();
     controls.dispose();
     model.dispose();
-    floor.geometry.dispose();
-    floor.material.dispose();
-    graphite.dispose();
-    artwork.dispose();
+    atlas.dispose();
     renderer.dispose();
     renderer.forceContextLoss();
   }

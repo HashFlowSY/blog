@@ -7,7 +7,7 @@ import styles from "./assembly-workbench.module.css";
 import { drawingProgress, drawingTime } from "./pencil-plan";
 import { WorkbenchDrawing } from "./workbench-drawing";
 import { preloadWorkbenchScene, WorkbenchOrbit } from "./workbench-orbit";
-import { workbenchTextures } from "./workbench-textures";
+import { workbenchTexture } from "./workbench-textures";
 
 import type { WorkbenchModelStatus } from "./workbench-orbit";
 
@@ -99,12 +99,11 @@ export function AssemblyWorkbench() {
 
   useEffect(() => {
     if (!finishing) return;
-    for (const source of workbenchTextures)
-      preload(source, {
-        as: "image",
-        type: "image/webp",
-        crossOrigin: "anonymous",
-      });
+    preload(workbenchTexture, {
+      as: "image",
+      type: "image/webp",
+      crossOrigin: "anonymous",
+    });
   }, [finishing]);
 
   useEffect(() => {

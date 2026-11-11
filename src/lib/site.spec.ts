@@ -177,8 +177,8 @@ describe("assetPath", () => {
     delete process.env["BASE_PATH"];
     const { assetPath } = await import("./site");
 
-    expect(assetPath("/assets/workbench-pencil-detail.webp")).toBe(
-      "/assets/workbench-pencil-detail.webp",
+    expect(assetPath("/assets/workbench-ink-atlas.webp")).toBe(
+      "/assets/workbench-ink-atlas.webp",
     );
   });
 
@@ -186,8 +186,8 @@ describe("assetPath", () => {
     process.env["BASE_PATH"] = "/blog";
     const { assetPath } = await import("./site");
 
-    expect(assetPath("/assets/workbench-pencil-detail.webp")).toBe(
-      "/blog/assets/workbench-pencil-detail.webp",
+    expect(assetPath("/assets/workbench-ink-atlas.webp")).toBe(
+      "/blog/assets/workbench-ink-atlas.webp",
     );
   });
 
@@ -197,8 +197,8 @@ describe("assetPath", () => {
     const { assetPath, BASE_PATH } = await import("./site");
 
     expect(BASE_PATH).toBe("/blog");
-    expect(assetPath("/assets/workbench-pencil-detail.webp")).toBe(
-      "/blog/assets/workbench-pencil-detail.webp",
+    expect(assetPath("/assets/workbench-ink-atlas.webp")).toBe(
+      "/blog/assets/workbench-ink-atlas.webp",
     );
   });
 
@@ -224,8 +224,8 @@ describe("assetPath", () => {
     process.env["BASE_PATH"] = "/assets";
     const { assetPath } = await import("./site");
 
-    expect(assetPath("/assets/workbench-pencil-detail.webp")).toBe(
-      "/assets/assets/workbench-pencil-detail.webp",
+    expect(assetPath("/assets/workbench-ink-atlas.webp")).toBe(
+      "/assets/assets/workbench-ink-atlas.webp",
     );
   });
 });

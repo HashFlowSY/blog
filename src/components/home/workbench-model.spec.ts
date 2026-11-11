@@ -1,7 +1,14 @@
-import { Box3, Mesh, Raycaster, Texture, Vector3 } from "three";
+import {
+  Box3,
+  Mesh,
+  MeshBasicMaterial,
+  Raycaster,
+  Texture,
+  Vector3,
+} from "three";
 import { describe, expect, it, vi } from "vitest";
 
-import { buildWorkbenchModel } from "./workbench-model";
+import { buildWorkbenchModel, buildWorkbenchSurfaces } from "./workbench-model";
 import {
   artworkHeight,
   artworkPoint,
@@ -9,20 +16,14 @@ import {
   createArtworkCamera,
 } from "./workbench-view";
 
-const screenFaces = [
-  [
-    [670, 398],
-    [852, 396],
-    [867, 516],
-    [681, 523],
-  ],
-  [
-    [988, 379],
-    [1188, 381],
-    [1178, 501],
-    [978, 495],
-  ],
-] as const;
+function pixel(point: Vector3) {
+  const { x, y } = point.clone().project(createArtworkCamera());
+  return new Vector3(
+    ((x + 1) * artworkWidth) / 2,
+    ((1 - y) * artworkHeight) / 2,
+    0,
+  );
+}
 
 function meshForFinish(
   group: ReturnType<typeof buildWorkbenchModel>["group"],
@@ -39,36 +40,24 @@ function meshForFinish(
   return mesh;
 }
 
-function paintedVertex(
-  group: ReturnType<typeof buildWorkbenchModel>["group"],
+function fittedFace(
+  surfaces: ReturnType<typeof buildWorkbenchSurfaces>,
+  region: ReturnType<typeof buildWorkbenchSurfaces>[number]["region"],
   finish: string,
-  x: number,
-  y: number,
 ) {
-  const mesh = meshForFinish(group, finish);
-  const ink = mesh.geometry.getAttribute("pencilUv");
-  const positions = mesh.geometry.getAttribute("position");
-  for (let index = 0; index < ink.count; index++) {
-    if (ink.getW(index) !== 1) continue;
-    const sampleX = (ink.getX(index) / ink.getZ(index)) * artworkWidth;
-    const sampleY = (1 - ink.getY(index) / ink.getZ(index)) * artworkHeight;
-    if (Math.abs(sampleX - x) < 0.01 && Math.abs(sampleY - y) < 0.01)
-      return new Vector3()
-        .fromBufferAttribute(positions, index)
-        .applyMatrix4(mesh.matrixWorld);
-  }
-  throw new Error(`Missing artwork landmark at ${x}, ${y}`);
-}
-
-function hasProjectedInk(mesh: Mesh) {
-  const ink = mesh.geometry.getAttribute("pencilUv");
-  for (let i = 0; i < ink.count; i++) if (ink.getW(i) > 0.5) return true;
-  return false;
+  const face = surfaces.find(
+    (surface) =>
+      surface.region === region &&
+      surface.finish === finish &&
+      surface.projection,
+  );
+  if (!face?.projection) throw new Error(`Missing fitted ${region} face`);
+  return face.projection;
 }
 
 describe("physical workbench model", () => {
   it("models circular holes through the board", () => {
-    const model = buildWorkbenchModel(new Texture(), new Texture());
+    const model = buildWorkbenchModel(new Texture());
     model.group.updateMatrixWorld(true);
     const meshes = model.group.children.filter(
       (child) => child instanceof Mesh,
@@ -90,7 +79,6 @@ describe("physical workbench model", () => {
     expect(hitsBoard(0.017, 0)).toBeGreaterThan(0);
     expect(hitsBoard(0, 0.017)).toBeGreaterThan(0);
     const board = meshForFinish(model.group, "pegboard");
-    expect(hasProjectedInk(board)).toBe(false);
     const position = board.geometry.getAttribute("position");
     const normal = board.geometry.getAttribute("normal");
     const corners = [new Vector3(), new Vector3(), new Vector3()];
@@ -112,125 +100,86 @@ describe("physical workbench model", () => {
     model.dispose();
   });
 
-  it("aligns the tabletop edge, monitor and yellow drawer with the drawing", () => {
-    const model = buildWorkbenchModel(new Texture(), new Texture());
-    model.group.updateMatrixWorld(true);
-    const camera = createArtworkCamera();
-    for (const { finish, x, y } of [
-      { finish: "wood", x: 498, y: 540 },
-      { finish: "metal", x: 988, y: 379 },
-    ]) {
-      const point = paintedVertex(model.group, finish, x, y).project(camera);
-      expect(((point.x + 1) * artworkWidth) / 2).toBeCloseTo(x, 2);
-      expect(((1 - point.y) * artworkHeight) / 2).toBeCloseTo(y, 2);
-    }
-    const drawer = meshForFinish(model.group, "yellow");
-    const { min, max } = new Box3().setFromObject(drawer);
-    const corner = new Vector3(min.x, max.y, max.z).project(camera);
-    const [x, y] = [
-      ((corner.x + 1) * artworkWidth) / 2,
-      ((1 - corner.y) * artworkHeight) / 2,
-    ];
-    expect(Math.hypot(x - 1018, y - 716)).toBeLessThan(2);
-    expect(hasProjectedInk(drawer)).toBe(false);
-    model.dispose();
-  });
-
-  it("projects the monitor base corners close to the drawing", () => {
-    const model = buildWorkbenchModel(new Texture(), new Texture());
-    const camera = createArtworkCamera();
-    const corners = [
-      [1040.5, 528],
-      [1115.5, 534],
-      [1141.5, 523],
-    ] as const;
+  it("registers the desktop, monitor and drawer from all four corners", () => {
+    const surfaces = buildWorkbenchSurfaces();
     try {
-      const projected: [number, number][] = [];
-      const point = new Vector3();
-      for (const finish of ["metal", "dark"]) {
-        const { geometry } = meshForFinish(model.group, finish);
-        const position = geometry.getAttribute("position");
-        const normal = geometry.getAttribute("normal");
-        for (let index = 0; index < position.count; index++) {
-          if (normal.getY(index) < 0.999) continue;
-          point.fromBufferAttribute(position, index);
-          if (
-            point.x < 1 ||
-            point.x > 2.1 ||
-            point.y < 3.15 ||
-            point.y > 3.2 ||
-            point.z < -1.21 ||
-            point.z > -0.2
-          )
-            continue;
-          point.project(camera);
-          projected.push([
-            ((point.x + 1) * artworkWidth) / 2,
-            ((1 - point.y) * artworkHeight) / 2,
-          ]);
+      for (const [region, finish, tolerance] of [
+        ["desk", "wood", 10],
+        ["display", "metal", 0.6],
+        ["cabinet", "yellow", 3.6],
+      ] as const) {
+        const { corners, pixels } = fittedFace(surfaces, region, finish);
+        for (const [i, corner] of corners.entries()) {
+          const [x, y] = pixels[i]!;
+          expect
+            .soft(pixel(corner).distanceTo(new Vector3(x, y, 0)))
+            .toBeLessThan(tolerance);
         }
       }
-      for (const [x, y] of corners)
-        expect
-          .soft(
-            Math.min(
-              ...projected.map(([px, py]) => Math.hypot(px - x, py - y)),
-            ),
-          )
-          .toBeLessThan(2);
     } finally {
-      model.dispose();
+      surfaces.forEach(({ geometry }) => geometry.dispose());
     }
   });
 
-  it("keeps the painted slab square and the front legs upright in three dimensions", () => {
-    const model = buildWorkbenchModel(new Texture(), new Texture());
-    model.group.updateMatrixWorld(true);
+  it("fits the three visible monitor base corners and seats the plate on the desktop", () => {
+    const surfaces = buildWorkbenchSurfaces();
     try {
-      const left = paintedVertex(model.group, "wood", 498, 540);
-      const right = paintedVertex(model.group, "wood", 1271, 591);
-      const rear = paintedVertex(model.group, "wood", 1368, 530);
-      const edge = right.clone().sub(left).normalize();
-      const depth = rear.clone().sub(right).normalize();
-      expect(edge.dot(depth)).toBeCloseTo(0, 5);
+      const { corners } = fittedFace(surfaces, "display", "dark");
+      const observed = [
+        [1040.5, 528],
+        [1115.5, 534],
+        [1141.5, 523],
+      ] as const;
+      for (const [i, [x, y]] of observed.entries())
+        expect(
+          pixel(corners[i]!).distanceTo(new Vector3(x, y, 0)),
+        ).toBeLessThan(0.6);
+      const parts = surfaces.filter((surface) => surface.region === "display");
+      const base = parts.find(
+        (surface) => surface.finish === "dark" && !surface.projection,
+      );
+      if (!base) throw new Error("Missing monitor base side walls");
+      base.geometry.computeBoundingBox();
+      expect(base.geometry.boundingBox?.min.y).toBeCloseTo(3.13, 5);
+    } finally {
+      surfaces.forEach(({ geometry }) => geometry.dispose());
+    }
+  });
 
-      for (const [[topX, topY], [footX, footY]] of [
-        [
-          [523, 570],
-          [524, 802],
-        ],
-        [
-          [1216, 626],
-          [1216, 924],
-        ],
+  it("keeps the tabletop and screens rectangular in model space", () => {
+    const surfaces = buildWorkbenchSurfaces();
+    try {
+      for (const [region, finish] of [
+        ["desk", "wood"],
+        ["display", "metal"],
+        ["laptop", "metal"],
       ] as const) {
-        const top = paintedVertex(model.group, "wood", topX, topY);
-        const foot = paintedVertex(model.group, "wood", footX, footY);
-        expect(top.x).toBeCloseTo(foot.x, 5);
-        expect(top.z).toBeCloseTo(foot.z, 5);
-        expect(top.y).toBeGreaterThan(foot.y);
+        const [a, b, c, d] = fittedFace(surfaces, region, finish).corners;
+        const width = b!.clone().sub(a!);
+        const height = d!.clone().sub(a!);
+        expect(width.dot(height)).toBeCloseTo(0, 5);
+        expect(a!.clone().add(width).add(height).distanceTo(c!)).toBeLessThan(
+          1e-5,
+        );
       }
     } finally {
-      model.dispose();
+      surfaces.forEach(({ geometry }) => geometry.dispose());
     }
   });
 
-  it("keeps the stool rim circular and the seat free of projected shadows", () => {
-    const model = buildWorkbenchModel(new Texture(), new Texture());
+  it("keeps the upholstered profile circular around its axis", () => {
+    const model = buildWorkbenchModel(new Texture());
     model.group.updateMatrixWorld(true);
     try {
       const seat = meshForFinish(model.group, "seat");
       const center = new Box3().setFromObject(seat).getCenter(new Vector3());
       const position = seat.geometry.getAttribute("position");
-      const ink = seat.geometry.getAttribute("pencilUv");
       const point = new Vector3();
       const camera = createArtworkCamera();
       const radii: number[] = [];
       const upperRim: [number, number][] = [];
-      let projectedInk = 0;
       for (let i = 0; i < position.count; i++) {
         point.fromBufferAttribute(position, i);
-        projectedInk = Math.max(projectedInk, ink.getW(i));
         if (Math.abs(point.y - center.y) < 0.05)
           radii.push(Math.hypot(point.x - center.x, point.z - center.z));
         if (point.y > center.y) {
@@ -243,7 +192,6 @@ describe("physical workbench model", () => {
       }
       expect(radii.length).toBeGreaterThan(60);
       expect(Math.max(...radii) / Math.min(...radii)).toBeCloseTo(1, 4);
-      expect(projectedInk).toBe(0);
       for (const [x, y] of [
         [755.5, 696],
         [900.5, 698],
@@ -256,53 +204,30 @@ describe("physical workbench model", () => {
     }
   });
 
-  it("keeps the equipment shells rectangular, with the laptop joined at its hinge", () => {
-    const model = buildWorkbenchModel(new Texture(), new Texture());
-    model.group.updateMatrixWorld(true);
+  it("joins the laptop lid to the keyboard shell at both hinge endpoints", () => {
+    const surfaces = buildWorkbenchSurfaces();
     try {
-      for (const corners of screenFaces) {
-        const [a, b, c, d] = corners.map(([x, y]) =>
-          paintedVertex(model.group, "metal", x, y),
-        ) as [Vector3, Vector3, Vector3, Vector3];
-        const width = b.clone().sub(a);
-        const height = d.clone().sub(a);
+      const { corners } = fittedFace(surfaces, "laptop", "metal");
+      const shell = surfaces.find((surface) => surface.region === "laptop");
+      if (!shell) throw new Error("Missing laptop base");
+      const position = shell.geometry.getAttribute("position");
+      const vertices = Array.from({ length: position.count }, (_, index) =>
+        new Vector3().fromBufferAttribute(position, index),
+      );
+      for (const point of corners.slice(2))
         expect(
-          width.clone().normalize().dot(height.clone().normalize()),
-        ).toBeCloseTo(0, 5);
-        expect(a.clone().add(width).add(height).distanceTo(c)).toBeLessThan(
-          1e-5,
-        );
-      }
-      const { geometry } = meshForFinish(model.group, "metal");
-      const position = geometry.getAttribute("position");
-      const normal = geometry.getAttribute("normal");
-      const point = new Vector3();
-      for (const [x, y] of [
-        [681, 523],
-        [867, 516],
-      ] as const) {
-        const hinge = paintedVertex(model.group, "metal", x, y);
-        let joined = false;
-        for (let i = 0; i < position.count; i++) {
-          if (normal.getY(i) < 0.999) continue;
-          point.fromBufferAttribute(position, i);
-          if (point.distanceToSquared(hinge) >= 1e-10) continue;
-          joined = true;
-          break;
-        }
-        expect(joined).toBe(true);
-      }
+          vertices.some((vertex) => vertex.distanceToSquared(point) < 1e-10),
+        ).toBe(true);
     } finally {
-      model.dispose();
+      surfaces.forEach(({ geometry }) => geometry.dispose());
     }
   });
 
-  it("keeps the toolbox lid and case walls flat with graphite shading", () => {
-    const model = buildWorkbenchModel(new Texture(), new Texture());
+  it("keeps the toolbox lid and case walls flat", () => {
+    const model = buildWorkbenchModel(new Texture());
     model.group.updateMatrixWorld(true);
     try {
       const caseMesh = meshForFinish(model.group, "metal");
-      const ink = caseMesh.geometry.getAttribute("pencilUv");
       for (const [origin, normal] of [
         [new Vector3(-2.93, 1.96, 0.56), new Vector3(0, 1, 0)],
         [new Vector3(-2.3, 1.96, 0.02), new Vector3(0, 1, 0)],
@@ -315,73 +240,42 @@ describe("physical workbench model", () => {
         const [hit] = ray.intersectObject(caseMesh);
         if (!hit?.face) throw new Error("Missing toolbox surface");
         expect.soft(hit.face.normal.dot(normal)).toBeCloseTo(1, 5);
-        expect.soft(ink.getW(hit.face.a)).toBe(0);
       }
     } finally {
       model.dispose();
     }
   });
 
-  it("samples every painted face through one continuous planar projection", () => {
-    const model = buildWorkbenchModel(new Texture(), new Texture());
+  it("assigns finite atlas coordinates to every triangle", () => {
+    const texture = new Texture();
+    const model = buildWorkbenchModel(texture);
     try {
-      let paintedQuads = 0;
-      let mixedTriangles = 0;
-      for (const mesh of model.group.children) {
+      for (const child of model.group.children) {
         if (
-          !(mesh instanceof Mesh) ||
-          Array.isArray(mesh.material) ||
-          !mesh.material.name.startsWith("graphite-")
+          !(child instanceof Mesh) ||
+          !(child.material instanceof MeshBasicMaterial)
         )
           continue;
-        const position = mesh.geometry.getAttribute("position");
-        const ink = mesh.geometry.getAttribute("pencilUv");
-        for (let i = 0; i < position.count; i += 3) {
-          if (!ink.getW(i)) {
-            if (ink.getW(i + 1) || ink.getW(i + 2)) mixedTriangles++;
-            continue;
-          }
-          const corners = new Map<string, { uv: Vector3; shared: boolean }>();
-          for (let j = i; j < i + 6; j++) {
-            expect(ink.getW(j)).toBe(1);
-            const key = new Vector3()
-              .fromBufferAttribute(position, j)
-              .toArray()
-              .join();
-            const corner = corners.get(key);
-            if (corner) corner.shared = true;
-            else
-              corners.set(key, {
-                uv: new Vector3(ink.getX(j), ink.getY(j), ink.getZ(j)),
-                shared: false,
-              });
-          }
-          expect(corners.size).toBe(4);
-          const common = new Vector3();
-          const alternate = new Vector3();
-          for (const { uv, shared } of corners.values())
-            (shared ? common : alternate).add(uv);
-          // The same midpoint must have the same homogeneous coordinates
-          // when sampled through either diagonal of the quad.
-          const pixelGap = Math.hypot(
-            (common.x / common.z - alternate.x / alternate.z) * artworkWidth,
-            (common.y / common.z - alternate.y / alternate.z) * artworkHeight,
-          );
-          expect.soft(pixelGap).toBeLessThan(0.001);
-          expect.soft(common.z / alternate.z).toBeCloseTo(1, 6);
-          paintedQuads++;
-          i += 3;
+        expect(child.material.map).toBe(texture);
+        const { geometry } = child;
+        const uv = geometry.getAttribute("uv");
+        expect(uv.count).toBe(geometry.getAttribute("position").count);
+        let minimum = 1,
+          maximum = 0;
+        for (let i = 0; i < uv.count; i++) {
+          minimum = Math.min(minimum, uv.getX(i), uv.getY(i));
+          maximum = Math.max(maximum, uv.getX(i), uv.getY(i));
         }
+        expect(minimum).toBeGreaterThan(0);
+        expect(maximum).toBeLessThan(1);
       }
-      expect(mixedTriangles).toBe(0);
-      expect(paintedQuads).toBeGreaterThan(0);
     } finally {
       model.dispose();
     }
   });
 
   it("has five separated rows of raised laptop keys", () => {
-    const model = buildWorkbenchModel(new Texture(), new Texture());
+    const model = buildWorkbenchModel(new Texture());
     model.group.updateMatrixWorld(true);
     try {
       const keys = meshForFinish(model.group, "dark");
@@ -414,7 +308,7 @@ describe("physical workbench model", () => {
   });
 
   it("keeps the vise jaws open and its base flush with the tabletop", () => {
-    const model = buildWorkbenchModel(new Texture(), new Texture());
+    const model = buildWorkbenchModel(new Texture());
     model.group.updateMatrixWorld(true);
     try {
       const meshes = ["metal", "dark"].map((finish) =>
@@ -440,30 +334,24 @@ describe("physical workbench model", () => {
       );
       const point = new Vector3();
       let lowest = Infinity;
-      let painted = 0;
       for (const { geometry } of meshes) {
         const position = geometry.getAttribute("position");
-        const ink = geometry.getAttribute("pencilUv");
         for (let i = 0; i < position.count; i++) {
           if (!area.containsPoint(point.fromBufferAttribute(position, i)))
             continue;
           lowest = Math.min(lowest, point.y);
-          if (ink.getW(i) === 1) painted++;
         }
       }
       expect.soft(lowest).toBeCloseTo(3.13, 5);
-      expect.soft(painted).toBe(0);
     } finally {
       model.dispose();
     }
   });
 
-  it("releases shared geometries once while retaining ownership of source textures", () => {
-    const paper = new Texture(),
-      screens = new Texture();
-    const paperDispose = vi.spyOn(paper, "dispose"),
-      screenDispose = vi.spyOn(screens, "dispose");
-    const model = buildWorkbenchModel(paper, screens);
+  it("releases each mesh while retaining ownership of the atlas", () => {
+    const atlas = new Texture();
+    const atlasDispose = vi.spyOn(atlas, "dispose");
+    const model = buildWorkbenchModel(atlas);
     const geometries = new Set(
       model.group.children
         .filter((child) => child instanceof Mesh)
@@ -474,7 +362,6 @@ describe("physical workbench model", () => {
     );
     model.dispose();
     releases.forEach((release) => expect(release).toHaveBeenCalledTimes(1));
-    expect(paperDispose).not.toHaveBeenCalled();
-    expect(screenDispose).not.toHaveBeenCalled();
+    expect(atlasDispose).not.toHaveBeenCalled();
   });
 });

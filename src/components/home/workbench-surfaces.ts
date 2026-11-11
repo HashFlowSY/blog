@@ -5,16 +5,7 @@ import {
   ShapeUtils,
   Vector2,
   Vector3,
-  Vector4,
 } from "three";
-
-import { artworkUv, calibrateArtworkQuad } from "./workbench-view";
-
-type ArtworkQuad = readonly [Vector3, Vector3, Vector3, Vector3];
-export interface SolidArtwork {
-  front?: ArtworkQuad;
-  sides?: readonly (ArtworkQuad | undefined)[];
-}
 
 function centerOf(points: readonly Vector3[]) {
   return points
@@ -22,18 +13,12 @@ function centerOf(points: readonly Vector3[]) {
     .divideScalar(points.length);
 }
 
-function face(
-  points: readonly Vector3[],
-  center: Vector3,
-  artwork?: ArtworkQuad,
-) {
+function face(points: readonly Vector3[], center: Vector3) {
   const a = points[0]!;
   const tangent = points[1]!.clone().sub(a).normalize();
   const normal = tangent.clone().cross(points[2]!.clone().sub(a)).normalize();
   const outward = normal.dot(centerOf(points).sub(center)) > 0;
   const positions: number[] = [];
-  const artworkPositions: number[] = [];
-  const samples = artwork && calibrateArtworkQuad(artwork);
   const uv: number[] = [];
   const bitangent = normal.clone().cross(tangent);
   const offset = new Vector3();
@@ -41,18 +26,12 @@ function face(
     for (const index of [0, outward ? i : i + 1, outward ? i + 1 : i]) {
       const point = points[index]!;
       positions.push(...point.toArray());
-      if (samples) artworkPositions.push(...samples[index]!.toArray());
       offset.copy(point).sub(a);
       uv.push(offset.dot(tangent), offset.dot(bitangent));
     }
   }
   const geometry = new BufferGeometry();
   geometry.setAttribute("position", new Float32BufferAttribute(positions, 3));
-  if (artwork)
-    geometry.setAttribute(
-      "artworkPosition",
-      new Float32BufferAttribute(artworkPositions, 3),
-    );
   geometry.setAttribute("uv", new Float32BufferAttribute(uv, 2));
   geometry.computeVertexNormals();
   return geometry;
@@ -62,39 +41,17 @@ function face(
 export function solidSurfaces(
   front: readonly Vector3[],
   back: readonly Vector3[],
-  artwork?: SolidArtwork,
 ) {
   const center = centerOf([...front, ...back]);
   const sides = front.map((point, i) => {
     const next = (i + 1) % front.length;
-    return face(
-      [point, front[next]!, back[next]!, back[i]!],
-      center,
-      artwork?.sides?.[i],
-    );
+    return face([point, front[next]!, back[next]!, back[i]!], center);
   });
   return {
-    front: face(front, center, artwork?.front),
+    front: face(front, center),
     back: face(back, center),
     sides,
   };
-}
-
-export function setSurfaceArtwork(geometry: BufferGeometry) {
-  const samples = geometry.getAttribute("artworkPosition");
-  geometry.deleteAttribute("artworkPosition");
-  const coordinates = new Float32Array(
-    geometry.getAttribute("position").count * 4,
-  );
-  if (samples) {
-    const point = new Vector3();
-    const clip = new Vector4();
-    for (let i = 0; i < samples.count; i++) {
-      const [x, y, w] = artworkUv(point.fromBufferAttribute(samples, i), clip);
-      coordinates.set([x, y, w, 1], i * 4);
-    }
-  }
-  geometry.setAttribute("pencilUv", new Float32BufferAttribute(coordinates, 4));
 }
 
 interface BoardHole {

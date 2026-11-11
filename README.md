@@ -69,9 +69,10 @@ src/
     └── feed.ts               # RSS XML builder
 ```
 
-The original workbench illustration is kept at
-`docs/design/workbench-hero.png`. Browser-ready textures live under
-`public/assets/`; design source images are kept outside the static export.
+The workbench uses one model for the finished drawing and the orbit view.
+The original art and texture source layers live under `docs/design/`.
+The [workbench assembly plan](docs/design/workbench-assembly-plan.md) describes
+how to bake the atlas and the finished drawing layers for the static export.
 
 ## Getting Started
 

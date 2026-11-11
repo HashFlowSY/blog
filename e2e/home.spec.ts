@@ -166,7 +166,6 @@ test.describe("Home page", () => {
           args: [WebGLUniformLocation | null, boolean, Float32List],
         ) {
           const [location, , matrix] = args;
-          // Ignore the orthographic shadow camera.
           if (
             location &&
             projections.has(location) &&
@@ -325,12 +324,9 @@ test.describe("Home page", () => {
     await expect(canvas).toHaveAttribute("data-view", "drawing");
     await expect(canvas).toHaveCSS("opacity", "0");
     await expect(drawing).toHaveCSS("visibility", "visible");
-    expect(
-      loaded.some((url) => url.includes("workbench-graphite-atlas.webp")),
-    ).toBe(true);
-    expect(
-      loaded.some((url) => url.includes("workbench-pencil-detail.webp")),
-    ).toBe(true);
+    expect(loaded.some((url) => url.includes("workbench-ink-atlas.webp"))).toBe(
+      true,
+    );
     expect(errors).toEqual([]);
   });
 
