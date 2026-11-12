@@ -1,11 +1,4 @@
-import {
-  Box3,
-  Mesh,
-  MeshBasicMaterial,
-  Raycaster,
-  Texture,
-  Vector3,
-} from "three";
+import { Mesh, MeshBasicMaterial, Raycaster, Texture, Vector3 } from "three";
 import { describe, expect, it, vi } from "vitest";
 
 import { buildWorkbenchModel, buildWorkbenchSurfaces } from "./workbench-model";
@@ -15,6 +8,8 @@ import {
   artworkWidth,
   createArtworkCamera,
 } from "./workbench-view";
+
+import type { Group } from "three";
 
 function pixel(point: Vector3) {
   const { x, y } = point.clone().project(createArtworkCamera());
@@ -38,6 +33,14 @@ function meshForFinish(
     );
   if (!mesh) throw new Error(`Missing graphite mesh for ${finish}`);
   return mesh;
+}
+
+function meshesIn(group: Group) {
+  const meshes: Mesh[] = [];
+  group.traverse((child) => {
+    if (child instanceof Mesh) meshes.push(child);
+  });
+  return meshes;
 }
 
 function fittedFace(
@@ -194,7 +197,7 @@ describe("physical workbench model", () => {
     }
   });
 
-  it("keeps the vise opening clear beside the trial wood", () => {
+  it("keeps the vise jaws clear beside the wood and the base on the desktop", () => {
     const surfaces = buildWorkbenchSurfaces();
     const material = new MeshBasicMaterial();
     try {
@@ -211,7 +214,14 @@ describe("physical workbench model", () => {
       }
       expect(hits(-0.15, 0.48)).toBe(0);
       expect(hits(-0.15, 0.32)).toBeGreaterThan(0);
-      expect(hits(0.105, 0.48)).toBeGreaterThan(0);
+      expect(hits(0.245, 0.48)).toBeGreaterThan(0);
+      const [contact] = new Raycaster(
+        new Vector3(x, 2.98, 0.6),
+        new Vector3(0, 1, 0),
+        0,
+        0.3,
+      ).intersectObjects(meshes);
+      expect(contact?.point.y).toBeCloseTo(3.13, 5);
     } finally {
       material.dispose();
       surfaces.forEach(({ geometry }) => geometry.dispose());
@@ -240,12 +250,14 @@ describe("physical workbench model", () => {
   });
 
   it("keeps the upholstered profile circular around its axis", () => {
-    const model = buildWorkbenchModel(new Texture());
-    model.group.updateMatrixWorld(true);
+    const surfaces = buildWorkbenchSurfaces();
     try {
-      const seat = meshForFinish(model.group, "seat");
-      const center = new Box3().setFromObject(seat).getCenter(new Vector3());
-      const position = seat.geometry.getAttribute("position");
+      const { geometry } = surfaces.find(
+        ({ region, finish }) => region === "stool" && finish === "seat",
+      )!;
+      geometry.computeBoundingBox();
+      const center = geometry.boundingBox!.getCenter(new Vector3());
+      const position = geometry.getAttribute("position");
       const point = new Vector3();
       const camera = createArtworkCamera();
       const rings = new Map<number, number[]>();
@@ -280,7 +292,7 @@ describe("physical workbench model", () => {
           Math.min(...upperRim.map(([px, py]) => Math.hypot(px - x, py - y))),
         ).toBeLessThan(2);
     } finally {
-      model.dispose();
+      surfaces.forEach(({ geometry }) => geometry.dispose());
     }
   });
 
@@ -364,13 +376,8 @@ describe("physical workbench model", () => {
     const texture = new Texture();
     const model = buildWorkbenchModel(texture);
     try {
-      for (const child of model.group.children) {
-        if (
-          !(child instanceof Mesh) ||
-          !(child.material instanceof MeshBasicMaterial)
-        )
-          continue;
-        expect(child.material.map).toBe(texture);
+      for (const child of meshesIn(model.group)) {
+        expect(child.material).toHaveProperty("map", texture);
         const { geometry } = child;
         const uv = geometry.getAttribute("uv");
         expect(uv.count).toBe(geometry.getAttribute("position").count);
@@ -392,7 +399,10 @@ describe("physical workbench model", () => {
     const model = buildWorkbenchModel(new Texture());
     model.group.updateMatrixWorld(true);
     try {
-      const keys = meshForFinish(model.group, "dark");
+      const keys = [...model.keys.keys()]
+        .filter((part) => part.startsWith("laptop-key-"))
+        .flatMap((part) => meshesIn(model.parts.get(part)!));
+      keys.push(...meshesIn(model.parts.get("laptop")!));
       const left = artworkPoint([681, 523], "y", 3.21);
       const right = artworkPoint([867, 516], "y", 3.21);
       const forward = right
@@ -411,52 +421,11 @@ describe("physical workbench model", () => {
       let previousHit = false;
       for (let depth = 0; depth < 0.9; depth += 0.006) {
         ray.ray.origin.copy(center).addScaledVector(forward, depth);
-        const hit = ray.intersectObject(keys, false).length > 0;
+        const hit = ray.intersectObjects(keys, false).length > 0;
         if (hit && !previousHit) rows++;
         previousHit = hit;
       }
       expect(rows).toBe(5);
-    } finally {
-      model.dispose();
-    }
-  });
-
-  it("keeps the vise jaws open and its base flush with the tabletop", () => {
-    const model = buildWorkbenchModel(new Texture());
-    model.group.updateMatrixWorld(true);
-    try {
-      const meshes = ["metal", "dark"].map((finish) =>
-        meshForFinish(model.group, finish),
-      );
-      const viseX = artworkPoint([1246, 530], "z", 0.69).x;
-      const down = new Vector3(0, -1, 0);
-      const ray = new Raycaster(new Vector3(viseX, 4.15, 0), down, 0, 0.4);
-      const gaps = [];
-      let lastJaw: number | undefined;
-      for (let step = 0; step <= 200; step++) {
-        const z = step / 200;
-        ray.ray.origin.z = z;
-        if (ray.intersectObjects(meshes, false).length === 0) continue;
-        if (lastJaw !== undefined) gaps.push(z - lastJaw);
-        lastJaw = z;
-      }
-      expect.soft(Math.max(...gaps)).toBeGreaterThan(0.1);
-
-      const area = new Box3(
-        new Vector3(viseX - 0.37, 2.98, 0.13),
-        new Vector3(viseX + 0.37, 4.15, 1.55),
-      );
-      const point = new Vector3();
-      let lowest = Infinity;
-      for (const { geometry } of meshes) {
-        const position = geometry.getAttribute("position");
-        for (let i = 0; i < position.count; i++) {
-          if (!area.containsPoint(point.fromBufferAttribute(position, i)))
-            continue;
-          lowest = Math.min(lowest, point.y);
-        }
-      }
-      expect.soft(lowest).toBeCloseTo(3.13, 5);
     } finally {
       model.dispose();
     }
@@ -467,9 +436,7 @@ describe("physical workbench model", () => {
     const atlasDispose = vi.spyOn(atlas, "dispose");
     const model = buildWorkbenchModel(atlas);
     const geometries = new Set(
-      model.group.children
-        .filter((child) => child instanceof Mesh)
-        .map((mesh) => mesh.geometry),
+      meshesIn(model.group).map((mesh) => mesh.geometry),
     );
     const releases = [...geometries].map((geometry) =>
       vi.spyOn(geometry, "dispose"),

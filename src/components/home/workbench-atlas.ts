@@ -55,7 +55,7 @@ export interface WorkbenchSurface {
 }
 
 export const atlasWidth = 2048;
-export const atlasHeight = 2560;
+export const atlasHeight = 2816;
 
 export interface WorkbenchChart {
   surface: WorkbenchSurface;

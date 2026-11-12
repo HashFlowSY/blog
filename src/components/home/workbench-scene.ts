@@ -9,7 +9,10 @@ import {
 } from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
+import { createWorkbenchInput } from "./workbench-input";
+import { createWorkbenchInteractions } from "./workbench-interactions";
 import { buildWorkbenchModel } from "./workbench-model";
+import { createScreenDrawing } from "./workbench-screen-drawing";
 import { workbenchTexture } from "./workbench-textures";
 import {
   artworkWidth,
@@ -22,11 +25,13 @@ export interface WorkbenchScene {
   rotate(azimuth: number, elevation: number): void;
   zoom(factor: number): void;
   reset(): void;
+  resetAt(x: number, y: number): void;
   dispose(): void;
 }
 
 export async function createWorkbenchScene(
   canvas: HTMLCanvasElement,
+  onMessage: (message: string) => void,
 ): Promise<WorkbenchScene> {
   const atlas = await new TextureLoader().loadAsync(workbenchTexture);
   atlas.colorSpace = SRGBColorSpace;
@@ -59,10 +64,9 @@ export async function createWorkbenchScene(
   const restingPosition = orbit.position.clone();
   const direction = new Vector3();
   const initialDistance = orbit.position.distanceTo(controls.target);
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   controls.enablePan = false;
-  controls.enableDamping = !window.matchMedia?.(
-    "(prefers-reduced-motion: reduce)",
-  ).matches;
+  controls.enableDamping = !reducedMotion.matches;
   controls.dampingFactor = 0.12;
   controls.rotateSpeed = 0.65;
   controls.zoomSpeed = 0.75;
@@ -77,22 +81,48 @@ export async function createWorkbenchScene(
   controls.maxAzimuthAngle = Infinity;
   controls.update();
   controls.saveState();
-  let model: ReturnType<typeof buildWorkbenchModel>;
-  try {
-    model = buildWorkbenchModel(atlas);
-  } catch (error) {
-    controls.dispose();
-    atlas.dispose();
-    renderer.dispose();
-    renderer.forceContextLoss();
-    throw error;
-  }
-  scene.add(model.group);
-
   let frame: number | undefined;
   let disposed = false;
+  let dirty = true;
+  const { model, interactions, input } = assembleScene();
+
+  function assembleScene() {
+    let model: ReturnType<typeof buildWorkbenchModel> | undefined;
+    let interactions:
+      | ReturnType<typeof createWorkbenchInteractions>
+      | undefined;
+    try {
+      const workbench = buildWorkbenchModel(atlas);
+      model = workbench;
+      scene.add(workbench.group);
+      interactions = createWorkbenchInteractions(
+        workbench,
+        (device) => createScreenDrawing(device, workbench, renderer),
+        reducedMotion,
+        onMessage,
+        requestRender,
+      );
+      const input = createWorkbenchInput(
+        canvas,
+        camera,
+        model.group,
+        interactions,
+        requestFrame,
+      );
+      return { model, interactions, input };
+    } catch (error) {
+      interactions?.dispose();
+      model?.dispose();
+      controls.dispose();
+      atlas.dispose();
+      renderer.dispose();
+      renderer.forceContextLoss();
+      throw error;
+    }
+  }
   let renderWidth = 0,
     renderHeight = 0;
+  let lastTime: number | undefined;
   let lastAzimuth = controls.getAzimuthalAngle();
   let travelled = 0;
   const initialPolar = controls.getPolarAngle();
@@ -117,9 +147,16 @@ export async function createWorkbenchScene(
     canvas.dataset["cameraY"] = String(camera.position.y);
     canvas.dataset["cameraZ"] = String(camera.position.z);
   }
-  function render() {
+  function render(now = performance.now()) {
     frame = undefined;
     if (disposed) return;
+    const repaint = dirty;
+    dirty = false;
+    const dt =
+      lastTime === undefined
+        ? 1 / 60
+        : MathUtils.clamp((now - lastTime) / 1000, 1 / 120, 0.03);
+    lastTime = now;
     const moving = controls.update();
     direction.copy(orbit.position).sub(controls.target);
     const zoom = initialDistance / direction.length();
@@ -131,17 +168,29 @@ export async function createWorkbenchScene(
       camera.zoom = zoom;
       camera.updateProjectionMatrix();
     }
+    camera.updateMatrixWorld();
+    const dragging = canvas.dataset["dragging"] === "true";
+    input.updateHover(moving || dragging);
+    const animating = interactions.tick(now, dt);
+    if (!repaint && !moving && !animating) return;
     renderer.render(scene, camera);
     // Both layers change in the same paint, after the new camera frame exists.
-    if (orbit.position.distanceToSquared(restingPosition) > 1e-10)
+    if (
+      orbit.position.distanceToSquared(restingPosition) > 1e-10 ||
+      animating ||
+      interactions.changedPose
+    )
       canvas.dataset["view"] = "model";
-    else if (!moving && canvas.dataset["dragging"] !== "true")
-      canvas.dataset["view"] = "drawing";
+    else if (!moving && !dragging) canvas.dataset["view"] = "drawing";
     metrics();
     canvas.dataset["triangles"] = String(renderer.info.render.triangles);
-    if (moving) requestRender();
+    if (moving || animating) requestRender();
   }
   function requestRender() {
+    dirty = true;
+    requestFrame();
+  }
+  function requestFrame() {
     if (!disposed && frame === undefined)
       frame = window.requestAnimationFrame(render);
   }
@@ -178,6 +227,20 @@ export async function createWorkbenchScene(
     renderer.setSize(width, height, false);
     requestRender();
   }
+  function resetView() {
+    controls.enableDamping = false;
+    controls.update();
+    controls.reset();
+    controls.enableDamping = !reducedMotion.matches;
+    travelled = 0;
+    lastAzimuth = controls.getAzimuthalAngle();
+    metrics();
+    requestRender();
+  }
+  function syncMotionPreference() {
+    controls.enableDamping = !reducedMotion.matches;
+    requestRender();
+  }
   function start() {
     canvas.dataset["dragging"] = "true";
     requestRender();
@@ -189,12 +252,16 @@ export async function createWorkbenchScene(
   controls.addEventListener("change", changed);
   controls.addEventListener("start", start);
   controls.addEventListener("end", end);
+  reducedMotion.addEventListener("change", syncMotionPreference);
   const observer = new ResizeObserver(resize);
   observer.observe(canvas);
   function dispose() {
     disposed = true;
     if (frame !== undefined) window.cancelAnimationFrame(frame);
     observer.disconnect();
+    reducedMotion.removeEventListener("change", syncMotionPreference);
+    input.dispose();
+    interactions.dispose();
     controls.dispose();
     model.dispose();
     atlas.dispose();
@@ -238,16 +305,9 @@ export async function createWorkbenchScene(
       controls.update();
       changed();
     },
-    reset() {
-      const damping = controls.enableDamping;
-      controls.enableDamping = false;
-      controls.update();
-      controls.reset();
-      controls.enableDamping = damping;
-      travelled = 0;
-      lastAzimuth = controls.getAzimuthalAngle();
-      metrics();
-      requestRender();
+    reset: resetView,
+    resetAt(x, y) {
+      if (!input.hitPart(x, y)) resetView();
     },
     dispose,
   };

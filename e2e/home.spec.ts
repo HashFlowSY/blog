@@ -11,6 +11,27 @@ import {
   waitForWorkbenchModel,
 } from "./helpers/workbench";
 
+import type { Locator, Page } from "@playwright/test";
+
+async function clickArtworkPoint(
+  page: Page,
+  workbench: Locator,
+  point: readonly [number, number],
+) {
+  const { x, y } = await workbench
+    .locator("svg")
+    .first()
+    .evaluate((drawing, [x, y]) => {
+      if (!(drawing instanceof SVGSVGElement))
+        throw new Error("Missing workbench drawing");
+      const screen = new DOMPoint(x, y).matrixTransform(
+        drawing.getScreenCTM()!,
+      );
+      return { x: screen.x, y: screen.y };
+    }, point);
+  await page.mouse.click(x, y);
+}
+
 test.describe("Home page", () => {
   test("redraws on entry, return, back and refresh without progress or replay controls", async ({
     page,
@@ -123,7 +144,7 @@ test.describe("Home page", () => {
     }
   });
 
-  test("provides the completed interactive artwork immediately for reduced motion", async ({
+  test("opens and closes a drawer from its front with reduced motion", async ({
     page,
   }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
@@ -133,8 +154,63 @@ test.describe("Home page", () => {
     await expect(
       workbench.locator('[data-construction-layer="pencil"]'),
     ).not.toBeVisible();
-    await waitForWorkbenchModel(workbench);
-    await expect(workbench.getByRole("button")).toHaveCount(0);
+    const view = await waitForWorkbenchModel(workbench);
+    const canvas = view.locator("canvas");
+
+    await view.scrollIntoViewIfNeeded();
+    const yellowFace = [1108, 793] as const;
+    await clickArtworkPoint(page, workbench, yellowFace);
+    await expect(
+      workbench.getByText("拉出黄色抽屉", { exact: true }),
+    ).toBeAttached();
+    await expect(canvas).toHaveAttribute("data-view", "model");
+
+    await view.press("Home");
+    await expect(canvas).toHaveAttribute("data-view", "model");
+    await clickArtworkPoint(page, workbench, yellowFace);
+    await expect(
+      workbench.getByText("合上黄色抽屉", { exact: true }),
+    ).toBeAttached();
+    await expect(canvas).toHaveAttribute("data-view", "drawing");
+  });
+
+  test("redraws the two computer screens in place after typing", async ({
+    page,
+  }) => {
+    const errors: string[] = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    await installDrawingClock(page);
+    await goToHome(page);
+    const workbench = page.getByRole("region", { name: "交互工作台" });
+    await drawTo(page, workbench, 100);
+    const view = await waitForWorkbenchModel(workbench);
+    const canvas = view.locator("canvas");
+    await view.scrollIntoViewIfNeeded();
+
+    for (const [screen, typing] of [
+      [[767, 458], "笔记本正在打字"],
+      [[1082, 435], "外接键盘正在打字"],
+    ] as const) {
+      await clickArtworkPoint(page, workbench, screen);
+      await page.clock.fastForward(600);
+      await expect(canvas).toHaveAttribute("data-view", "model");
+      await expect(workbench.getByText(typing, { exact: true })).toBeAttached();
+      const yaw = await canvas.getAttribute("data-yaw");
+      await page.clock.fastForward(1600);
+      await expect(
+        workbench.getByText("正在逐笔绘图", { exact: true }),
+      ).toBeAttached();
+      const partial = await view.screenshot();
+      await page.clock.fastForward(1200);
+      expect((await view.screenshot()).equals(partial)).toBe(false);
+      await page.clock.fastForward(1500);
+      await expect(
+        workbench.getByText("图纸绘制完成", { exact: true }),
+      ).toBeAttached();
+      await expect(canvas).toHaveAttribute("data-yaw", yaw!);
+      await expect(canvas).toHaveAttribute("data-view", "drawing");
+    }
+    expect(errors).toEqual([]);
   });
 
   test("renders a solid workbench and allows continuous 360-degree orbit, underside and zoom", async ({
@@ -262,7 +338,7 @@ test.describe("Home page", () => {
       Math.abs(Number(await canvas.getAttribute("data-yaw"))),
     ).toBeGreaterThan(360);
     await expect(view).toBeFocused();
-    await view.dblclick();
+    await view.dblclick({ position: { x: 12, y: 12 } });
     await page.clock.runFor(32);
     await expect(canvas).toHaveAttribute("data-yaw", "0");
     await expect(canvas).toHaveAttribute("data-zoom", "1");

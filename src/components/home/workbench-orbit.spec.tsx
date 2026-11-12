@@ -37,6 +37,7 @@ describe("WorkbenchOrbit", () => {
     expect(status).toHaveBeenCalledWith("ready");
     expect(engine.create).toHaveBeenCalledWith(
       container.querySelector("canvas"),
+      expect.any(Function),
     );
     expect(container.querySelector("img")).not.toBeInTheDocument();
   });
@@ -61,8 +62,7 @@ describe("WorkbenchOrbit", () => {
     fireEvent.keyDown(view, { key: "-" });
     expect(engine.zoom).toHaveBeenLastCalledWith(1 / 1.15);
     fireEvent.keyDown(view, { key: "Home" });
-    fireEvent.doubleClick(view);
-    expect(engine.reset).toHaveBeenCalledTimes(2);
+    expect(engine.reset).toHaveBeenCalledOnce();
   });
 
   it("disposes the GPU scene when navigating away", async () => {

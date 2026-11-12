@@ -105,6 +105,10 @@
   opacity: 1;
 }
 
+.modelCanvas[data-actionable="true"] {
+  cursor: pointer;
+}
+
 .modelCanvas[data-dragging="true"] {
   cursor: grabbing;
 }

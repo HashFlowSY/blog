@@ -23,6 +23,7 @@ import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.j
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 
 import { layoutWorkbenchAtlas } from "./workbench-atlas";
+import { drawerActions, viseScrewPitch } from "./workbench-parts";
 import {
   loftSurfaces,
   perforatedBoard,
@@ -35,9 +36,16 @@ import type {
   ArtworkQuad,
   ArtworkRegion,
   InkStroke,
+  SurfaceProjection,
   WorkbenchSurface,
 } from "./workbench-atlas";
 import type { WorkbenchFinish } from "./workbench-materials";
+import type {
+  WorkbenchDevice,
+  WorkbenchKeyContact,
+  WorkbenchMouseContact,
+  WorkbenchPart,
+} from "./workbench-parts";
 import type { ArtworkPoint } from "./workbench-view";
 import type { Texture } from "three";
 
@@ -81,14 +89,38 @@ function rectangle(
   ] as const;
 }
 
+interface PartSurface extends WorkbenchSurface {
+  part?: WorkbenchPart;
+  pivot?: Point;
+  key?: WorkbenchKeyContact;
+  mouse?: WorkbenchMouseContact;
+}
 export interface WorkbenchModel {
   group: Group;
+  parts: ReadonlyMap<WorkbenchPart, Group>;
+  keys: ReadonlyMap<WorkbenchPart, WorkbenchKeyContact>;
+  mouse: ReadonlyMap<WorkbenchPart, WorkbenchMouseContact>;
+  screens: ReadonlyMap<WorkbenchDevice, SurfaceProjection>;
+  rightEdge: readonly [Vector3, Vector3];
+  floorHeight: number;
   dispose(): void;
 }
 
 // The asset generator and the interactive view consume the same rigid solids.
 export function buildWorkbenchSurfaces() {
-  const surfaces: WorkbenchSurface[] = [];
+  const surfaces: PartSurface[] = [];
+  let part: WorkbenchPart | undefined;
+  let pivot: Point | undefined;
+  let mouseContact: WorkbenchMouseContact | undefined;
+  function selectPart(
+    next?: WorkbenchPart,
+    center?: Point,
+    contact?: WorkbenchMouseContact,
+  ) {
+    part = next;
+    pivot = center;
+    mouseContact = contact;
+  }
   let region: ArtworkRegion = "desk";
 
   function add(
@@ -97,6 +129,17 @@ export function buildWorkbenchSurfaces() {
     position: Point = origin,
     { rotation = origin, outline = true, ...details }: SurfaceOptions = {},
   ) {
+    let key: WorkbenchKeyContact | undefined;
+    if (part?.includes("-key-")) {
+      geometry.computeBoundingBox();
+      const size = geometry.boundingBox!.getSize(new Vector3());
+      key = {
+        center: [position[0], position[1] + size.y / 2, position[2]],
+        width: size.x,
+        depth: size.z,
+        yaw: rotation[1],
+      };
+    }
     const matrix = new Matrix4()
       .makeRotationFromEuler(new Euler(...rotation))
       .setPosition(...position);
@@ -107,6 +150,10 @@ export function buildWorkbenchSurfaces() {
       geometry: solid,
       finish,
       region,
+      ...(part && { part }),
+      ...(pivot && { pivot }),
+      ...(key && { key }),
+      ...(mouseContact && { mouse: mouseContact }),
       outline,
       ...details,
     });
@@ -678,11 +725,11 @@ export function buildWorkbenchSurfaces() {
     [cabinetX, cabinetY, cabinetRearZ + 0.037],
     { sourceInk: false },
   );
-  // The narrow drawer gaps open against a recessed inner frame.
+  // A recessed back keeps the drawer openings dark without blocking the trays.
   box(cabinetWidth - wall * 2, cabinetHeight - 0.12, 0.034, "dark", [
     cabinetX,
     cabinetY,
-    cabinetTopRight.z - 0.155,
+    cabinetRearZ + 0.36,
   ]);
   panel(
     [
@@ -742,6 +789,7 @@ export function buildWorkbenchSurfaces() {
     const width = drawerRight - drawerLeft;
     const height = front[0].y - front[3].y;
     const pullY = front[0].y - 0.143;
+    selectPart(drawerActions[i]!);
     const folds = loftSurfaces(
       (
         [
@@ -784,6 +832,37 @@ export function buildWorkbenchSurfaces() {
       outline: false,
     });
     drawerPull(centerX, pullY, drawerZ, 0.58, 0.067);
+    const trayWidth = width - 0.14;
+    const trayDepth = 1.12;
+    const trayHeight = height - 0.12;
+    const trayY = front[3].y + 0.055;
+    const trayZ = drawerZ - 0.078 - trayDepth / 2;
+    box(trayWidth, 0.036, trayDepth, "wood", [centerX, trayY, trayZ]);
+    box(trayWidth, trayHeight, 0.046, "wood", [
+      centerX,
+      trayY + trayHeight / 2,
+      trayZ - trayDepth / 2 + 0.023,
+    ]);
+    for (const side of [-1, 1]) {
+      box(0.046, trayHeight, trayDepth, "wood", [
+        centerX + side * (trayWidth / 2 - 0.023),
+        trayY + trayHeight / 2,
+        trayZ,
+      ]);
+      box(0.025, 0.04, trayDepth, "metal", [
+        centerX + side * (trayWidth / 2 + 0.005),
+        trayY + 0.023,
+        trayZ,
+      ]);
+    }
+    selectPart();
+    for (const side of [-1, 1]) {
+      box(0.038, 0.04, 1.45, "dark", [
+        centerX + side * (trayWidth / 2 + 0.037),
+        trayY + 0.023,
+        drawerZ - 0.89,
+      ]);
+    }
   });
   const sideX = cabinetTopRight.x + 0.019;
   for (const z of [cabinetRearZ + 0.092, cabinetTopRight.z - 0.092])
@@ -1011,6 +1090,7 @@ export function buildWorkbenchSurfaces() {
     for (const z of [-1.19, -0.75]) screw([x, shelfBottom - 0.008, z], false);
   }
   region = "boardHardware";
+  selectPart("lamp");
   const lamp = rectangle(
     pointsAt(
       [
@@ -1035,11 +1115,13 @@ export function buildWorkbenchSurfaces() {
     lamp[0].y - housingHeight / 2,
     -0.84,
   ]);
+  selectPart("lamp-diffuser");
   box(lampWidth - 0.16, diffuserHeight, 0.112, "paper", [
     lampX,
     lamp[3].y + diffuserHeight / 2,
     -0.805,
   ]);
+  selectPart("lamp");
   for (const x of [lamp[0].x + 0.24, lamp[1].x - 0.24])
     box(0.14, shelfBottom - lamp[0].y + 0.012, 0.11, "metal", [
       x,
@@ -1047,6 +1129,7 @@ export function buildWorkbenchSurfaces() {
       -0.83,
     ]);
 
+  selectPart();
   // Trace the drawn wrench heads and handles before giving them thickness.
   const wrenchProfile = [
     [-0.48, 0.012],
@@ -1115,7 +1198,9 @@ export function buildWorkbenchSurfaces() {
     [954, 337, 433, 15],
     [978, 338, 430, 16],
   ] as const) {
+    selectPart();
     pegHook(hookPoint(x, top + 13, -1.04));
+    selectPart(`wrench-${x}`, hookPoint(x, top + 13, -1.04));
     const outline = new Shape();
     for (const [i, [u, v]] of wrenchProfile.entries()) {
       const [px, py] = hookPoint(x + u * width, top + v * (bottom - top));
@@ -1137,7 +1222,9 @@ export function buildWorkbenchSurfaces() {
   }
   // Pliers, drivers and the hammer have working depth and separate metal jaws.
   for (const x of [738, 782]) {
+    selectPart();
     pegHook(hookPoint(x, 362, -1.045));
+    selectPart(`pliers-${x}`, hookPoint(x, 362, -1.045));
     for (const side of [-1, 1]) {
       tube(
         [
@@ -1170,7 +1257,9 @@ export function buildWorkbenchSurfaces() {
     [1293, 428, 57],
     [1317, 440, 53],
   ] as const) {
+    selectPart();
     pegHook(hookPoint(x, y - 7, -1.048));
+    selectPart(`driver-${x}`, hookPoint(x, y - 7, -1.048));
     const from = new Vector3(...hookPoint(x, y + height / 2));
     const to = new Vector3(...hookPoint(x, y - height / 2));
     const axis = to.clone().sub(from).normalize();
@@ -1205,7 +1294,9 @@ export function buildWorkbenchSurfaces() {
     [1065, 342, 16, 52],
     [1273, 350, 66, 132],
   ] as const) {
+    selectPart();
     pegHook(hookPoint(x, y - 1, -1.045));
+    selectPart(`hammer-${x}`, hookPoint(x, y - 1, -1.045));
     rod(hookPoint(x, y + 4), hookPoint(x, y + length), 0.022, "metal");
     rod(
       hookPoint(x - width / 2, y),
@@ -1220,6 +1311,7 @@ export function buildWorkbenchSurfaces() {
         Math.PI / 2,
       ]);
   }
+  selectPart();
   const binFront = rectangle(
     pointsAt(
       [
@@ -1470,6 +1562,7 @@ export function buildWorkbenchSurfaces() {
         depth + 0.09 * Math.sin(t! * Math.PI) - 0.042 * Math.abs(s!),
       ),
     );
+    selectPart(`leaf-${i}`, [pot.x, pot.y + 0.199, pot.z]);
     solid(
       face,
       face.map((point) => point.clone().setZ(point.z - 0.017)),
@@ -1492,6 +1585,7 @@ export function buildWorkbenchSurfaces() {
   });
 
   function keyboardKeys(
+    device: WorkbenchDevice,
     backLeft: Vector3,
     right: Vector3,
     width: number,
@@ -1524,9 +1618,14 @@ export function buildWorkbenchSurfaces() {
       at(width / 2, 0.004, depth / 2),
       rotation,
     );
+    let keyIndex = 0;
     for (const [row, keys] of rows.entries()) {
       let start = 0;
       for (const units of keys) {
+        selectPart(
+          row < 4 && keyIndex % 3 === 0 ? `${device}-key-${keyIndex}` : device,
+        );
+        keyIndex++;
         box(
           (units - 0.16) * column,
           0.018,
@@ -1541,6 +1640,7 @@ export function buildWorkbenchSurfaces() {
   }
 
   region = "laptop";
+  selectPart("laptop");
   // Both laptop shells use the same hinge, with constant width and thickness.
   const laptopTop = 3.21;
   const [frontRight, frontLeft] = pointsAt(
@@ -1639,6 +1739,7 @@ export function buildWorkbenchSurfaces() {
     );
   }
   keyboardKeys(
+    "laptop",
     hingeLeft
       .clone()
       .addScaledVector(laptopRight, laptopWidth * 0.085)
@@ -1721,6 +1822,7 @@ export function buildWorkbenchSurfaces() {
       ),
     ),
   );
+  selectPart("laptop-screen");
   add(lidProfile.end, "metal", origin, {
     projection: {
       corners: lid,
@@ -1732,6 +1834,7 @@ export function buildWorkbenchSurfaces() {
       ],
     },
   });
+  selectPart("laptop");
   add(lidProfile.start, "metal", origin, { sourceInk: false, outline: false });
   add(lidProfile.wall, "metal", origin, {
     sourceInk: false,
@@ -1768,6 +1871,7 @@ export function buildWorkbenchSurfaces() {
   }
 
   region = "display";
+  selectPart("display");
   // Fit all four screen corners with a single rigid plane.
   const displayWidth = 2.048658;
   const displayHeight = 1.171991;
@@ -1812,6 +1916,7 @@ export function buildWorkbenchSurfaces() {
       projection: { corners: displayCorners(0), pixels: displayPixels },
     },
   );
+  selectPart("display-screen");
   const screenDepth = -0.014;
   add(
     new BoxGeometry(screenWidth + 0.012, screenHeight + 0.012, 0.011),
@@ -1827,6 +1932,7 @@ export function buildWorkbenchSurfaces() {
     },
   );
 
+  selectPart();
   const baseHeight = 0.045;
   const baseTop = tabletopHeight + baseHeight;
   const baseCenter = new Vector3(1.472954, baseTop, -0.828561);
@@ -1897,6 +2003,7 @@ export function buildWorkbenchSurfaces() {
     })),
   );
 
+  selectPart("display");
   shapedSolid(
     (
       [
@@ -1961,6 +2068,7 @@ export function buildWorkbenchSurfaces() {
       { rotation: displayAngles, sourceInk: false, outline: false },
     );
 
+  selectPart();
   const stem = baseCenter.clone().addScaledVector(plateInward, 0.038);
   const mount = displayPoint(0, -0.188, -0.176);
   const stemTop = mount.y - 0.03;
@@ -2118,6 +2226,7 @@ export function buildWorkbenchSurfaces() {
   const keyboardCenter = keyboardFootprint[0]
     .clone()
     .lerp(keyboardFootprint[2], 0.5);
+  selectPart("display");
   box(
     keyboardWidth,
     0.038,
@@ -2127,6 +2236,7 @@ export function buildWorkbenchSurfaces() {
     [0, Math.atan2(-keyboardRight.z, keyboardRight.x), 0],
   );
   keyboardKeys(
+    "display",
     keyboardCenter
       .clone()
       .addScaledVector(keyboardRight, -keyboardWidth * 0.45)
@@ -2135,13 +2245,123 @@ export function buildWorkbenchSurfaces() {
     keyboardWidth * 0.9,
     keyboardDepth * 0.84,
   );
-  const mouse = artworkPoint([1132, 556], "y", 3.17);
-  add(
-    new SphereGeometry(1, 18, 12).scale(0.16, 0.069, 0.21),
-    "metal",
-    mouse.toArray(),
-    { rotation: [0, 0.2, 0], outline: false },
+  selectPart();
+  const mouse = artworkPoint([1132, 556], "y", 3.17).setY(tabletopHeight);
+  const mouseYaw = 0.19;
+  const mouseRight = new Vector3(Math.cos(mouseYaw), 0, -Math.sin(mouseYaw));
+  function mousePoint(x: number, y: number, z: number) {
+    return new Vector3(x, y, z).applyAxisAngle(up, mouseYaw).add(mouse);
+  }
+  function mouseShell(
+    sections: readonly (readonly [
+      height: number,
+      width: number,
+      depth: number,
+      radius: number,
+      offset: number,
+    ])[],
+    finish: Finish,
+  ) {
+    shapedSolid(
+      sections.map(([height, width, depth, radius, offset]) =>
+        roundedProfile(width, depth, radius, 5).map(({ x, y }) =>
+          mousePoint(x, height, y + offset),
+        ),
+      ),
+      finish,
+      { sourceInk: false },
+    );
+  }
+  mouseShell(
+    [
+      [0.006, 0.301, 0.407, 0.112, 0],
+      [0.015, 0.326, 0.443, 0.128, 0],
+      [0.038, 0.337, 0.45, 0.133, 0],
+      [0.053, 0.316, 0.424, 0.119, 0],
+    ],
+    "dark",
   );
+  mouseShell(
+    [
+      [0.048, 0.323, 0.209, 0.055, 0.113],
+      [0.073, 0.328, 0.207, 0.057, 0.113],
+      [0.107, 0.29, 0.188, 0.054, 0.104],
+      [0.127, 0.227, 0.145, 0.052, 0.088],
+      [0.133, 0.132, 0.089, 0.037, 0.078],
+      [0.137, 0.064, 0.048, 0.02, 0.074],
+      [0.138, 0.02, 0.017, 0.007, 0.073],
+    ],
+    "metal",
+  );
+  for (const z of [-0.149, 0.152])
+    box(0.17, 0.009, 0.042, "dark", mousePoint(0, 0.0045, z).toArray(), [
+      0,
+      mouseYaw,
+      0,
+    ]);
+  add(
+    new CylinderGeometry(0.036, 0.036, 0.027, 24).rotateZ(Math.PI / 2),
+    "dark",
+    mousePoint(0, 0.091, -0.105).toArray(),
+    { rotation: [0, mouseYaw, 0], sourceInk: false },
+  );
+  for (let i = 0; i < 16; i++) {
+    const angle = (i * Math.PI) / 8;
+    add(
+      new BoxGeometry(0.027, 0.0035, 0.006).rotateX(angle),
+      "metal",
+      mousePoint(
+        0,
+        0.091 + Math.cos(angle) * 0.036,
+        -0.105 + Math.sin(angle) * 0.036,
+      ).toArray(),
+      { rotation: [0, mouseYaw, 0], sourceInk: false, outline: false },
+    );
+  }
+  const buttonProfile = [
+    [0.016, 0.012],
+    [0.102, 0.011],
+    [0.14, -0.014],
+    [0.157, -0.046],
+    [0.154, -0.113],
+    [0.143, -0.163],
+    [0.122, -0.194],
+    [0.091, -0.211],
+    [0.056, -0.218],
+    [0.017, -0.211],
+  ] as const;
+  for (const [side, id] of [
+    [-1, "mouse-left"],
+    [1, "mouse-right"],
+  ] as const) {
+    const profile = buttonProfile.map(([x, z]) => new Vector2(x * side, z));
+    if (side === -1) profile.reverse();
+    const center = new Vector2(0.076 * side, -0.092);
+    const cap = profile.map((point) => point.clone().lerp(center, 0.065));
+    const top = cap.map(({ x, y: z }) =>
+      mousePoint(x, 0.079 + (z + 0.218) * 0.15, z),
+    );
+    selectPart(id, mousePoint(0, 0.085, 0.013).toArray(), {
+      outline: top.map((point) =>
+        point.clone().addScaledVector(up, 0.0017).toArray(),
+      ),
+      axis: mouseRight.toArray(),
+    });
+    shapedSolid(
+      [
+        profile.map(({ x, y: z }) =>
+          mousePoint(x, 0.055 + (z + 0.218) * 0.12, z),
+        ),
+        profile.map(({ x, y: z }) =>
+          mousePoint(x, 0.068 + (z + 0.218) * 0.15, z),
+        ),
+        top,
+      ],
+      "metal",
+      { sourceInk: false },
+    );
+  }
+  selectPart();
   const pencilFrom = artworkPoint([902, 550], "y", 3.16);
   const pencilTo = artworkPoint([977, 531], "y", 3.16);
   rod(pencilFrom.toArray(), pencilTo.toArray(), 0.024, "wood");
@@ -2262,6 +2482,7 @@ export function buildWorkbenchSurfaces() {
     ],
     0.42,
   );
+  selectPart("vise-slide");
   viseCasting(
     [
       [0.482, 0.352],
@@ -2286,6 +2507,7 @@ export function buildWorkbenchSurfaces() {
     [0.305, 1],
     [0.645, -1],
   ] as const) {
+    selectPart(facing === -1 ? "vise-slide" : undefined);
     box(0.552, 0.083, 0.172, "metal", viseAt(0, 0.716, z));
     add(
       new RoundedBoxGeometry(0.53, 0.067, 0.024, 1, 0.006),
@@ -2303,6 +2525,7 @@ export function buildWorkbenchSurfaces() {
     );
   }
 
+  selectPart("vise-stock");
   shapedSolid(
     (
       [
@@ -2311,8 +2534,8 @@ export function buildWorkbenchSurfaces() {
         [0.781, 0.215],
       ] as const
     ).map(([height, width]) =>
-      roundedProfile(width, 0.139, 0.009, 2).map(
-        ({ x, y: z }) => new Vector3(...viseAt(x + 0.105, height, z + 0.475)),
+      roundedProfile(width, 0.144, 0.009, 2).map(
+        ({ x, y: z }) => new Vector3(...viseAt(x + 0.245, height, z + 0.475)),
       ),
     ),
     "wood",
@@ -2320,8 +2543,8 @@ export function buildWorkbenchSurfaces() {
       sourceInk: false,
       strokes: [
         {
-          from: viseAt(0.119, 0.781, 0.417),
-          to: viseAt(0.124, 0.781, 0.533),
+          from: viseAt(0.259, 0.781, 0.417),
+          to: viseAt(0.264, 0.781, 0.533),
           width: 0.007,
           strength: 0.32,
         },
@@ -2331,19 +2554,40 @@ export function buildWorkbenchSurfaces() {
 
   const screwHeight = 0.371;
   const screwDirection: Point = [Math.PI / 2, 0, 0];
-  rod(
-    viseAt(0, screwHeight, 0.746),
-    viseAt(0, screwHeight, 1.077),
-    0.043,
+  selectPart("vise-handle", viseAt(0, screwHeight, 1.04));
+  cylinder(
+    0.038,
+    0.038,
+    0.69,
     "metal",
+    viseAt(0, screwHeight, 0.717),
+    screwDirection,
   );
-  for (let i = 0; i < 5; i++)
-    add(
-      new TorusGeometry(0.046, 0.006, 5, 16),
-      "metal",
-      viseAt(0, screwHeight, 0.842 + i * 0.022),
-      { outline: false },
-    );
+  const threadedLength = 0.638;
+  const threadSteps = Math.ceil((threadedLength / viseScrewPitch) * 18);
+  const viseThread = new CatmullRomCurve3(
+    Array.from({ length: threadSteps + 1 }, (_, i) => {
+      const depth = (i / threadSteps) * threadedLength;
+      const angle = (depth / viseScrewPitch) * Math.PI * 2;
+      return new Vector3(
+        ...viseAt(
+          0.039 * Math.cos(angle),
+          screwHeight + 0.039 * Math.sin(angle),
+          0.404 + depth,
+        ),
+      );
+    }),
+  );
+  add(
+    new TubeGeometry(viseThread, threadSteps, 0.0062, 6, false),
+    "metal",
+    origin,
+    {
+      outline: false,
+      sourceInk: false,
+      uvSize: [viseThread.getLength(), 0.0062 * Math.PI * 2],
+    },
+  );
   cylinder(
     0.083,
     0.086,
@@ -2361,6 +2605,7 @@ export function buildWorkbenchSurfaces() {
     screwDirection,
   );
   const handleDepth = 1.04;
+  selectPart("vise-grip");
   const handleEnds = [0.058, 0.485] as const;
   rod(
     viseAt(0, handleEnds[0], handleDepth),
@@ -2421,6 +2666,7 @@ export function buildWorkbenchSurfaces() {
       ).map(({ x, y: z }) => new Vector3(toolboxX + x, y, toolboxZ + z)),
     );
   }
+  selectPart("case-base");
   shapedSolid(
     caseRings([
       [toolboxBottom + 0.026, 0.062],
@@ -2428,6 +2674,8 @@ export function buildWorkbenchSurfaces() {
       [bodyTop - 0.051, 0.022],
       [bodyTop - 0.025, 0],
       [bodyTop, 0.007],
+      [bodyTop, 0.054],
+      [toolboxBottom + 0.07, 0.078],
     ]),
     "dark",
     {
@@ -2442,6 +2690,13 @@ export function buildWorkbenchSurfaces() {
       ],
     },
   );
+  box(0.046, 0.12, toolboxDepth - 0.18, "dark", [
+    toolboxX + 0.28,
+    toolboxBottom + 0.13,
+    toolboxZ,
+  ]);
+  const lidHinge: Point = [toolboxX, lidBottom - 0.007, toolboxRearZ - 0.039];
+  selectPart("case-lid", lidHinge);
   shapedSolid(
     caseRings([
       [bodyTop, 0.027],
@@ -2461,12 +2716,14 @@ export function buildWorkbenchSurfaces() {
     { sourceInk: false },
   );
   for (const z of [-toolboxDepth * 0.28, toolboxDepth * 0.27]) {
+    selectPart("case-lid", lidHinge);
     add(
       new RoundedBoxGeometry(toolboxWidth - 0.16, 0.023, 0.087, 1, 0.008),
       "metal",
       [toolboxX, toolboxTop + 0.005, toolboxZ + z],
       { sourceInk: false },
     );
+    selectPart("case-base");
     for (const x of [-toolboxWidth * 0.32, toolboxWidth * 0.32])
       add(
         new RoundedBoxGeometry(0.15, 0.039, 0.142, 1, 0.012),
@@ -2477,6 +2734,7 @@ export function buildWorkbenchSurfaces() {
   }
   for (const offset of [-0.5, 0.5]) {
     const x = toolboxX + offset;
+    selectPart("case-base");
     const pivot = lidBottom - 0.119;
     add(
       new BoxGeometry(0.124, 0.167, 0.043),
@@ -2484,18 +2742,21 @@ export function buildWorkbenchSurfaces() {
       [x, pivot + 0.01, toolboxFrontZ + 0.002],
       { sourceInk: false },
     );
+    selectPart("case-lid", lidHinge);
     add(
       new BoxGeometry(0.122, 0.049, 0.053),
       "metal",
       [x, lidBottom + 0.062, toolboxFrontZ + 0.017],
       { sourceInk: false },
     );
+    selectPart("case-base");
     add(
       new CylinderGeometry(0.023, 0.023, 0.143, 12),
       "metal",
       [x, pivot, toolboxFrontZ + 0.035],
       { rotation: [0, 0, Math.PI / 2], sourceInk: false },
     );
+    selectPart("case-latches", [toolboxX, pivot, toolboxFrontZ + 0.035]);
     tube(
       [
         [x - 0.044, pivot, toolboxFrontZ + 0.037],
@@ -2516,6 +2777,7 @@ export function buildWorkbenchSurfaces() {
       { sourceInk: false },
     );
   }
+  selectPart("case-base");
   const handleY = lidBottom - 0.084;
   const handleZ = toolboxFrontZ + 0.044;
   for (const offset of [-0.255, 0.255])
@@ -2540,10 +2802,16 @@ export function buildWorkbenchSurfaces() {
   );
   for (const x of [toolboxFront[0].x + 0.31, toolboxFront[1].x - 0.31]) {
     const z = toolboxRearZ - 0.017;
-    for (const y of [lidBottom - 0.056, lidBottom + 0.057])
+    for (const y of [lidBottom - 0.056, lidBottom + 0.057]) {
+      selectPart(
+        y > lidBottom ? "case-lid" : "case-base",
+        y > lidBottom ? lidHinge : undefined,
+      );
       add(new BoxGeometry(0.177, 0.08, 0.038), "metal", [x, y, z], {
         sourceInk: false,
       });
+    }
+    selectPart("case-base");
     for (const dx of [-0.061, 0, 0.061])
       add(
         new CylinderGeometry(0.026, 0.026, 0.05, 10),
@@ -2560,6 +2828,7 @@ export function buildWorkbenchSurfaces() {
   }
 
   region = "stool";
+  selectPart("stool");
   // A single beveled profile gives the seat the same finish around its rim.
   const [seatLeft, seatRight] = pointsAt(
     [
@@ -2686,33 +2955,102 @@ export function buildWorkbenchModel(atlas: Texture): WorkbenchModel {
   const surfaces = buildWorkbenchSurfaces();
   const group = new Group();
   group.name = "handcrafted-workbench";
-  function dispose() {
-    for (const child of group.children) {
-      if (!(child instanceof Mesh) || Array.isArray(child.material)) continue;
-      child.geometry.dispose();
-      child.material.dispose();
-    }
+  const parts = new Map<WorkbenchPart, Group>();
+  const keys = new Map<WorkbenchPart, WorkbenchKeyContact>();
+  const mouse = new Map<WorkbenchPart, WorkbenchMouseContact>();
+  const screens = new Map<WorkbenchDevice, SurfaceProjection>();
+  const materials = new Set<MeshBasicMaterial>();
+
+  function makeMaterial(name: string) {
+    const material = new MeshBasicMaterial({ map: atlas, toneMapped: false });
+    material.name = name;
+    materials.add(material);
+    return material;
   }
+
+  function batch(geometries: BufferGeometry[], material: MeshBasicMaterial) {
+    const geometry = mergeGeometries(geometries);
+    if (!geometry) throw new Error("Incompatible workbench geometry");
+    return new Mesh(geometry, material);
+  }
+
+  function dispose() {
+    group.traverse((child) => {
+      if (child instanceof Mesh) child.geometry.dispose();
+    });
+    materials.forEach((material) => material.dispose());
+  }
+
+  let floorHeight = Infinity;
+  let rightEdge: readonly [Vector3, Vector3] | undefined;
   try {
     layoutWorkbenchAtlas(surfaces);
-    const batches = new Map<WorkbenchFinish, BufferGeometry[]>();
-    for (const { finish, geometry } of surfaces) {
-      const batch = batches.get(finish) ?? [];
-      batch.push(geometry);
-      batches.set(finish, batch);
+    const fixed = new Map<WorkbenchFinish, BufferGeometry[]>();
+    const movable = new Map<WorkbenchPart, BufferGeometry[]>();
+    for (const surface of surfaces) {
+      const { finish, geometry, part, pivot, key, projection, region } =
+        surface;
+      if (region === "frame") {
+        geometry.computeBoundingBox();
+        floorHeight = Math.min(floorHeight, geometry.boundingBox!.min.y);
+      }
+      if (!rightEdge && region === "desk" && projection) {
+        rightEdge = [projection.corners[1]!, projection.corners[2]!];
+      }
+      if (!part) {
+        const geometries = fixed.get(finish) ?? [];
+        geometries.push(geometry);
+        fixed.set(finish, geometries);
+        continue;
+      }
+
+      let body = parts.get(part);
+      if (!body) {
+        body = new Group();
+        body.name = part;
+        parts.set(part, body);
+        group.add(body);
+      }
+      if (pivot && !body.pivot) body.pivot = new Vector3(...pivot);
+      if (key) keys.set(part, key);
+      if (surface.mouse) mouse.set(part, surface.mouse);
+      if (part === "laptop-screen" && projection)
+        screens.set("laptop", projection);
+      if (part === "display-screen" && projection)
+        screens.set("display", projection);
+      const geometries = movable.get(part) ?? [];
+      geometries.push(geometry);
+      movable.set(part, geometries);
     }
-    for (const [finish, geometries] of batches) {
-      const geometry = mergeGeometries(geometries);
-      if (!geometry) throw new Error("Incompatible workbench geometry");
-      const material = new MeshBasicMaterial({ map: atlas, toneMapped: false });
-      material.name = `graphite-${finish}`;
-      group.add(new Mesh(geometry, material));
+
+    for (const [finish, geometries] of fixed) {
+      group.add(batch(geometries, makeMaterial(`graphite-${finish}`)));
     }
+    const graphite = makeMaterial("graphite-parts");
+    for (const [part, geometries] of movable) {
+      const mesh = batch(
+        geometries,
+        part === "lamp-diffuser" ? makeMaterial("graphite-diffuser") : graphite,
+      );
+      mesh.userData["part"] = part;
+      parts.get(part)!.add(mesh);
+    }
+    if (!rightEdge || !Number.isFinite(floorHeight))
+      throw new Error("Missing workbench reference planes");
   } catch (error) {
     dispose();
     throw error;
   } finally {
     surfaces.forEach(({ geometry }) => geometry.dispose());
   }
-  return { group, dispose };
+  return {
+    group,
+    parts,
+    keys,
+    mouse,
+    screens,
+    rightEdge,
+    floorHeight,
+    dispose,
+  };
 }

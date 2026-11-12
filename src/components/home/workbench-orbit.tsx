@@ -27,6 +27,7 @@ export function WorkbenchOrbit({
   const canvas = useRef<HTMLCanvasElement>(null);
   const engine = useRef<WorkbenchScene | undefined>(undefined);
   const [status, setStatus] = useState<WorkbenchModelStatus>("loading");
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -35,7 +36,12 @@ export function WorkbenchOrbit({
       try {
         const sceneFactory = await preloadWorkbenchScene();
         if (cancelled || !canvas.current) return;
-        viewer = await sceneFactory.createWorkbenchScene(canvas.current);
+        viewer = await sceneFactory.createWorkbenchScene(
+          canvas.current,
+          (next) => {
+            if (!cancelled) setMessage(next);
+          },
+        );
         if (cancelled) {
           viewer.dispose();
           return;
@@ -105,7 +111,6 @@ export function WorkbenchOrbit({
       data-model-status={status}
       tabIndex={status === "ready" ? 0 : -1}
       onKeyDown={handleKey}
-      onDoubleClick={() => engine.current?.reset()}
       onPointerDown={(event) =>
         event.currentTarget.focus({ preventScroll: true })
       }
@@ -114,9 +119,15 @@ export function WorkbenchOrbit({
         ref={canvas}
         className={styles["modelCanvas"]}
         aria-hidden="true"
+        onDoubleClick={(event) =>
+          engine.current?.resetAt(event.clientX, event.clientY)
+        }
       />
       <span id={instructionsId} className={styles["srOnly"]}>
-        拖动可360度旋转，滚轮或双指缩放。方向键旋转，加号和减号缩放，Home键或双击复位。
+        拖动可360度旋转，滚轮或双指缩放。方向键旋转，加号和减号缩放，Home键或双击空白处复位视角。
+      </span>
+      <span className={styles["srOnly"]} role="status">
+        {message}
       </span>
     </div>
   );
