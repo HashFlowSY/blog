@@ -14,34 +14,28 @@ function returnToTop(target: HTMLElement | null) {
   });
 }
 
-export function ReadingBackToTop({ titleId }: { titleId: string }) {
+export function BackToTop({
+  targetId,
+  placement,
+}: {
+  targetId: string;
+  placement: "site" | "detail";
+}) {
+  const detail = placement === "detail";
   return (
     <button
-      className="detail-toolbar-control detail-back-to-top"
-      type="button"
-      onClick={() => returnToTop(document.getElementById(titleId))}
-    >
-      <span aria-hidden="true">↑</span> 回到顶部
-    </button>
-  );
-}
-
-export function BackToTop() {
-  return (
-    <button
-      className="back-to-top"
+      className={detail ? "reader-top" : "back-to-top"}
       type="button"
       aria-label="回到顶部"
-      onClick={() => {
-        const detail = document.querySelector(".content-detail-page");
-        returnToTop(
-          detail
-            ? detail.querySelector<HTMLElement>("h1")
-            : document.getElementById("content"),
-        );
-      }}
+      onClick={() => returnToTop(document.getElementById(targetId))}
     >
-      TOP
+      {detail ? (
+        <>
+          <span aria-hidden="true">↑</span> 回到顶部
+        </>
+      ) : (
+        "TOP"
+      )}
     </button>
   );
 }

@@ -1,23 +1,21 @@
 import fs from "fs";
 import path from "path";
 
-import matter from "gray-matter";
-
 import {
   validatePostContracts,
   validateProjectCaseContracts,
 } from "./content-contracts";
-import { renderMarkdown, renderPostMarkdown } from "./markdown";
-import { estimateReadingTime } from "./reading-time";
+import { compileMarkdownDocuments } from "./markdown/compile";
+import { readMarkdownSource } from "./markdown/frontmatter";
+import { BASE_PATH } from "./site";
 
 import type {
-  ContentContractInput,
   ContentValidationError,
-  PostFrontmatter,
-  ProjectCaseFrontmatter,
+  PublishedPostFrontmatter,
+  PublishedProjectCaseFrontmatter,
   ValidatedContentEntry,
 } from "./content-contracts";
-import type { RenderedMarkdown, RenderedPostMarkdown } from "./markdown";
+import type { CompiledDocument } from "./markdown/model";
 
 export interface Post {
   slug: string;
@@ -26,16 +24,31 @@ export interface Post {
   updated: string;
   tags: NonEmptyTags;
   summary: string;
-  renderedContent: RenderedPostMarkdown;
-  readingTime: number;
+  document: CompiledDocument;
 }
 
-export type PostMeta = Omit<Post, "renderedContent">;
-
 export type PostCardMeta = Pick<
-  PostMeta,
-  "slug" | "title" | "date" | "tags" | "summary" | "readingTime"
->;
+  Post,
+  "slug" | "title" | "date" | "tags" | "summary"
+> & { readingMinutes: number };
+
+export function postCardMeta({
+  slug,
+  title,
+  date,
+  tags,
+  summary,
+  document,
+}: Post): PostCardMeta {
+  return {
+    slug,
+    title,
+    date,
+    tags,
+    summary,
+    readingMinutes: document.readingStats.minutes,
+  };
+}
 
 export type NonEmptyTags = readonly [string, ...string[]];
 
@@ -53,10 +66,10 @@ export interface ProjectCase {
   result: string;
   evidence?: Readonly<{ label: string; url: string }>;
   featured: boolean;
-  renderedContent: RenderedMarkdown;
+  document: CompiledDocument;
 }
 
-export type ProjectCaseMeta = Omit<ProjectCase, "renderedContent">;
+export type ProjectCaseMeta = Omit<ProjectCase, "document">;
 
 export interface ContentCatalog {
   readonly posts: readonly Post[];
@@ -166,29 +179,24 @@ function discoverMarkdownFiles(directory: string): string[] {
 }
 
 interface ParsedFiles {
-  inputs: ContentContractInput[];
+  inputs: ReturnType<typeof readMarkdownSource>[];
   errors: ContentValidationError[];
 }
 
 function parseFiles(files: readonly string[], rootDir: string): ParsedFiles {
-  const inputs: ContentContractInput[] = [];
+  const inputs: ParsedFiles["inputs"] = [];
   const errors: ContentValidationError[] = [];
 
   for (const filePath of files) {
     const displayPath = path.relative(rootDir, filePath);
 
     try {
-      const parsed = matter(fs.readFileSync(filePath, "utf8"));
-      inputs.push({
-        filePath: displayPath,
-        frontmatter: parsed.data,
-        body: parsed.content,
-      });
-    } catch {
+      inputs.push(readMarkdownSource(displayPath, fs.readFileSync(filePath)));
+    } catch (error: unknown) {
       errors.push({
         filePath: displayPath,
         field: "frontmatter",
-        reason: "Invalid YAML frontmatter.",
+        reason: error instanceof Error ? error.message : String(error),
       });
     }
   }
@@ -196,10 +204,10 @@ function parseFiles(files: readonly string[], rootDir: string): ParsedFiles {
   return { inputs, errors };
 }
 
-function publishedEntries<TFrontmatter extends { draft: boolean }>(
-  entries: readonly ValidatedContentEntry<TFrontmatter>[],
-): ValidatedContentEntry<TFrontmatter>[] {
-  return entries.filter((entry) => entry.frontmatter.draft === false);
+function isPublished<TFrontmatter extends { draft: boolean }>(
+  entry: ValidatedContentEntry<TFrontmatter>,
+): entry is ValidatedContentEntry<Extract<TFrontmatter, { draft: false }>> {
+  return entry.frontmatter.draft === false;
 }
 
 function toNonEmptyTags(tags: readonly string[]): NonEmptyTags {
@@ -214,19 +222,10 @@ function toNonEmptyTags(tags: readonly string[]): NonEmptyTags {
   return [firstTag, ...remainingTags];
 }
 
-async function renderPost(
-  entry: ValidatedContentEntry<PostFrontmatter>,
-): Promise<Post> {
-  if (entry.frontmatter.draft) {
-    throw new Error("Cannot render a Draft as a published Post.");
-  }
-
-  const frontmatter = entry.frontmatter;
-  const renderedContent = await renderPostMarkdown(entry.body, {
-    filename: entry.filePath,
-    title: frontmatter.title,
-  });
-
+function createPost(
+  frontmatter: PublishedPostFrontmatter,
+  document: CompiledDocument,
+): Post {
   return {
     slug: frontmatter.slug,
     title: frontmatter.title,
@@ -234,24 +233,14 @@ async function renderPost(
     updated: frontmatter.updated ?? frontmatter.date,
     tags: toNonEmptyTags(frontmatter.tags),
     summary: frontmatter.summary,
-    renderedContent,
-    readingTime: estimateReadingTime(entry.body),
+    document,
   };
 }
 
-async function renderProjectCase(
-  entry: ValidatedContentEntry<ProjectCaseFrontmatter>,
-): Promise<ProjectCase> {
-  if (entry.frontmatter.draft) {
-    throw new Error("Cannot render a Draft as a published Project Case.");
-  }
-
-  const frontmatter = entry.frontmatter;
-  const renderedContent = await renderMarkdown(entry.body, {
-    filename: entry.filePath,
-    title: frontmatter.title,
-  });
-
+function createProjectCase(
+  frontmatter: PublishedProjectCaseFrontmatter,
+  document: CompiledDocument,
+): ProjectCase {
   return {
     slug: frontmatter.slug,
     title: frontmatter.title,
@@ -268,7 +257,7 @@ async function renderProjectCase(
       ? { evidence: Object.freeze({ ...frontmatter.evidence }) }
       : {}),
     featured: frontmatter.featured,
-    renderedContent,
+    document,
   };
 }
 
@@ -365,14 +354,39 @@ export async function buildContentCatalog(
     throw new ContentCatalogError(errors);
   }
 
-  const posts = await Promise.all(
-    publishedEntries(postValidation.entries).map(renderPost),
+  const publishedPosts = postValidation.entries.filter(isPublished);
+  const publishedCases = projectCaseValidation.entries.filter(isPublished);
+  const positions = new Map(
+    [...postParsing.inputs, ...projectCaseParsing.inputs].map(
+      ({ filePath, bodyLine }) => [filePath, bodyLine] as const,
+    ),
   );
-  const projectCases = await Promise.all(
-    publishedEntries(projectCaseValidation.entries).map(renderProjectCase),
+  const documents = await compileMarkdownDocuments(
+    [...publishedPosts, ...publishedCases].map(
+      ({ filePath, body, frontmatter }) => ({
+        filePath,
+        body,
+        title: frontmatter.title,
+        bodyLine: requireEntry(positions, filePath),
+      }),
+    ),
+    { basePath: BASE_PATH },
   );
+  return createCatalog(
+    publishedPosts.map(({ frontmatter, filePath }) =>
+      createPost(frontmatter, requireEntry(documents, filePath)),
+    ),
+    publishedCases.map(({ frontmatter, filePath }) =>
+      createProjectCase(frontmatter, requireEntry(documents, filePath)),
+    ),
+  );
+}
 
-  return createCatalog(posts, projectCases);
+function requireEntry<T>(entries: ReadonlyMap<string, T>, filePath: string): T {
+  const entry = entries.get(filePath);
+  if (entry === undefined)
+    throw new Error(`Missing content entry for ${filePath}.`);
+  return entry;
 }
 
 export function createContentCatalogReader(

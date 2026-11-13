@@ -6,9 +6,9 @@ export const dynamic = "force-static";
 
 export async function GET() {
   const { posts } = await getContentCatalog();
-  const index: PostSearchIndex = posts.map(({ slug, renderedContent }) => ({
+  const index: PostSearchIndex = posts.map(({ slug, document }) => ({
     slug,
-    blocks: renderedContent.textBlocks,
+    blocks: document.searchBlocks,
   }));
 
   return Response.json(index);

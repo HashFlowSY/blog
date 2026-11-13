@@ -22,7 +22,7 @@ export function SiteShell({ children }: SiteShellProps) {
         </main>
         <Footer />
       </div>
-      <BackToTop />
+      <BackToTop targetId="content" placement="site" />
       <RouteState />
     </>
   );

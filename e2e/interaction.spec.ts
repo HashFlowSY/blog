@@ -97,7 +97,7 @@ test.describe("Continuous browsing interactions", () => {
     await goToPost(page, STABLE_POST.slug);
     await expect(page.locator("#article-body")).toBeInViewport();
     const toggle = page.getByRole("button", { name: "目录", exact: true });
-    const toolbar = page.locator(".detail-toolbar");
+    const toolbar = page.getByRole("group", { name: "阅读工具" });
     const contents = page.getByRole("navigation", { name: "文章章节" });
     await expect(contents).toBeHidden();
     await toggle.click();
@@ -141,8 +141,10 @@ test.describe("Continuous browsing interactions", () => {
     );
     await expect(headingLink).toHaveAttribute("aria-current", "location");
     expect(await page.evaluate(() => window.scrollY)).toBe(readingPosition);
+    await headingLink.focus();
     await page.keyboard.press("Escape");
     await expect(contents).toBeHidden();
+    await expect(toggle).toBeFocused();
   });
 
   test("opens the checklist from the article and clears the anchor when returning to top", async ({
@@ -213,22 +215,27 @@ test.describe("Continuous browsing interactions", () => {
       await list.evaluate((element) => getComputedStyle(element).listStyleType),
     ).toBe("disc");
 
-    const progress = page.locator(".detail-toolbar");
-    const readProgress = () =>
-      progress.evaluate((element) =>
-        Number(element.style.getPropertyValue("--reading-progress")),
-      );
-    expect(await readProgress()).toBe(0);
+    const progress = page.getByRole("progressbar", { name: "正文阅读进度" });
+    await expect(progress).toHaveAttribute("aria-valuenow", "0");
     await body.evaluate((element) => {
       window.scrollBy(
         0,
         element.getBoundingClientRect().bottom - window.innerHeight + 2,
       );
     });
-    await expect.poll(readProgress).toBe(1);
+    await expect(progress).toHaveAttribute("aria-valuenow", "100");
     await page
       .getByRole("heading", { name: "最新文章" })
       .scrollIntoViewIfNeeded();
-    expect(await readProgress()).toBe(1);
+    await expect(progress).toHaveAttribute("aria-valuenow", "100");
+  });
+
+  test("marks a fully visible short article as read", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 1800 });
+    await goToPost(page, "2026-05-02");
+    await expect(page.locator("#article-body")).toBeInViewport({ ratio: 1 });
+    await expect(
+      page.getByRole("progressbar", { name: "正文阅读进度" }),
+    ).toHaveAttribute("aria-valuenow", "100");
   });
 });

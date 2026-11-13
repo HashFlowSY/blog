@@ -37,7 +37,9 @@ export function PostCard({
           <p className="content-card-meta">
             <time dateTime={post.date}>{post.date.replaceAll("-", ".")}</time>
             <span>{post.tags[0]}</span>
-            <span>{post.readingTime} 分钟</span>
+            {post.readingMinutes > 0 && (
+              <span>约 {post.readingMinutes} 分钟</span>
+            )}
           </p>
           <Title id={titleId}>{post.title}</Title>
           <p className="content-card-summary">{post.summary}</p>

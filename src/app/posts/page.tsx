@@ -1,6 +1,6 @@
 import { PostArchive } from "@/components/post/post-archive";
 import styles from "@/components/post/post-archive.module.css";
-import { getContentCatalog } from "@/lib/content-catalog";
+import { getContentCatalog, postCardMeta } from "@/lib/content-catalog";
 import { POST_SEARCH_INDEX_PATH } from "@/lib/post-search";
 import { assetPath, siteUrl } from "@/lib/site";
 
@@ -16,16 +16,6 @@ export const metadata: Metadata = {
 
 export default async function PostsPage() {
   const catalog = await getContentCatalog();
-  const posts = catalog.posts.map(
-    ({ slug, title, date, tags, summary, readingTime }) => ({
-      slug,
-      title,
-      date,
-      tags,
-      summary,
-      readingTime,
-    }),
-  );
 
   return (
     <section
@@ -40,7 +30,7 @@ export default async function PostsPage() {
 
         <section className="content-list-section" aria-label="文章列表">
           <PostArchive
-            posts={posts}
+            posts={catalog.posts.map(postCardMeta)}
             tags={catalog.tags}
             indexUrl={assetPath(POST_SEARCH_INDEX_PATH)}
           />

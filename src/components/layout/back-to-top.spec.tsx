@@ -7,7 +7,7 @@ function renderBackToTop() {
   return render(
     <>
       <main id="content" tabIndex={-1} />
-      <BackToTop />
+      <BackToTop targetId="content" placement="site" />
     </>,
   );
 }

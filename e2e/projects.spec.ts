@@ -77,6 +77,10 @@ test.describe("Projects", () => {
       name: `${STABLE_PROJECT.title}项目大图`,
     });
     await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole("button", { name: "关闭" })).toHaveCSS(
+      "min-height",
+      "44px",
+    );
     await dialog.getByRole("button", { name: "放大", exact: true }).click();
     expect(
       await dialog
@@ -85,6 +89,12 @@ test.describe("Projects", () => {
     ).toBe(true);
     await page.keyboard.press("Escape");
     await expect(dialog).toBeHidden();
+    await expect(preview).toBeFocused();
+    await preview.press("Enter");
+    await expect(
+      dialog.getByRole("button", { name: "放大", exact: true }),
+    ).toBeVisible();
+    await dialog.getByRole("button", { name: "关闭" }).click();
     await expect(preview).toBeFocused();
   });
 });

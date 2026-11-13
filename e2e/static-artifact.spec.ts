@@ -93,6 +93,33 @@ const stableDetailMetadata = {
   },
 } as const satisfies Record<"post" | "project", ExpectedDetailMetadata>;
 
+const publishedFragments = [
+  [
+    "/posts/2026-04-30/",
+    [
+      "术语表",
+      "anthropic-官方claude",
+      "openai-官方chatgpt",
+      "中转站",
+      "使用前的检查清单",
+    ],
+  ],
+  ["/posts/2026-05-02/", ["为什么要做", "基本流程", "遇到的主要问题", "复盘"]],
+  [
+    "/projects/personal-blog/",
+    [
+      "概述",
+      "内容管线",
+      "markdown-渲染与-xss-防护",
+      "cjk-阅读时间",
+      "文章推荐",
+      "中文单站与-seo",
+      "测试与-ci",
+      "设计取舍",
+    ],
+  ],
+] as const;
+
 async function expectCanonical(page: Page, pathname: string): Promise<void> {
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
     "href",
@@ -432,6 +459,18 @@ async function requestImage(page: Page, url: string): Promise<Response> {
 }
 
 test.describe("generated static artifact", () => {
+  test("opens every published Markdown heading from its fragment URL", async ({
+    page,
+  }) => {
+    for (const [path, fragments] of publishedFragments) {
+      for (const fragment of fragments) {
+        const id = `user-content-${fragment}`;
+        await page.goto(`${routePath(path)}#${encodeURIComponent(id)}`);
+        await expect(page.locator(`[id="${id}"]`)).toBeInViewport();
+      }
+    }
+  });
+
   test("serves representative pages and their critical resources from the configured base path", async ({
     page,
   }) => {

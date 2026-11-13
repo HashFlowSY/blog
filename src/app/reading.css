@@ -1,0 +1,435 @@
+html:has(.content-detail-page) {
+  --reader-height: 56px;
+  --reader-offset: var(--studio-header-height);
+  scroll-behavior: auto;
+  scroll-padding-block-start: calc(var(--reader-offset) + var(--reader-height));
+}
+
+body:has(.content-detail-page) .back-to-top {
+  display: none;
+}
+
+.reader-tools {
+  --reader-panel-top: calc(var(--reader-offset) + var(--reader-height));
+  --reader-view-bottom: 100dvh;
+  position: sticky;
+  z-index: 8;
+  top: var(--reader-offset);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--reader-height);
+  gap: 10px;
+  padding-inline: var(--content-gutter);
+  border-bottom: 1px solid var(--studio-line);
+  background: var(--studio-paper);
+}
+
+.reader-button,
+.reader-top {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  min-height: 44px;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--studio-ink);
+  font: 14px / 1.35 var(--font-body);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.reader-return,
+.reader-top {
+  border-color: var(--studio-line);
+  background: #fdfbf5;
+}
+
+.reader-button:hover,
+.reader-top:hover {
+  border-color: var(--studio-ink);
+  background: #f2eee1;
+}
+
+.reader-contents {
+  display: flex;
+  min-width: 0;
+  max-inline-size: min(55%, 500px);
+  align-items: center;
+  gap: 8px;
+  margin-inline-start: auto;
+}
+
+.reader-section-name {
+  overflow: hidden;
+  color: var(--studio-muted);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reader-chevron {
+  width: 6px;
+  height: 6px;
+  margin-inline: 2px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: translateY(-1.5px) rotate(45deg);
+}
+
+.reader-panel {
+  position: fixed;
+  inset: calc(var(--reader-panel-top) + 6px)
+    max(
+      var(--content-gutter),
+      calc((100vw - 1600px) / 2 + 48px + var(--content-gutter))
+    )
+    auto auto;
+  width: min(360px, calc(100% - var(--content-gutter) * 2));
+  max-height: min(
+    420px,
+    calc(var(--reader-view-bottom) - var(--reader-panel-top) - 24px)
+  );
+  margin: 0;
+  padding: 8px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--studio-line);
+  background: var(--studio-paper);
+  box-shadow: 0 10px 26px rgb(53 49 44 / 14%);
+}
+
+.reader-outline {
+  display: grid;
+  gap: 3px;
+}
+
+.reader-outline a {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  padding: 8px 12px;
+  color: var(--studio-ink);
+  font-size: 14px;
+  line-height: 1.5;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.reader-outline [data-depth="3"] {
+  padding-inline-start: 24px;
+}
+
+.reader-outline a:hover {
+  background: #f2eee1;
+}
+
+.reader-outline [aria-current="location"] {
+  background: #f3ebc4;
+  box-shadow: inset 2px 0 var(--studio-ink);
+}
+
+.reader-progress {
+  position: absolute;
+  inset: auto 0 0;
+  height: 2px;
+  background: #9c8b30;
+  transform-origin: left;
+  pointer-events: none;
+}
+
+.reader-top {
+  position: fixed;
+  right: clamp(16px, 4vw, 34px);
+  bottom: clamp(16px, 4vw, 34px);
+  z-index: 15;
+  visibility: hidden;
+  border-color: var(--studio-ink);
+  background: var(--studio-yellow);
+}
+
+body.is-scrolled .reader-top {
+  visibility: visible;
+}
+
+.content-detail-page h1:focus-visible,
+.markdown-body :focus-visible {
+  outline: 2px solid var(--studio-ink);
+  outline-offset: 4px;
+}
+
+.markdown-body {
+  min-width: 0;
+  color: #454944;
+  font-size: 17px;
+  line-height: 1.86;
+  overflow-wrap: anywhere;
+}
+
+.markdown-body :is(h1, h2, h3, h4, h5, h6) {
+  margin-block: 1.65em 0.65em;
+  color: #202326;
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.35;
+}
+
+.markdown-body > :first-child {
+  margin-block-start: 0;
+}
+
+.markdown-body h2 {
+  font-size: clamp(25px, 3.2vw, 32px);
+}
+
+.markdown-body h3 {
+  font-size: clamp(20px, 2.5vw, 25px);
+}
+
+.markdown-body [id] {
+  scroll-margin-block-start: 16px;
+}
+
+.markdown-body p,
+.markdown-body :is(ul, ol) {
+  margin-block: 0 1.25em;
+}
+
+.markdown-body :is(a, strong) {
+  color: #202326;
+}
+
+.markdown-body a {
+  text-decoration-line: underline;
+  text-decoration-color: #d1b900;
+  text-decoration-thickness: 2px;
+}
+
+.markdown-body img {
+  display: block;
+  max-inline-size: 100%;
+  block-size: auto;
+  margin: 1.6em auto;
+  border: 1px solid var(--studio-line);
+}
+
+.markdown-body :is(ul, ol) {
+  padding-inline-start: 1.5em;
+}
+
+.markdown-body ul {
+  list-style: disc;
+}
+
+.markdown-body ul ul {
+  list-style: circle;
+}
+
+.markdown-body ul ul ul {
+  list-style: square;
+}
+
+.markdown-body ol {
+  list-style-type: decimal;
+}
+
+.markdown-body li + li {
+  margin-block-start: 0.3em;
+}
+
+.markdown-body li > :is(ul, ol) {
+  margin-block: 0.3em 0;
+}
+
+.markdown-body li > p:last-child {
+  margin-block-end: 0;
+}
+
+.markdown-body .task-list-item {
+  position: relative;
+  list-style-type: none;
+}
+
+.markdown-body .task-list-item > input,
+.markdown-body .task-list-item > p:first-child > input:first-child {
+  position: absolute;
+  inset-block-start: 0.43em;
+  inset-inline-start: -1.35em;
+  width: 1em;
+  height: 1em;
+  margin: 0;
+  accent-color: #766723;
+}
+
+.markdown-body blockquote {
+  margin: 1.5em 0;
+  padding: 16px 20px;
+  border-inline-start: 4px solid #e0c600;
+  background: #fffce3;
+}
+
+.markdown-body blockquote > :last-child {
+  margin-block-end: 0;
+}
+
+.markdown-body hr {
+  margin-block: 1.8em;
+  border: 0;
+  border-block-start: 1px solid var(--studio-line);
+}
+
+.markdown-body :not(pre) > code {
+  padding: 0.15em 0.4em;
+  background: #ebe9e2;
+  color: #202326;
+}
+
+.markdown-table-scroll {
+  max-width: 100%;
+  margin-block: 1.6em;
+  overflow-x: auto;
+}
+
+.markdown-body table {
+  width: 100%;
+  min-inline-size: max-content;
+  border-collapse: collapse;
+  font-size: 0.92em;
+  line-height: 1.62;
+}
+
+.markdown-body :is(th, td) {
+  padding: 0.72em 0.86em;
+  border: 1px solid var(--studio-line);
+  text-align: start;
+  vertical-align: top;
+}
+
+.markdown-body th {
+  background: #f2ecd9;
+  color: var(--studio-ink);
+  font-weight: 800;
+}
+
+.markdown-body tr:nth-child(even) td {
+  background: rgb(53 49 44 / 3%);
+}
+
+.markdown-body .markdown-glossary {
+  min-inline-size: 0;
+  table-layout: fixed;
+  text-align: start;
+}
+
+.markdown-code {
+  margin: 1.5em 0;
+  border: 1px solid var(--studio-line);
+}
+
+.markdown-code-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-inline: 12px;
+  background: #f2ecd9;
+  color: var(--studio-ink);
+  font: 14px / 1.35 var(--font-mono);
+}
+
+.markdown-copy {
+  min-height: 44px;
+  padding: 6px 10px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.markdown-copy:hover {
+  text-decoration: underline;
+}
+
+.markdown-body pre {
+  max-inline-size: 100%;
+  margin: 0;
+  padding: 0.9em 1em;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  font: 0.9em / 1.65 var(--font-mono);
+  tab-size: 4;
+  white-space: pre;
+  overflow-wrap: normal;
+}
+
+.markdown-body pre > code {
+  display: block;
+  min-inline-size: max-content;
+  font: inherit;
+}
+
+.markdown-body pre .line {
+  display: inline-block;
+  min-inline-size: 100%;
+  min-block-size: 1lh;
+  vertical-align: top;
+}
+
+.markdown-body pre .highlighted {
+  background: #42382a;
+  box-shadow: -3px 0 #e9df8c;
+}
+
+.markdown-body .footnotes {
+  margin-block-start: 2.4em;
+  padding-block-start: 1em;
+  border-block-start: 1px solid var(--studio-line);
+  font-size: 0.9em;
+}
+
+.markdown-body .footnotes ol {
+  margin-block-end: 0;
+}
+
+.markdown-body [data-footnote-backref] {
+  margin-inline-start: 0.25em;
+}
+
+@media (max-width: 760px) {
+  html:has(.content-detail-page) {
+    --reader-offset: 0px;
+  }
+
+  body:has(.content-detail-page) .site-header {
+    position: relative;
+  }
+
+  .reader-panel {
+    right: var(--content-gutter);
+  }
+
+  .reader-top {
+    position: static;
+    display: flex;
+    width: max-content;
+    margin-block-start: 20px;
+    margin-inline-start: auto;
+    visibility: visible;
+  }
+
+  .markdown-glossary > thead > tr > th:first-child {
+    width: 32%;
+  }
+
+  .markdown-body .markdown-glossary :is(th, td) {
+    padding: 0.55em 0.5em;
+  }
+}
+
+@media (max-width: 479px) {
+  .reader-section-name {
+    display: none;
+  }
+}

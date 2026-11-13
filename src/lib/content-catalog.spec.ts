@@ -83,13 +83,9 @@ draft: false`;
 describe("Content Catalog", () => {
   it("exports only complete Published entry contracts", () => {
     type PostExposesCover = "cover" extends keyof Post ? true : false;
-    type PostExposesLegacyContent = "content" extends keyof Post ? true : false;
-    type PostRenderedContentIsOptional =
-      object extends Pick<Post, "renderedContent"> ? true : false;
+    type PostDocumentIsOptional =
+      object extends Pick<Post, "document"> ? true : false;
     type ProjectCaseCoverAllowsNull = null extends ProjectCase["cover"]
-      ? true
-      : false;
-    type ProjectCaseExposesLegacyContent = "content" extends keyof ProjectCase
       ? true
       : false;
     type ProjectCaseRoleIsOptional =
@@ -105,14 +101,10 @@ describe("Content Catalog", () => {
 
     // @ts-expect-error Published Posts never expose a cover field.
     const postExposesCover: PostExposesCover = true;
-    // @ts-expect-error Published Posts expose a structured rendered result instead of legacy HTML content.
-    const postExposesLegacyContent: PostExposesLegacyContent = true;
-    // @ts-expect-error Published Posts always have a structured rendered result.
-    const postRenderedContentIsOptional: PostRenderedContentIsOptional = true;
+    // @ts-expect-error Published Posts always have a compiled document.
+    const postDocumentIsOptional: PostDocumentIsOptional = true;
     // @ts-expect-error Published Project Case covers are always present.
     const projectCaseCoverAllowsNull: ProjectCaseCoverAllowsNull = true;
-    // @ts-expect-error Published Project Cases expose a structured rendered result instead of legacy HTML content.
-    const projectCaseExposesLegacyContent: ProjectCaseExposesLegacyContent = true;
     // @ts-expect-error Published Project Case roles are always present.
     const projectCaseRoleIsOptional: ProjectCaseRoleIsOptional = true;
     // @ts-expect-error Published Project Case durations are always present.
@@ -125,10 +117,8 @@ describe("Content Catalog", () => {
     const projectCaseTagsAllowEmpty: ProjectCaseTagsAllowEmpty = true;
 
     void postExposesCover;
-    void postExposesLegacyContent;
-    void postRenderedContentIsOptional;
+    void postDocumentIsOptional;
     void projectCaseCoverAllowsNull;
-    void projectCaseExposesLegacyContent;
     void projectCaseRoleIsOptional;
     void projectCaseDurationIsOptional;
     void projectCaseResultIsOptional;
@@ -252,56 +242,10 @@ draft: false`,
     const catalog = await getContentCatalog();
 
     expect(catalog.getPostBySlug("2026-04-30")?.slug).toBe("2026-04-30");
-  });
-
-  it("stores immutable structured Markdown results for Posts and Project Cases", async () => {
-    const rootDir = createFixtureRoot();
-    writePost(
-      rootDir,
-      "structured-post.md",
-      `title: "Structured Post"
-slug: "structured-post"
-date: "2026-05-04"
-tags: ["Catalog"]
-summary: "A structured Markdown result."
-draft: false`,
-      "# Structured Post\n\n## Post section",
+    expect(catalog.getPostBySlug("2026-05-02")?.slug).toBe("2026-05-02");
+    expect(catalog.getProjectCaseBySlug("personal-blog")?.slug).toBe(
+      "personal-blog",
     );
-    writeProjectCase(
-      rootDir,
-      "structured-project.md",
-      completeProjectFrontmatter,
-      "# Catalog Project\n\n## Project section",
-    );
-
-    const catalog = await buildContentCatalog({ rootDir });
-    const post = catalog.getPostBySlug("structured-post");
-    const projectCase = catalog.getProjectCaseBySlug("catalog-project");
-
-    expect(post).not.toBeNull();
-    expect(projectCase).not.toBeNull();
-    expect(post!.renderedContent).toMatchObject({
-      headings: [{ id: expect.any(String), level: 2, text: "Post section" }],
-    });
-    expect(post!.renderedContent.html).not.toContain("<h1");
-    expect(projectCase!.renderedContent).toMatchObject({
-      headings: [{ id: expect.any(String), level: 2, text: "Project section" }],
-    });
-    expect(projectCase!.renderedContent.html).not.toContain("<h1");
-    expect(Object.isFrozen(post!.renderedContent)).toBe(true);
-    expect(Object.isFrozen(post!.renderedContent.headings)).toBe(true);
-    expect(Object.isFrozen(post!.renderedContent.headings[0])).toBe(true);
-    expect(() => {
-      (
-        post!.renderedContent.headings as unknown as {
-          push: (heading: unknown) => void;
-        }
-      ).push({ id: "changed", level: 2, text: "Changed" });
-    }).toThrow();
-    expect(() => {
-      (post!.renderedContent.headings[0] as unknown as { text: string }).text =
-        "Changed";
-    }).toThrow();
   });
 
   it("reports malformed YAML and every strict field error together instead of returning a partial Catalog", async () => {
@@ -343,7 +287,9 @@ draft: false`,
         expect.objectContaining({
           filePath: "content/posts/zh-CN/malformed.md",
           field: "frontmatter",
-          reason: "Invalid YAML frontmatter.",
+          reason: expect.stringMatching(
+            /^line \d+, column \d+: Invalid YAML frontmatter\./,
+          ),
         }),
         expect.objectContaining({
           filePath: "content/posts/zh-CN/many-errors.md",
@@ -724,7 +670,7 @@ draft: false`,
       "- content/posts/zh-CN/a-schema-error.md [title]:",
     );
     expect(catalogError.message).toContain(
-      "- content/posts/zh-CN/z-yaml-error.md [frontmatter]: Invalid YAML frontmatter.",
+      "- content/posts/zh-CN/z-yaml-error.md [frontmatter]: line ",
     );
     expect(catalogError.message).not.toContain("ZodError");
   });

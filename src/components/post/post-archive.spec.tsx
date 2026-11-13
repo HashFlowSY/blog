@@ -18,7 +18,7 @@ const posts: PostCardMeta[] = [
     date: "2026-01-02",
     tags: ["手记"],
     summary: "第一篇摘要",
-    readingTime: 3,
+    readingMinutes: 3,
   },
   {
     slug: "second",
@@ -26,7 +26,7 @@ const posts: PostCardMeta[] = [
     date: "2026-02-03",
     tags: ["工程"],
     summary: "第二篇摘要",
-    readingTime: 5,
+    readingMinutes: 5,
   },
 ];
 

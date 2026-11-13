@@ -53,13 +53,13 @@ export function ProjectCover({ src, title }: ProjectCoverProps) {
           <div>
             <button
               type="button"
-              className="detail-toolbar-control"
+              className="case-preview-button"
               onClick={() => setExpanded(!expanded)}
             >
               {expanded ? "适应窗口" : "放大"}
             </button>
             <form method="dialog">
-              <button className="detail-toolbar-control" type="submit">
+              <button className="case-preview-button" type="submit">
                 关闭
               </button>
             </form>

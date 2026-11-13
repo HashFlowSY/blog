@@ -13,8 +13,8 @@ A Chinese personal portfolio built with Next.js 16. It presents real Project Cas
 - **Post Search** — Filter by topic and search published Posts by title, summary, tags, or body text. The browser loads `/search-index.json` on the first keyword search
 - **Post Reading Template** — Shared reading layout with section links and progress through the body
 - **SEO** — Sitemap, robots.txt, canonical URLs, noindex 404
-- **RSS Feed** — `/feed.xml` with autodiscovery
-- **Reading Time** — Word-count-based estimation on post cards and detail pages
+- **RSS Feed** — `/feed.xml`
+- **Reading Stats** — Visible prose counts and estimated time on post details; estimated time on post cards
 - **XSS Safe** — All Markdown HTML sanitized via rehype-sanitize
 - **CI/CD** — Auto-deploy on push to `main` via GitHub Actions
 
@@ -28,7 +28,7 @@ A Chinese personal portfolio built with Next.js 16. It presents real Project Cas
 | [Tailwind CSS 4](https://tailwindcss.com)             | Styling                               |
 | [Zod 4](https://zod.dev)                              | Frontmatter validation                |
 | [remark / rehype](https://github.com/remarkjs/remark) | Markdown processing pipeline          |
-| [highlight.js](https://highlightjs.org)               | Syntax highlighting                   |
+| [Shiki](https://shiki.style/)                         | Build-time syntax highlighting        |
 | [Vitest](https://vitest.dev)                          | Unit testing                          |
 | [Playwright](https://playwright.dev)                  | End-to-end testing                    |
 | [ESLint 9](https://eslint.org)                        | Linting (flat config)                 |
@@ -60,12 +60,13 @@ src/
 ├── components/
 │   ├── home/                 # Pencil drawing, construction timing and 3D workbench
 │   ├── layout/               # Header, footer, site shell, back-to-top
-│   ├── post/                 # Post archive, detail template, card, code block
+│   ├── markdown/             # Shared Markdown body, code frames and reading tools
+│   ├── post/                 # Post archive, detail and cards
 │   └── project/              # Project Case card, list
 └── lib/                      # Data layer, utilities
     ├── content-catalog.ts    # Atomic content discovery, validation, and queries
     ├── content-contracts.ts  # Strict Post and Project Case frontmatter contracts
-    ├── markdown.ts           # Structured Markdown rendering pipeline
+    ├── markdown/             # Frontmatter, document compilation and reading stats
     ├── site.ts               # Site URL config
     └── feed.ts               # RSS XML builder
 ```
@@ -309,9 +310,11 @@ Posts and Project Cases use safe static Markdown. Supported authoring features:
 - CommonMark headings, paragraphs, emphasis, links, blockquotes, ordered lists, unordered lists, inline code, and fenced code blocks
 - GitHub Flavored Markdown tables, task lists, strikethrough, footnotes, and autolink literals
 - Markdown images with sanitized `src`, `alt`, and `title`
-- Automatic heading anchors for `h1` through `h6`
-- Syntax highlighting for fenced code blocks
-- Line highlighting with fenced code metadata such as `{1,3-5}` after the language name
+- Automatic heading anchors for `h1` through `h6`; use `#heading-slug` for links within the same Markdown file. Use the published fragment for links to another page.
+- Use unprefixed root paths such as `/assets/figure.png` and `/posts/example/`; the compiler applies the deployment base path.
+- Code highlighting uses [Shiki's bundled language names and aliases](https://shiki.style/languages). Omit the language, or use `text`, `plaintext`, `txt`, or `plain` for plain text.
+- Add `{1,3-5}` after the language to highlight those lines. Unknown languages and invalid or out-of-range line numbers stop the build with a source location.
+- Reading stats count visible prose, including inline code and footnote text. Block code remains searchable and does not add reading time.
 
 Intentional exclusions:
 
@@ -353,8 +356,9 @@ Intentional exclusions:
 | `featured`    | Yes                                   | Explicit boolean controlling the home-page selection                      |
 | `draft`       | Yes                                   | Explicitly `false` for a published Project Case and `true` for a Draft    |
 
-Published Posts and Project Cases require a non-empty Markdown body. Both
-schemas reject unknown frontmatter fields.
+Use YAML 1.2 frontmatter enclosed by `---` lines at the start of the file.
+Duplicate keys and unknown fields are rejected. Published Posts and Project
+Cases require a non-empty Markdown body.
 
 ## Chinese-Only Routing
 

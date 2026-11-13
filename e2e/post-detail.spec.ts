@@ -28,6 +28,7 @@ test.describe("Post detail", () => {
       exact: true,
     });
     await page.getByRole("button", { name: "Codex", exact: true }).click();
+    expect(indexRequests).toBe(0);
     await search.fill("月抛站");
     await expect(page.getByText("没有找到匹配的文章")).toBeVisible();
     expect(indexRequests).toBe(1);

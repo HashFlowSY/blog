@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
 
-import { ReadingBackToTop } from "@/components/layout/back-to-top";
-import { DetailToolbar } from "@/components/layout/detail-toolbar";
-import { CodeBlockEnhancer } from "@/components/post/code-block";
+import { BackToTop } from "@/components/layout/back-to-top";
+import { DocumentBody } from "@/components/markdown/document-body";
+import { ReadingTools } from "@/components/markdown/reading-tools";
 import { ProjectCover } from "@/components/project/project-cover";
 import { getContentCatalog } from "@/lib/content-catalog";
 import { assetPath, SITE, siteUrl } from "@/lib/site";
@@ -45,11 +45,11 @@ export default async function ProjectDetailPage({ params }: Props) {
       aria-labelledby="project-title"
     >
       <div className="portfolio-shell">
-        <DetailToolbar
+        <ReadingTools
           bodyId="project-body"
           collection="projects"
           slug={projectCase.slug}
-          headings={projectCase.renderedContent.headings}
+          outline={projectCase.document.outline}
         />
 
         <div className="case-overview">
@@ -128,16 +128,8 @@ export default async function ProjectDetailPage({ params }: Props) {
         </div>
 
         <div className="content-reading-body content-reading-width">
-          <CodeBlockEnhancer>
-            <div
-              className="portfolio-prose prose"
-              id="project-body"
-              dangerouslySetInnerHTML={{
-                __html: projectCase.renderedContent.html,
-              }}
-            />
-          </CodeBlockEnhancer>
-          <ReadingBackToTop titleId="project-title" />
+          <DocumentBody id="project-body" tree={projectCase.document.tree} />
+          <BackToTop targetId="project-title" placement="detail" />
         </div>
 
         <section

@@ -11,7 +11,7 @@ function post(slug: string, fields: Partial<PostCardMeta> = {}): PostCardMeta {
     summary: "摘要",
     date: "2026-04-01",
     tags: ["工程"],
-    readingTime: 2,
+    readingMinutes: 2,
     ...fields,
   };
 }

@@ -545,13 +545,6 @@ body:has(.workbench-home, .portfolio-page) .back-to-top {
   background: transparent;
 }
 
-.portfolio-prose {
-  line-height: 2;
-}
-.portfolio-prose h2 {
-  font-weight: 600;
-  line-height: 1.5;
-}
 .portfolio-profile-card {
   background: #f2f2e9;
   border-color: var(--studio-line);

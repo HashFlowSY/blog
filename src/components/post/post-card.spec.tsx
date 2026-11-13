@@ -3,16 +3,15 @@ import { describe, expect, it } from "vitest";
 
 import { PostCard } from "./post-card";
 
-import type { PostMeta } from "@/lib/content-catalog";
+import type { PostCardMeta } from "@/lib/content-catalog";
 
-const basePost: PostMeta = {
+const basePost: PostCardMeta = {
   slug: "test-post",
   title: "Test Post",
   date: "2026-01-15",
-  updated: "2026-01-15",
   tags: ["typescript", "react"],
   summary: "A test summary",
-  readingTime: 5,
+  readingMinutes: 5,
 };
 
 describe("PostCard", () => {
@@ -24,7 +23,7 @@ describe("PostCard", () => {
       "2026-01-15",
     );
     expect(screen.getByText("typescript")).toBeInTheDocument();
-    expect(screen.getByText("5 分钟")).toBeInTheDocument();
+    expect(screen.getByText("约 5 分钟")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent(
       "Test Post",
     );

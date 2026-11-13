@@ -1,9 +1,6 @@
 import { notFound } from "next/navigation";
 
-import {
-  PostDetailTemplate,
-  selectRelatedReading,
-} from "@/components/post/post-detail-template";
+import { ArticleDetail } from "@/components/post/article-detail";
 import { getContentCatalog } from "@/lib/content-catalog";
 import { siteUrl } from "@/lib/site";
 
@@ -39,13 +36,5 @@ export default async function PostDetailPage({ params }: Props) {
   const post = catalog.getPostBySlug(slug);
   if (!post) notFound();
 
-  const relatedReading = selectRelatedReading(slug, catalog.posts.slice(), 3);
-
-  return (
-    <PostDetailTemplate
-      post={post}
-      relatedPosts={relatedReading.posts}
-      relatedTitle={relatedReading.title}
-    />
-  );
+  return <ArticleDetail post={post} posts={catalog.posts} />;
 }

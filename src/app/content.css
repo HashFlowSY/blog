@@ -2,15 +2,6 @@
   --content-gutter: clamp(24px, 5vw, 72px);
 }
 
-html:has(.content-detail-page) {
-  --detail-toolbar-height: 56px;
-  --detail-toolbar-sticky-top: var(--studio-header-height);
-  scroll-behavior: auto;
-  scroll-padding-block-start: calc(
-    var(--detail-toolbar-sticky-top) + var(--detail-toolbar-height)
-  );
-}
-
 .content-list-intro {
   padding: 38px var(--content-gutter) 26px;
   border-bottom: 1px solid var(--studio-line);
@@ -79,7 +70,7 @@ html:has(.content-detail-page) {
 }
 
 .portfolio-topic-row button,
-.detail-toolbar-control {
+.case-preview-button {
   display: inline-flex;
   min-height: 44px;
   align-items: center;
@@ -99,7 +90,7 @@ html:has(.content-detail-page) {
 }
 
 .portfolio-topic-row button:hover,
-.detail-toolbar-control:hover {
+.case-preview-button:hover {
   border-color: var(--studio-ink);
   background: #f2eee1;
 }
@@ -291,135 +282,6 @@ html:has(.content-detail-page) {
   overflow-wrap: anywhere;
 }
 
-.detail-toolbar {
-  --detail-toolbar-bottom: calc(
-    var(--studio-header-height) + var(--detail-toolbar-height)
-  );
-  --detail-viewport-bottom: 100dvh;
-  --reading-progress: 0;
-  position: sticky;
-  z-index: 8;
-  top: var(--detail-toolbar-sticky-top);
-  display: flex;
-  height: var(--detail-toolbar-height);
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding-inline: var(--content-gutter);
-  border-bottom: 1px solid var(--studio-line);
-  background: var(--studio-paper);
-}
-
-.detail-toolbar-control {
-  border-color: transparent;
-}
-
-.detail-contents-control {
-  display: flex;
-  min-width: 0;
-  max-inline-size: min(55%, 500px);
-  align-items: center;
-  gap: 8px;
-  margin-inline-start: auto;
-}
-
-.detail-contents-control > button {
-  flex: none;
-}
-
-.detail-current-section {
-  min-width: 0;
-  overflow: hidden;
-  color: var(--studio-muted);
-  font-size: 13px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.detail-contents-chevron {
-  display: grid;
-  width: 10px;
-  height: 10px;
-  flex: none;
-  place-items: center;
-}
-
-.detail-contents-chevron::before {
-  width: 6px;
-  height: 6px;
-  border-right: 1.5px solid currentColor;
-  border-bottom: 1.5px solid currentColor;
-  content: "";
-  transform: translateY(-1.5px) rotate(45deg);
-}
-
-.detail-toolbar > a {
-  flex: none;
-  border-color: var(--studio-line);
-  background: #fdfbf5;
-}
-
-.detail-toolbar .read-progress {
-  position: absolute;
-  inset: auto 0 0;
-  height: 2px;
-  background: #9c8b30;
-  transform: scaleX(var(--reading-progress));
-  transform-origin: left center;
-}
-
-.detail-contents {
-  position: fixed;
-  inset: calc(var(--detail-toolbar-bottom) + 6px)
-    max(
-      var(--content-gutter),
-      calc((100vw - 1600px) / 2 + 48px + var(--content-gutter))
-    )
-    auto auto;
-  width: min(360px, calc(100% - var(--content-gutter) * 2));
-  max-height: min(
-    420px,
-    calc(var(--detail-viewport-bottom) - var(--detail-toolbar-bottom) - 24px)
-  );
-  margin: 0;
-  padding: 8px;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  border: 1px solid var(--studio-line);
-  background: var(--studio-paper);
-  box-shadow: 0 10px 26px rgb(53 49 44 / 14%);
-}
-
-.detail-contents-links {
-  display: grid;
-  gap: 3px;
-}
-
-.detail-contents-link {
-  display: flex;
-  min-height: 44px;
-  align-items: center;
-  padding: 8px 12px;
-  color: var(--studio-ink);
-  font-size: 14px;
-  line-height: 1.5;
-  text-decoration: none;
-  overflow-wrap: anywhere;
-}
-
-.detail-contents-link[data-depth="3"] {
-  padding-inline-start: 24px;
-}
-
-.detail-contents-link:hover {
-  background: #f2eee1;
-}
-
-.detail-contents-link[aria-current="location"] {
-  background: #f3ebc4;
-  box-shadow: inset 2px 0 var(--studio-ink);
-}
-
 .content-reading-width {
   width: min(800px, calc(100% - var(--content-gutter) * 2));
   margin-inline: auto;
@@ -462,41 +324,6 @@ html:has(.content-detail-page) {
 
 .content-reading-body {
   padding-block: 28px 48px;
-}
-
-.content-reading-body .portfolio-prose [id] {
-  scroll-margin-block-start: 16px;
-}
-
-.content-detail-page h1:focus-visible,
-.content-reading-body :is(h2, h3):focus-visible {
-  outline: 2px solid var(--studio-ink);
-  outline-offset: 4px;
-}
-
-.detail-back-to-top {
-  display: none;
-}
-
-.content-reading-body .portfolio-prose.prose h2 {
-  margin-block: 1.65em 0.65em;
-  font-size: clamp(25px, 3.2vw, 32px);
-  line-height: 1.35;
-}
-
-.content-reading-body .portfolio-prose.prose h3 {
-  margin-block: 1.4em 0.65em;
-  font-size: clamp(20px, 2.5vw, 25px);
-  line-height: 1.45;
-}
-
-.content-reading-body .portfolio-prose :is(table, th, td) {
-  border-color: var(--studio-line);
-}
-
-.content-reading-body .portfolio-prose th {
-  background: #f2ecd9;
-  color: var(--studio-ink);
 }
 
 .content-related {
@@ -668,18 +495,6 @@ html:has(.case-preview:modal) {
 }
 
 @media (max-width: 760px) {
-  html:has(.content-detail-page) {
-    --detail-toolbar-sticky-top: 0px;
-  }
-
-  body:has(.content-detail-page) .site-header {
-    position: relative;
-  }
-
-  body:has(.content-detail-page) .back-to-top {
-    display: none;
-  }
-
   .content-page {
     --content-gutter: 20px;
   }
@@ -712,26 +527,6 @@ html:has(.case-preview:modal) {
     font-size: 15px;
   }
 
-  .detail-contents {
-    right: var(--content-gutter);
-  }
-
-  .detail-back-to-top {
-    display: flex;
-    width: max-content;
-    margin-block-start: 20px;
-    margin-inline-start: auto;
-    border-color: var(--studio-line);
-  }
-
-  .content-reading-body .glossary-table > thead > tr > th:first-child {
-    width: 32%;
-  }
-
-  .content-reading-body .glossary-table :is(th, td) {
-    padding: 0.55em 0.5em;
-  }
-
   .portfolio-article-hero {
     padding-block: 22px 20px;
   }
@@ -755,19 +550,13 @@ html:has(.case-preview:modal) {
   }
 }
 
-@media (max-width: 479px) {
-  .detail-current-section {
-    display: none;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .content-page
     :is(
       .content-card-link,
       .content-card-action,
       .case-cover-caption,
-      .detail-toolbar-control,
+      .case-preview-button,
       .portfolio-topic-row button
     ) {
     transition: none;
