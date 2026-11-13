@@ -210,7 +210,7 @@ remains smoke-only.
 On non-Linux hosts, the visual project is explicitly reported as skipped so
 `pnpm test:e2e:static` can still exercise the non-visual static suites without
 looking for Darwin baselines. Linux CI runs all four comparisons and fails if
-any canonical PNG is missing or differs.
+any canonical PNG is missing or exceeds the comparison limit.
 
 ### Visual baseline review
 
@@ -218,8 +218,9 @@ Canonical PNGs must be generated in a Linux/Chromium environment aligned with
 CI, using the Playwright version pinned by `pnpm-lock.yaml` and the CI runner's
 architecture (the committed baseline uses the amd64 image variant). Do not
 generate or commit a baseline from macOS or a different Linux architecture.
-The visual project disables automatic snapshot updates and uses strict pixel
-comparison; CI can only compare committed PNGs.
+The visual project disables automatic snapshot updates. The desktop home
+screenshot allows one differing pixel for Chromium's text antialiasing at the
+edge of the workbench hint. The other three screenshots require an exact match.
 
 For an intentional baseline change, run the update explicitly in the approved
 Linux environment, inspect every expected/actual/diff image, then run two

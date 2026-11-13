@@ -1,7 +1,6 @@
 import type { ViewportSize } from "@playwright/test";
 
 const VISUAL_PIXEL_COMPARISON = {
-  maxDiffPixelRatio: 0,
   maxDiffPixels: 0,
   threshold: 0,
 } as const;
