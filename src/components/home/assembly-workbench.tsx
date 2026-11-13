@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { preload } from "react-dom";
 
 import styles from "./assembly-workbench.module.css";
@@ -10,6 +10,7 @@ import { preloadWorkbenchScene, WorkbenchOrbit } from "./workbench-orbit";
 import { workbenchTexture } from "./workbench-textures";
 
 import type { WorkbenchModelStatus } from "./workbench-orbit";
+import type { KeyboardEvent } from "react";
 
 function prefersReducedMotion(): boolean {
   return (
@@ -79,8 +80,11 @@ export function AssemblyWorkbench() {
     useState<WorkbenchModelStatus>("loading");
   const [playback, setPlayback] = useState({ playing: true });
   const [hasEnteredView, setHasEnteredView] = useState(false);
+  const [touchActive, setTouchActive] = useState(false);
   const isPlaying = playback.playing;
+  const sceneId = useId();
   const sceneRef = useRef<HTMLDivElement>(null);
+  const touchButton = useRef<HTMLButtonElement>(null);
   const progressRef = useRef(0);
   const complete = progress >= 100;
   const finishing = progress >= 82;
@@ -154,7 +158,10 @@ export function AssemblyWorkbench() {
       setProgress(next);
       setPlayback({ playing: next < 100 });
       setHasEnteredView(false);
-      if (next === 0) setModelStatus("loading");
+      if (next === 0) {
+        setModelStatus("loading");
+        setTouchActive(false);
+      }
       watchScene(scene);
     };
     watchScene(scene);
@@ -167,14 +174,42 @@ export function AssemblyWorkbench() {
     };
   }, []);
 
+  function exitTouchMode(event: KeyboardEvent<HTMLElement>) {
+    if (!touchActive || event.key !== "Escape" || event.defaultPrevented)
+      return;
+    event.preventDefault();
+    setTouchActive(false);
+    touchButton.current?.focus();
+  }
+
   return (
-    <section className={styles["workbench"]} aria-labelledby="assembly-title">
+    <section
+      className={styles["workbench"]}
+      aria-labelledby="assembly-title"
+      data-touch-active={touchActive}
+      onKeyDown={exitTouchMode}
+    >
       <div className={styles["heading"]}>
         <h2 id="assembly-title">交互工作台</h2>
         {complete ? (
-          <span className={styles["viewMode"]} aria-hidden="true">
-            {modelReady ? "360°" : modelStatus === "failed" ? "手绘" : "…"}
-          </span>
+          modelReady ? (
+            <>
+              <p className={styles["desktopHint"]}>试试交互</p>
+              <button
+                ref={touchButton}
+                className={styles["touchMode"]}
+                type="button"
+                aria-controls={sceneId}
+                onClick={() => setTouchActive((active) => !active)}
+              >
+                {touchActive ? "退出操作" : "操作工作台"}
+              </button>
+            </>
+          ) : (
+            <span className={styles["viewMode"]} aria-hidden="true">
+              {modelStatus === "failed" ? "手绘" : "…"}
+            </span>
+          )
         ) : hasEnteredView ? (
           <button
             className={styles["buildButton"]}
@@ -189,6 +224,7 @@ export function AssemblyWorkbench() {
         ) : null}
       </div>
       <div
+        id={sceneId}
         ref={sceneRef}
         className={styles["scene"]}
         data-complete={complete}
@@ -211,12 +247,14 @@ export function AssemblyWorkbench() {
         >
           <WorkbenchDrawing progress={progress} />
         </div>
-        {complete && <WorkbenchOrbit onStatus={setModelStatus} />}
+        {complete && (
+          <WorkbenchOrbit onStatus={setModelStatus} touchActive={touchActive} />
+        )}
       </div>
       <span className={styles["srOnly"]} role="status">
         {complete
           ? modelReady
-            ? "工作台绘制完成，可以360度旋转查看"
+            ? "工作台绘制完成，可以旋转查看"
             : modelStatus === "failed"
               ? "已保留手绘工作台，当前设备无法启用三维视图"
               : "手绘完成，正在准备三维工作台"

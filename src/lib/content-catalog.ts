@@ -7,7 +7,7 @@ import {
   validatePostContracts,
   validateProjectCaseContracts,
 } from "./content-contracts";
-import { renderMarkdown } from "./markdown";
+import { renderMarkdown, renderPostMarkdown } from "./markdown";
 import { estimateReadingTime } from "./reading-time";
 
 import type {
@@ -17,7 +17,7 @@ import type {
   ProjectCaseFrontmatter,
   ValidatedContentEntry,
 } from "./content-contracts";
-import type { RenderedMarkdown } from "./markdown";
+import type { RenderedMarkdown, RenderedPostMarkdown } from "./markdown";
 
 export interface Post {
   slug: string;
@@ -26,11 +26,16 @@ export interface Post {
   updated: string;
   tags: NonEmptyTags;
   summary: string;
-  renderedContent: RenderedMarkdown;
+  renderedContent: RenderedPostMarkdown;
   readingTime: number;
 }
 
 export type PostMeta = Omit<Post, "renderedContent">;
+
+export type PostCardMeta = Pick<
+  PostMeta,
+  "slug" | "title" | "date" | "tags" | "summary" | "readingTime"
+>;
 
 export type NonEmptyTags = readonly [string, ...string[]];
 
@@ -46,6 +51,7 @@ export interface ProjectCase {
   role: string;
   duration: string;
   result: string;
+  evidence?: Readonly<{ label: string; url: string }>;
   featured: boolean;
   renderedContent: RenderedMarkdown;
 }
@@ -216,7 +222,7 @@ async function renderPost(
   }
 
   const frontmatter = entry.frontmatter;
-  const renderedContent = await renderMarkdown(entry.body, {
+  const renderedContent = await renderPostMarkdown(entry.body, {
     filename: entry.filePath,
     title: frontmatter.title,
   });
@@ -258,6 +264,9 @@ async function renderProjectCase(
     role: frontmatter.role,
     duration: frontmatter.duration,
     result: frontmatter.result,
+    ...(frontmatter.evidence
+      ? { evidence: Object.freeze({ ...frontmatter.evidence }) }
+      : {}),
     featured: frontmatter.featured,
     renderedContent,
   };

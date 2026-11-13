@@ -45,7 +45,6 @@ test.describe("WebKit smoke", () => {
     await drawTo(page, workbench, 100);
     await waitForWorkbenchModel(workbench);
     await expect(workbench.getByRole("slider")).toHaveCount(0);
-    await expect(workbench.getByRole("button")).toHaveCount(0);
   });
 
   test("rotates the finished view and resets it when a refresh starts a fresh drawing", async ({
@@ -107,10 +106,11 @@ test.describe("WebKit smoke", () => {
   test("opens the article contents and project image preview", async ({
     page,
   }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.emulateMedia({ reducedMotion: "reduce" });
     await goToPost(page, STABLE_POST.slug);
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-      STABLE_POST.title,
-    );
+    const title = page.getByRole("heading", { level: 1 });
+    await expect(title).toHaveText(STABLE_POST.title);
     expect(new URL(page.url()).pathname).toMatch(
       new RegExp(`/posts/${STABLE_POST.slug}/$`),
     );
@@ -119,6 +119,36 @@ test.describe("WebKit smoke", () => {
     await expect(contents).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(contents).toBeHidden();
+
+    const checklist = page.getByRole("heading", {
+      name: "使用前的检查清单",
+    });
+    await page
+      .getByRole("link", { name: "直达使用前的检查清单" })
+      .press("Enter");
+    await expect(checklist).toBeFocused();
+    expect((await checklist.boundingBox())?.y ?? 0).toBeGreaterThan(56);
+    await expect(
+      page.locator("#article-body").getByRole("listitem"),
+    ).toHaveCount(5);
+    await page.getByRole("button", { name: "回到顶部" }).press("Enter");
+    await expect(title).toBeFocused();
+    expect(new URL(page.url()).hash).toBe("");
+
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await goToPost(page, STABLE_POST.slug);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+    const floatingTop = page.getByRole("button", { name: "回到顶部" });
+    await expect(floatingTop).toBeHidden();
+    await page
+      .getByRole("link", { name: "直达使用前的检查清单" })
+      .press("Enter");
+    await expect(floatingTop).toBeVisible();
+    await floatingTop.press("Enter");
+    await expect(title).toBeFocused();
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+    await expect(floatingTop).toBeHidden();
 
     await goToProject(page, STABLE_PROJECT.slug);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(

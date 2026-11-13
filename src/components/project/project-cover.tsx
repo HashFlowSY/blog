@@ -10,6 +10,7 @@ interface ProjectCoverProps {
 
 export function ProjectCover({ src, title }: ProjectCoverProps) {
   const preview = useRef<HTMLDialogElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
   const [expanded, setExpanded] = useState(false);
   const alt = `${title}项目界面预览`;
 
@@ -17,6 +18,7 @@ export function ProjectCover({ src, title }: ProjectCoverProps) {
     <>
       <figure className="portfolio-case-cover">
         <button
+          ref={trigger}
           type="button"
           className="case-cover-trigger"
           aria-haspopup="dialog"
@@ -41,7 +43,10 @@ export function ProjectCover({ src, title }: ProjectCoverProps) {
         ref={preview}
         className="case-preview"
         aria-label={`${title}项目大图`}
-        onClose={() => setExpanded(false)}
+        onClose={() => {
+          setExpanded(false);
+          trigger.current?.focus({ preventScroll: true });
+        }}
       >
         <div className="case-preview-toolbar">
           <span>{title}</span>

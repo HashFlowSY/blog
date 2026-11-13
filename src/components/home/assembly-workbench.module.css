@@ -14,6 +14,13 @@
   border-bottom: 1px solid var(--studio-line);
 }
 
+.workbench[data-touch-active="true"] .heading {
+  position: sticky;
+  z-index: 2;
+  top: var(--studio-header-height);
+  background: var(--studio-paper);
+}
+
 .heading h2 {
   margin: 0;
   color: var(--studio-ink);
@@ -23,6 +30,13 @@
   letter-spacing: 0;
   line-height: 1.6;
   text-transform: none;
+}
+
+.desktopHint {
+  margin: 0;
+  color: var(--studio-muted);
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .viewMode {
@@ -99,6 +113,11 @@
   height: 100%;
   opacity: 0;
   cursor: grab;
+  touch-action: pan-y pinch-zoom;
+}
+
+.workbench[data-touch-active="true"] .modelCanvas {
+  touch-action: none;
 }
 
 .orbit[data-model-status="ready"] .modelCanvas[data-view="model"] {
@@ -116,6 +135,30 @@
 .orbit:focus-visible {
   outline: 2px solid var(--studio-ink);
   outline-offset: -5px;
+}
+
+.touchMode {
+  display: none;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid var(--studio-line);
+  background: transparent;
+  color: var(--studio-ink);
+  font-family: var(--font-body);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.touchMode:hover,
+.workbench[data-touch-active="true"] .touchMode {
+  border-color: var(--studio-ink);
+  background: var(--studio-yellow);
+}
+
+.touchMode:focus-visible {
+  outline: 2px solid var(--studio-ink);
+  outline-offset: 2px;
 }
 
 .buildButton {
@@ -172,6 +215,15 @@
 
     aspect-ratio: 1.18;
     min-height: 272px;
+  }
+}
+
+@media (any-pointer: coarse) {
+  .desktopHint {
+    display: none;
+  }
+  .touchMode {
+    display: block;
   }
 }
 

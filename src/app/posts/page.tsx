@@ -1,6 +1,8 @@
 import { PostArchive } from "@/components/post/post-archive";
+import styles from "@/components/post/post-archive.module.css";
 import { getContentCatalog } from "@/lib/content-catalog";
-import { siteUrl } from "@/lib/site";
+import { POST_SEARCH_INDEX_PATH } from "@/lib/post-search";
+import { assetPath, siteUrl } from "@/lib/site";
 
 import type { Metadata } from "next";
 
@@ -14,12 +16,20 @@ export const metadata: Metadata = {
 
 export default async function PostsPage() {
   const catalog = await getContentCatalog();
-  const posts = catalog.posts.slice();
-  const tags = catalog.tags.slice();
+  const posts = catalog.posts.map(
+    ({ slug, title, date, tags, summary, readingTime }) => ({
+      slug,
+      title,
+      date,
+      tags,
+      summary,
+      readingTime,
+    }),
+  );
 
   return (
     <section
-      className="portfolio-page content-page"
+      className={`portfolio-page content-page ${styles["archive"]}`}
       aria-labelledby="articles-title"
     >
       <div className="portfolio-shell">
@@ -29,7 +39,11 @@ export default async function PostsPage() {
         </header>
 
         <section className="content-list-section" aria-label="文章列表">
-          <PostArchive posts={posts} tags={tags} />
+          <PostArchive
+            posts={posts}
+            tags={catalog.tags}
+            indexUrl={assetPath(POST_SEARCH_INDEX_PATH)}
+          />
         </section>
       </div>
     </section>

@@ -13,6 +13,8 @@ import type { ChildProcess } from "node:child_process";
 const fixtureSlug = "fixture-stability-check";
 const fixtureTitle = "隔离测试文章";
 const fixtureDescription = "用于证明新增合法文章不会改变无关页面行为。";
+const publishedSearchToken = "公开正文索引探针";
+const draftSearchToken = "私有草稿索引探针";
 
 const fixtureFile = `---
 title: "${fixtureTitle}"
@@ -23,7 +25,14 @@ summary: "${fixtureDescription}"
 draft: false
 ---
 
-这是一篇只存在于隔离测试 workspace 的合法文章。
+这是一篇只存在于隔离测试 workspace 的合法文章。测试词：${publishedSearchToken}。
+`;
+
+const draftFixtureFile = `---
+draft: true
+---
+
+${draftSearchToken}
 `;
 
 const workspaceEntries = [
@@ -84,6 +93,11 @@ async function createFixtureWorkspace(repositoryRoot: string): Promise<string> {
   await writeFile(
     path.join(workspace, "content/posts/zh-CN/fixture-stability-check.md"),
     fixtureFile,
+    "utf8",
+  );
+  await writeFile(
+    path.join(workspace, "content/posts/zh-CN/draft-search-check.md"),
+    draftFixtureFile,
     "utf8",
   );
 
@@ -200,6 +214,24 @@ test.describe("fixture independence", () => {
       });
       const serverOutput = collectProcessOutput(server);
       await waitForPreview(previewUrl, server, serverOutput.output);
+
+      const indexResponse = await fetch(`${previewUrl}search-index.json`);
+      expect(indexResponse.status).toBe(200);
+      expect(indexResponse.headers.get("content-type")).toMatch(
+        /application\/json/,
+      );
+      const index = await indexResponse.text();
+      expect(JSON.parse(index)).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            slug: fixtureSlug,
+            blocks: expect.arrayContaining([
+              expect.stringContaining(publishedSearchToken),
+            ]),
+          }),
+        ]),
+      );
+      expect(index).not.toContain(draftSearchToken);
 
       context = await browser.newContext();
       const page = await context.newPage();

@@ -1,47 +1,45 @@
 "use client";
 
-import { useEffect, useState } from "react";
+function returnToTop(target: HTMLElement | null) {
+  const { hash, pathname, search } = window.location;
+  if (hash) window.history.replaceState(null, "", pathname + search);
+
+  target?.focus({ preventScroll: true });
+
+  window.scrollTo({
+    top: 0,
+    behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      ? "instant"
+      : "smooth",
+  });
+}
+
+export function ReadingBackToTop({ titleId }: { titleId: string }) {
+  return (
+    <button
+      className="detail-toolbar-control detail-back-to-top"
+      type="button"
+      onClick={() => returnToTop(document.getElementById(titleId))}
+    >
+      <span aria-hidden="true">↑</span> 回到顶部
+    </button>
+  );
+}
 
 export function BackToTop() {
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    let ticking = false;
-
-    function syncVisibility() {
-      const compact =
-        window.matchMedia?.("(max-width: 760px)").matches ?? false;
-      setIsVisible(window.scrollY > (compact ? 72 : 96));
-      ticking = false;
-    }
-
-    function requestSync() {
-      if (ticking) return;
-      ticking = true;
-      window.requestAnimationFrame(syncVisibility);
-    }
-
-    syncVisibility();
-    window.addEventListener("scroll", requestSync, { passive: true });
-    return () => window.removeEventListener("scroll", requestSync);
-  }, []);
-
   return (
     <button
       className="back-to-top"
       type="button"
       aria-label="回到顶部"
-      aria-hidden={!isVisible}
-      tabIndex={isVisible ? 0 : -1}
-      onClick={() =>
-        window.scrollTo({
-          top: 0,
-          behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)")
-            .matches
-            ? "instant"
-            : "smooth",
-        })
-      }
+      onClick={() => {
+        const detail = document.querySelector(".content-detail-page");
+        returnToTop(
+          detail
+            ? detail.querySelector<HTMLElement>("h1")
+            : document.getElementById("content"),
+        );
+      }}
     >
       TOP
     </button>

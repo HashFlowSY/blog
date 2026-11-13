@@ -1,7 +1,7 @@
 import { expect } from "@playwright/test";
 
-import { STABLE_POST, test } from "./fixtures";
-import { goToHome, goToPost, goToPosts } from "./helpers/navigation";
+import { routeForPost, STABLE_POST, test } from "./fixtures";
+import { goToHome, goToPost, goToPosts, goToRoute } from "./helpers/navigation";
 import { waitForWorkbenchModel } from "./helpers/workbench";
 
 test.describe("Continuous browsing interactions", () => {
@@ -97,9 +97,19 @@ test.describe("Continuous browsing interactions", () => {
     await goToPost(page, STABLE_POST.slug);
     await expect(page.locator("#article-body")).toBeInViewport();
     const toggle = page.getByRole("button", { name: "目录", exact: true });
+    const toolbar = page.locator(".detail-toolbar");
     const contents = page.getByRole("navigation", { name: "文章章节" });
     await expect(contents).toBeHidden();
     await toggle.click();
+    await expect
+      .poll(async () => {
+        const navTop = (await contents.boundingBox())?.y ?? 0;
+        const toolbarBottom = await toolbar.evaluate(
+          (element) => element.getBoundingClientRect().bottom,
+        );
+        return navTop - toolbarBottom;
+      })
+      .toBeGreaterThan(0);
     const section = "Anthropic 官方（Claude）";
     const headingLink = contents.getByRole("link", {
       name: section,
@@ -110,6 +120,17 @@ test.describe("Continuous browsing interactions", () => {
     const heading = page.getByRole("heading", { name: section, exact: true });
     await expect(heading).toBeFocused();
     await expect(heading).toBeInViewport();
+    await expect
+      .poll(() =>
+        toolbar.evaluate((element) => element.getBoundingClientRect().top),
+      )
+      .toBe(0);
+    expect((await heading.boundingBox())?.y ?? 0).toBeGreaterThan(56);
+    expect(
+      await page
+        .getByRole("banner", { name: "站点头部" })
+        .evaluate((element) => element.getBoundingClientRect().bottom),
+    ).toBeLessThanOrEqual(0);
     const readingPosition = await page.evaluate(() => window.scrollY);
     const toggleBox = await toggle.boundingBox();
     if (!toggleBox)
@@ -122,5 +143,92 @@ test.describe("Continuous browsing interactions", () => {
     expect(await page.evaluate(() => window.scrollY)).toBe(readingPosition);
     await page.keyboard.press("Escape");
     await expect(contents).toBeHidden();
+  });
+
+  test("opens the checklist from the article and clears the anchor when returning to top", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    const articlePath = routeForPost(STABLE_POST.slug);
+    const search = new URLSearchParams({ q: "中转站", topic: "AI 工具" });
+    await goToRoute(page, `${articlePath}?${search}`);
+
+    await page
+      .getByRole("link", { name: "直达使用前的检查清单" })
+      .press("Enter");
+    const heading = page.getByRole("heading", { name: "使用前的检查清单" });
+    await expect(heading).toBeFocused();
+    await expect(heading).toBeInViewport();
+    expect((await heading.boundingBox())?.y ?? 0).toBeGreaterThan(56);
+
+    await page.reload();
+    await expect(heading).toBeInViewport();
+    expect((await heading.boundingBox())?.y ?? 0).toBeGreaterThan(56);
+
+    const returnToTop = page.getByRole("button", { name: "回到顶部" });
+    await expect(returnToTop).toHaveCount(1);
+    await returnToTop.press("Enter");
+    const title = page.getByRole("heading", { level: 1 });
+    await expect(title).toHaveText(STABLE_POST.title);
+    await expect(title).toBeFocused();
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+    expect(new URL(page.url()).hash).toBe("");
+    expect(new URL(page.url()).searchParams.get("q")).toBe("中转站");
+    expect(new URL(page.url()).searchParams.get("topic")).toBe("AI 工具");
+
+    await page.reload();
+    await expect(title).toBeInViewport();
+    expect(await page.evaluate(() => window.scrollY)).toBe(0);
+    await expect(
+      page.getByRole("link", { name: "返回文章列表" }),
+    ).toHaveAttribute("href", /q=.*&topic=.*#posts-2026-04-30/);
+  });
+
+  test("keeps glossary explanations wide and finishes progress at the end of the body", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 320, height: 667 });
+    await goToPost(page, STABLE_POST.slug);
+    const body = page.locator("#article-body");
+    const table = body.getByRole("table").first();
+    const term = table.getByRole("columnheader", { name: "术语" });
+    const explanation = table.getByRole("columnheader", { name: "说明" });
+    await expect(term).toBeVisible();
+    await expect(explanation).toBeVisible();
+
+    for (const width of [320, 375, 430]) {
+      await page.setViewportSize({ width, height: 667 });
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth),
+      ).toBeLessThanOrEqual(width);
+      expect((await explanation.boundingBox())?.width ?? 0).toBeGreaterThan(
+        1.8 * ((await term.boundingBox())?.width ?? 0),
+      );
+    }
+
+    const list = body.getByRole("list");
+    await expect(list.getByRole("listitem")).toHaveCount(5);
+    expect(
+      await list.evaluate((element) => getComputedStyle(element).listStyleType),
+    ).toBe("disc");
+
+    const progress = page.locator(".detail-toolbar");
+    const readProgress = () =>
+      progress.evaluate((element) =>
+        Number(element.style.getPropertyValue("--reading-progress")),
+      );
+    expect(await readProgress()).toBe(0);
+    await body.evaluate((element) => {
+      window.scrollBy(
+        0,
+        element.getBoundingClientRect().bottom - window.innerHeight + 2,
+      );
+    });
+    await expect.poll(readProgress).toBe(1);
+    await page
+      .getByRole("heading", { name: "最新文章" })
+      .scrollIntoViewIfNeeded();
+    expect(await readProgress()).toBe(1);
   });
 });

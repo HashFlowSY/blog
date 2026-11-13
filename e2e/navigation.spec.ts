@@ -24,6 +24,20 @@ async function clickNavAndWait(
 }
 
 test.describe("Navigation", () => {
+  test("opens the writing archive from the mobile home hero", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await goToHome(page);
+
+    const writing = page.getByRole("link", { name: "读文章", exact: true });
+    await expect(writing).toBeInViewport();
+    await writing.click();
+    await expect(
+      page.getByRole("heading", { name: "技术写作", level: 1 }),
+    ).toBeVisible();
+  });
+
   test("header navigation links navigate correctly on desktop", async ({
     page,
   }) => {

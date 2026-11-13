@@ -1,5 +1,5 @@
 import { render } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   PostDetailTemplate,
@@ -17,7 +17,8 @@ const post: Post = {
   summary: "这是一篇用于验证中文博客内容管线的开场记录。",
   readingTime: 6,
   renderedContent: {
-    html: '<p>欢迎来到这个被重新整理过的中文个人站。</p><h2 id="topic">这个博客会写什么？</h2><p>这里会记录 Web 开发。</p>',
+    html: '<p>欢迎来到这个被重新整理过的中文个人站。</p><h2 id="topic" tabindex="-1">这个博客会写什么？</h2><p>这里会记录 Web 开发。</p><h2 id="stack" tabindex="-1">技术栈</h2>',
+    textBlocks: [],
     headings: [
       { id: "topic", level: 2, text: "这个博客会写什么？" },
       { id: "stack", level: 2, text: "技术栈" },
@@ -34,7 +35,8 @@ const catalogPost: Post = {
   summary: "A Post returned by the Content Catalog.",
   readingTime: 4,
   renderedContent: {
-    html: '<p>Intro</p><h2 id="catalog-section">Catalog section</h2>',
+    html: '<p>Intro</p><h2 id="catalog-section" tabindex="-1">Catalog section</h2>',
+    textBlocks: [],
     headings: [{ id: "catalog-section", level: 2, text: "Catalog section" }],
   },
 };
@@ -131,6 +133,24 @@ describe("post detail template helpers", () => {
 });
 
 describe("PostDetailTemplate", () => {
+  beforeEach(() => {
+    vi.stubGlobal(
+      "visualViewport",
+      Object.assign(new EventTarget(), { offsetTop: 0, height: 600 }),
+    );
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        observe() {}
+        disconnect() {}
+      },
+    );
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it("renders the Content Catalog's structured Markdown result directly", () => {
     const { getByText } = render(
       <PostDetailTemplate post={catalogPost} relatedPosts={[]} />,

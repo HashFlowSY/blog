@@ -6,12 +6,12 @@ A Chinese personal portfolio built with Next.js 16. It presents real Project Cas
 
 - **Static Export** — Pure HTML/CSS/JS, no server required
 - **Unified Portfolio UI** — One workbench and portfolio system across the home page, Project Cases, Posts, and about page
-- **Hand-Drawn Workbench** — Pencil construction from points to a textured 3D model with continuous 360-degree orbit
+- **Hand-Drawn Workbench** — Pencil construction from points to a textured 3D model with 360-degree orbit. Scrolling over it moves the page; on touchscreens, a control turns on model gestures
 - **Strict Content Catalog** — Posts and Project Cases use explicit, Zod-validated frontmatter and build as one atomic snapshot
 - **Chinese-Only Routes** — Root, posts, projects, about, RSS, sitemap, and content all target Chinese
 - **Syntax Highlighting** — Code blocks with language labels, copy button, line highlighting
-- **Writing Topics** — Filter Posts by keyword and writing topic, with a resettable empty state
-- **Post Reading Template** — Shared reading page template for every Post
+- **Post Search** — Filter by topic and search published Posts by title, summary, tags, or body text. The browser loads `/search-index.json` on the first keyword search
+- **Post Reading Template** — Shared reading layout with section links and progress through the body
 - **SEO** — Sitemap, robots.txt, canonical URLs, noindex 404
 - **RSS Feed** — `/feed.xml` with autodiscovery
 - **Reading Time** — Word-count-based estimation on post cards and detail pages
@@ -55,6 +55,7 @@ src/
 │   ├── not-found.tsx         # 404 page
 │   ├── sitemap.ts            # Auto-generated sitemap
 │   ├── robots.ts             # robots.txt
+│   ├── search-index.json/    # Published article search index
 │   └── feed.xml/             # RSS feed
 ├── components/
 │   ├── home/                 # Pencil drawing, construction timing and 3D workbench
@@ -278,6 +279,9 @@ demo: "https://demo.example.com"
 role: "My actual responsibility"
 duration: "2026-01 to 2026-03"
 result: "An outcome supported by evidence"
+evidence:
+  label: "Read the verification report"
+  url: "https://github.com/user/repo/blob/main/docs/verification.md"
 featured: true
 draft: false
 ---
@@ -343,6 +347,7 @@ Intentional exclusions:
 | `role`        | Yes                                   | The author's actual responsibility                                        |
 | `duration`    | Yes                                   | Actual participation or delivery period                                   |
 | `result`      | Yes                                   | Outcome supported by publishable evidence                                 |
+| `evidence`    | No                                    | Public evidence link with non-empty `label` and absolute HTTPS `url`      |
 | `source`      | No                                    | Absolute HTTPS source URL                                                 |
 | `demo`        | No                                    | Absolute HTTPS demo URL                                                   |
 | `featured`    | Yes                                   | Explicit boolean controlling the home-page selection                      |

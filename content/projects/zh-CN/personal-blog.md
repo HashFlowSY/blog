@@ -15,7 +15,10 @@ source: "https://github.com/HashFlowSY/blog"
 demo: "https://hashflowsy.github.io/blog"
 role: "需求拆解、视觉重构、全栈开发"
 duration: "持续迭代"
-result: "静态部署、内容自动化与完整测试链路已落地"
+result: "文章缺少必填字段时，静态站点构建失败，阻止不完整内容发布。"
+evidence:
+  label: "查看缺少字段时的构建校验测试"
+  url: "https://github.com/HashFlowSY/blog/blob/c6bc7508f82f14a59f924c3e814f31d027815e66/src/lib/content-catalog.spec.ts#L645-L681"
 featured: true
 draft: false
 ---

@@ -1,63 +1,29 @@
-"use client";
-
-import { useEffect, useId, useRef, useState } from "react";
+import { useId, useRef } from "react";
 
 import type { MarkdownHeading } from "@/lib/markdown";
 
 interface SectionNavigationProps {
+  activeId: string | null;
   headings: readonly MarkdownHeading[];
   label: string;
 }
 
-export function SectionNavigation({ headings, label }: SectionNavigationProps) {
-  const [activeId, setActiveId] = useState(headings[0]?.id);
+export function SectionNavigation({
+  activeId,
+  headings,
+  label,
+}: SectionNavigationProps) {
   const panelId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const toolbar = panelRef.current?.parentElement;
-    if (!toolbar) return;
-
-    const sections = headings.flatMap(({ id }) => {
-      const element = document.getElementById(id);
-      return element ? [{ id, element }] : [];
-    });
-    let frameId = 0;
-
-    const syncSection = () => {
-      let current = sections[0]?.id;
-      const readingLine = toolbar.getBoundingClientRect().bottom + 48;
-      for (const section of sections) {
-        if (section.element.getBoundingClientRect().top <= readingLine) {
-          current = section.id;
-        }
-      }
-      if (
-        window.scrollY + window.innerHeight >=
-        document.documentElement.scrollHeight - 4
-      ) {
-        current = sections.at(-1)?.id;
-      }
-      setActiveId(current);
-      frameId = 0;
-    };
-
-    function requestSync() {
-      if (!frameId) frameId = window.requestAnimationFrame(syncSection);
-    }
-
-    syncSection();
-    window.addEventListener("scroll", requestSync, { passive: true });
-    window.addEventListener("resize", requestSync);
-    return () => {
-      window.removeEventListener("scroll", requestSync);
-      window.removeEventListener("resize", requestSync);
-      window.cancelAnimationFrame(frameId);
-    };
-  }, [headings]);
+  const activeHeading = headings.find(({ id }) => id === activeId);
 
   return (
-    <>
+    <div className="detail-contents-control">
+      {activeHeading && (
+        <span className="detail-current-section" title={activeHeading.text}>
+          {activeHeading.text}
+        </span>
+      )}
       <button
         type="button"
         className="detail-toolbar-control"
@@ -88,11 +54,6 @@ export function SectionNavigation({ headings, label }: SectionNavigationProps) {
                 )
                   return;
                 panelRef.current?.hidePopover();
-                const heading = document.getElementById(id);
-                if (heading) {
-                  heading.tabIndex = -1;
-                  heading.focus({ preventScroll: true });
-                }
               }}
             >
               {text}
@@ -100,6 +61,6 @@ export function SectionNavigation({ headings, label }: SectionNavigationProps) {
           ))}
         </nav>
       </div>
-    </>
+    </div>
   );
 }

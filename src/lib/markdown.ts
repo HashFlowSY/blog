@@ -24,6 +24,10 @@ export interface RenderedMarkdown {
   readonly headings: readonly MarkdownHeading[];
 }
 
+export interface RenderedPostMarkdown extends RenderedMarkdown {
+  readonly textBlocks: readonly string[];
+}
+
 export interface RenderMarkdownOptions {
   filename?: string;
   title?: string;
@@ -100,11 +104,15 @@ function syntaxChildren(node: SyntaxNode): SyntaxNode[] {
   return node.children.filter(isSyntaxNode);
 }
 
-function stringProperty(properties: unknown, property: string): string | null {
-  if (!properties || typeof properties !== "object") return null;
+function elementProperties(node: SyntaxNode): Record<string, unknown> {
+  const { properties } = node;
+  return properties && typeof properties === "object"
+    ? (properties as Record<string, unknown>)
+    : {};
+}
 
-  const value = (properties as Record<string, unknown>)[property];
-  return typeof value === "string" ? value : null;
+function setElementProperty(node: SyntaxNode, name: string, value: unknown) {
+  node.properties = { ...elementProperties(node), [name]: value };
 }
 
 function hastText(node: SyntaxNode): string {
@@ -169,11 +177,34 @@ const remarkRemoveLeadingTitleHeading = (title: string | undefined) => {
   };
 };
 
-function collectHeadings(node: SyntaxNode, headings: MarkdownHeading[]): void {
+function markGlossaryTable(table: SyntaxNode): void {
+  const head = syntaxChildren(table).find(({ tagName }) => tagName === "thead");
+  if (!head) return;
+  const row = syntaxChildren(head).find(({ tagName }) => tagName === "tr");
+  if (!row) return;
+  const cells = syntaxChildren(row).filter(({ tagName }) => tagName === "th");
+  const [term, definition] = cells;
+  if (
+    cells.length !== 2 ||
+    !term ||
+    !definition ||
+    normalizedSemanticText(hastText(term)) !== "术语" ||
+    normalizedSemanticText(hastText(definition)) !== "说明"
+  )
+    return;
+
+  setElementProperty(table, "className", ["glossary-table"]);
+  setElementProperty(term, "scope", "col");
+  setElementProperty(definition, "scope", "col");
+}
+
+function collectStructure(node: SyntaxNode, headings: MarkdownHeading[]): void {
   if (node.type === "element" && typeof node.tagName === "string") {
+    if (node.tagName === "table") markGlossaryTable(node);
     const level = markdownHeadingLevel(node.tagName);
-    const id = stringProperty(node.properties, "id");
-    if (level !== null && id !== null) {
+    const id = elementProperties(node)["id"];
+    if (level !== null && typeof id === "string") {
+      setElementProperty(node, "tabIndex", -1);
       headings.push({
         id,
         level,
@@ -183,14 +214,73 @@ function collectHeadings(node: SyntaxNode, headings: MarkdownHeading[]): void {
   }
 
   for (const child of syntaxChildren(node)) {
-    collectHeadings(child, headings);
+    collectStructure(child, headings);
   }
 }
 
-const rehypeCollectHeadings = (headings: MarkdownHeading[]) => {
+function omitFromSearch(node: SyntaxNode): boolean {
+  const props = elementProperties(node);
+  const className = props["className"];
+  return (
+    "dataFootnoteRef" in props ||
+    "dataFootnoteBackref" in props ||
+    (Array.isArray(className) && className.includes("sr-only"))
+  );
+}
+
+function searchableText(node: SyntaxNode): string {
+  if (omitFromSearch(node)) return "";
+  if (node.type === "text" && typeof node.value === "string") return node.value;
+  if (node.tagName === "br") return " ";
+  return syntaxChildren(node).map(searchableText).join("");
+}
+
+function collectTextBlocks(node: SyntaxNode, blocks: string[]): void {
+  if (omitFromSearch(node)) return;
+
+  if (node.tagName === "tr") {
+    // Keep the term and definition together, with a space between cells.
+    addBlock(syntaxChildren(node).map(searchableText).join(" "));
+    return;
+  }
+  if (node.tagName === "li") {
+    const children = syntaxChildren(node);
+    const lists = children.filter(
+      (child) => child.tagName === "ul" || child.tagName === "ol",
+    );
+    addBlock(
+      children
+        .filter((child) => !lists.includes(child))
+        .map(searchableText)
+        .join(""),
+    );
+    for (const list of lists) collectTextBlocks(list, blocks);
+    return;
+  }
+  if (
+    typeof node.tagName === "string" &&
+    /^(?:p|pre|h[1-6])$/u.test(node.tagName)
+  ) {
+    addBlock(searchableText(node));
+    return;
+  }
+
+  for (const child of syntaxChildren(node)) collectTextBlocks(child, blocks);
+
+  function addBlock(text: string) {
+    const normalized = normalizedSemanticText(text);
+    if (normalized) blocks.push(normalized);
+  }
+}
+
+const rehypeCollectContent = (
+  headings: MarkdownHeading[],
+  textBlocks?: string[],
+) => {
   return (tree: unknown) => {
     if (isSyntaxNode(tree)) {
-      collectHeadings(tree, headings);
+      collectStructure(tree, headings);
+      if (textBlocks) collectTextBlocks(tree, textBlocks);
     }
   };
 };
@@ -222,14 +312,10 @@ function hasValidImageSrc(image: HastElement): boolean {
   return typeof src === "string" && src.length > 0;
 }
 
-/**
- * Render Markdown once into safe HTML and its matching table-of-contents
- * headings. Headings are collected from the sanitized HAST before
- * serialization, rather than reconstructed from an HTML string.
- */
-export async function renderMarkdown(
+async function processMarkdown(
   markdown: string,
-  options: RenderMarkdownOptions = {},
+  options: RenderMarkdownOptions,
+  textBlocks?: string[],
 ): Promise<RenderedMarkdown> {
   try {
     const headings: MarkdownHeading[] = [];
@@ -243,7 +329,7 @@ export async function renderMarkdown(
       .use(rehypeCodeBlock)
       .use(rehypeSanitize, sanitizeSchema)
       .use(rehypeRemoveInvalidImages)
-      .use(rehypeCollectHeadings, headings)
+      .use(rehypeCollectContent, headings, textBlocks)
       .use(rehypeStringify)
       .process(markdown);
 
@@ -258,4 +344,20 @@ export async function renderMarkdown(
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(`Markdown processing failed${location}: ${message}`);
   }
+}
+
+export function renderMarkdown(
+  markdown: string,
+  options: RenderMarkdownOptions = {},
+): Promise<RenderedMarkdown> {
+  return processMarkdown(markdown, options);
+}
+
+export async function renderPostMarkdown(
+  markdown: string,
+  options: RenderMarkdownOptions = {},
+): Promise<RenderedPostMarkdown> {
+  const textBlocks: string[] = [];
+  const rendered = await processMarkdown(markdown, options, textBlocks);
+  return Object.freeze({ ...rendered, textBlocks: Object.freeze(textBlocks) });
 }

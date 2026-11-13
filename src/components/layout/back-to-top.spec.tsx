@@ -3,19 +3,21 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { BackToTop } from "./back-to-top";
 
+function renderBackToTop() {
+  return render(
+    <>
+      <main id="content" tabIndex={-1} />
+      <BackToTop />
+    </>,
+  );
+}
+
 describe("BackToTop", () => {
-  let scrollY = 0;
   let scrollToMock: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
-    scrollY = 0;
     scrollToMock = vi.fn();
-    vi.spyOn(window, "scrollY", "get").mockImplementation(() => scrollY);
     vi.stubGlobal("scrollTo", scrollToMock);
-    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
-      callback(0);
-      return 1;
-    });
     vi.stubGlobal("matchMedia", () => ({ matches: false }));
   });
 
@@ -24,33 +26,19 @@ describe("BackToTop", () => {
     vi.restoreAllMocks();
   });
 
-  it("hides the control until the page has scrolled past the desktop threshold", () => {
-    const { container } = render(<BackToTop />);
-
-    const button = container.querySelector(".back-to-top");
-    expect(button).toHaveAttribute("aria-hidden", "true");
-    expect(button).toHaveAttribute("tabindex", "-1");
-
-    scrollY = 120;
-    fireEvent.scroll(window);
-
-    expect(button).toHaveAttribute("aria-hidden", "false");
-    expect(button).toHaveAttribute("tabindex", "0");
-  });
-
   it("scrolls smoothly to the top when clicked", () => {
-    const { container } = render(<BackToTop />);
-    const button = container.querySelector(".back-to-top");
+    const { getByRole } = renderBackToTop();
 
-    fireEvent.click(button!);
+    fireEvent.click(getByRole("button", { name: "回到顶部" }));
 
     expect(scrollToMock).toHaveBeenCalledWith({ top: 0, behavior: "smooth" });
+    expect(getByRole("main")).toHaveFocus();
   });
 
   it("returns immediately when reduced motion is requested", () => {
     vi.stubGlobal("matchMedia", () => ({ matches: true }));
-    const { container } = render(<BackToTop />);
-    fireEvent.click(container.querySelector(".back-to-top")!);
+    const { getByRole } = renderBackToTop();
+    fireEvent.click(getByRole("button", { name: "回到顶部" }));
     expect(scrollToMock).toHaveBeenCalledWith({ top: 0, behavior: "instant" });
   });
 });

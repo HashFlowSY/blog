@@ -149,7 +149,7 @@ export default function AboutPage() {
           <div>
             <p className="portfolio-overline">Contact / open to work</p>
             <h2 id="contact-title">求职或合作，欢迎联系我。</h2>
-            <p>可以通过 GitHub 了解我的工作并继续交流。</p>
+            <p>可以在 GitHub 查看我的项目和技术工作。</p>
           </div>
           <div className="portfolio-link-row">
             <a
@@ -158,7 +158,7 @@ export default function AboutPage() {
               target="_blank"
               rel="noopener noreferrer"
             >
-              {SITE.githubProfile.label}
+              查看 GitHub 主页
             </a>
             <Link className="portfolio-button" href="/projects/">
               查看项目

@@ -62,6 +62,9 @@ export default async function HomePage() {
             <Link className="workbench-button" href="/about/#contact">
               联系我 <span aria-hidden="true">↗</span>
             </Link>
+            <Link className="workbench-button" href="/posts/">
+              读文章 <span aria-hidden="true">→</span>
+            </Link>
           </div>
         </div>
 
@@ -176,7 +179,7 @@ export default async function HomePage() {
       >
         <div>
           <h2 id="contact-title">求职与合作</h2>
-          <p>可以通过 GitHub 了解我的工作并继续交流。</p>
+          <p>关于页有我的工程经历和 GitHub 主页。</p>
         </div>
         <Link
           className="workbench-button workbench-button-primary"

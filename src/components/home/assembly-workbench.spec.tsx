@@ -2,11 +2,17 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import { useEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { WorkbenchModelStatus } from "./workbench-orbit";
+
 vi.mock("./workbench-orbit", () => ({
   preloadWorkbenchScene: vi.fn().mockResolvedValue(undefined),
-  WorkbenchOrbit: ({ onStatus }: { onStatus?: (status: "ready") => void }) => {
+  WorkbenchOrbit: ({
+    onStatus,
+  }: {
+    onStatus: (status: WorkbenchModelStatus) => void;
+  }) => {
     useEffect(() => {
-      onStatus?.("ready");
+      onStatus("ready");
     }, [onStatus]);
     return <div role="group" aria-label="可旋转的立体工作台" />;
   },

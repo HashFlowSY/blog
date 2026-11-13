@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 
+import { ReadingBackToTop } from "@/components/layout/back-to-top";
 import { DetailToolbar } from "@/components/layout/detail-toolbar";
 import { CodeBlockEnhancer } from "@/components/post/code-block";
 import { ProjectCover } from "@/components/project/project-cover";
@@ -45,6 +46,7 @@ export default async function ProjectDetailPage({ params }: Props) {
     >
       <div className="portfolio-shell">
         <DetailToolbar
+          bodyId="project-body"
           collection="projects"
           slug={projectCase.slug}
           headings={projectCase.renderedContent.headings}
@@ -52,11 +54,26 @@ export default async function ProjectDetailPage({ params }: Props) {
 
         <div className="case-overview">
           <header className="portfolio-case-hero">
-            <h1 id="project-title">{projectCase.title}</h1>
+            <h1 id="project-title" tabIndex={-1}>
+              {projectCase.title}
+            </h1>
             <p className="portfolio-lede">{projectCase.description}</p>
             <dl className="case-outcome">
               <dt>项目结果</dt>
               <dd>{projectCase.result}</dd>
+              {projectCase.evidence && (
+                <dd>
+                  <a
+                    className="case-outcome-evidence"
+                    href={projectCase.evidence.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {projectCase.evidence.label}{" "}
+                    <span aria-hidden="true">↗</span>
+                  </a>
+                </dd>
+              )}
             </dl>
           </header>
           <ProjectCover
@@ -114,11 +131,13 @@ export default async function ProjectDetailPage({ params }: Props) {
           <CodeBlockEnhancer>
             <div
               className="portfolio-prose prose"
+              id="project-body"
               dangerouslySetInnerHTML={{
                 __html: projectCase.renderedContent.html,
               }}
             />
           </CodeBlockEnhancer>
+          <ReadingBackToTop titleId="project-title" />
         </div>
 
         <section
@@ -126,8 +145,8 @@ export default async function ProjectDetailPage({ params }: Props) {
           aria-labelledby="case-contact-title"
         >
           <div>
-            <h2 id="case-contact-title">希望把类似需求推进到上线？</h2>
-            <p>欢迎带着背景、约束或现有系统来聊。</p>
+            <h2 id="case-contact-title">了解我的其他项目</h2>
+            <p>可以在 GitHub 查看我的公开仓库。</p>
           </div>
           <a
             className="portfolio-button"
@@ -135,7 +154,7 @@ export default async function ProjectDetailPage({ params }: Props) {
             target="_blank"
             rel="noopener noreferrer"
           >
-            {SITE.githubProfile.label}
+            查看 GitHub 主页
           </a>
         </section>
       </div>

@@ -728,7 +728,12 @@ body:has(.workbench-home, .portfolio-page) .back-to-top {
     text-wrap: balance;
   }
   .workbench-actions {
+    gap: 8px;
     margin-top: 18px;
+  }
+  .workbench-actions .workbench-button {
+    gap: 8px;
+    padding-inline: 11px;
   }
   .workbench-section,
   .workbench-contact {

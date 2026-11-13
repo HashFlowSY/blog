@@ -26,7 +26,81 @@ export interface WorkbenchScene {
   zoom(factor: number): void;
   reset(): void;
   resetAt(x: number, y: number): void;
+  setTouchInteraction(active: boolean): void;
+  toggleYellowDrawer(): void;
   dispose(): void;
+}
+
+function connectOrbitInput(canvas: HTMLCanvasElement, controls: OrbitControls) {
+  let touchActive = false;
+  const touchPointers = new Set<number>();
+  const lifetime = new AbortController();
+  const capture = { capture: true, signal: lifetime.signal };
+
+  // OrbitControls handles both wheel and pinch with enableZoom. Keep the pinch
+  // path enabled and leave the wheel's default scrolling action intact.
+  canvas.addEventListener(
+    "wheel",
+    (event) => event.stopImmediatePropagation(),
+    {
+      ...capture,
+      passive: true,
+    },
+  );
+  canvas.addEventListener(
+    "pointerdown",
+    (event) => {
+      if (event.pointerType !== "touch") return;
+      if (touchActive) touchPointers.add(event.pointerId);
+      else event.stopImmediatePropagation();
+    },
+    capture,
+  );
+  for (const eventName of [
+    "pointerup",
+    "pointercancel",
+    "lostpointercapture",
+  ] as const) {
+    canvas.addEventListener(
+      eventName,
+      (event) => touchPointers.delete(event.pointerId),
+      capture,
+    );
+  }
+
+  function connect() {
+    controls.connect(canvas);
+    // Use the stylesheet's touch-action before the browser starts a gesture.
+    canvas.style.removeProperty("touch-action");
+  }
+
+  function cancelTouches() {
+    const pointers = Array.from(touchPointers);
+    touchPointers.clear();
+    for (const pointer of pointers) {
+      if (canvas.hasPointerCapture(pointer))
+        canvas.releasePointerCapture(pointer);
+    }
+  }
+
+  connect();
+  return {
+    setTouchInteraction(active: boolean) {
+      touchActive = active;
+      if (active || !touchPointers.size) return false;
+      cancelTouches();
+      // Reconnect the same controller to discard its in-progress pinch/orbit.
+      // Camera position, saved view, and workbench parts all remain in place.
+      connect();
+      canvas.style.removeProperty("cursor");
+      return true;
+    },
+    dispose() {
+      lifetime.abort();
+      cancelTouches();
+      controls.dispose();
+    },
+  };
 }
 
 export async function createWorkbenchScene(
@@ -59,7 +133,8 @@ export async function createWorkbenchScene(
   // OrbitControls encodes zoom as a dolly distance. Use that distance for
   // input only so zoom never brings the rendered camera into the model.
   const orbit = camera.clone();
-  const controls = new OrbitControls(orbit, canvas);
+  const controls = new OrbitControls(orbit);
+  const orbitInput = connectOrbitInput(canvas, controls);
   controls.target.set(...orbitTarget);
   const restingPosition = orbit.position.clone();
   const direction = new Vector3();
@@ -113,7 +188,7 @@ export async function createWorkbenchScene(
     } catch (error) {
       interactions?.dispose();
       model?.dispose();
-      controls.dispose();
+      orbitInput.dispose();
       atlas.dispose();
       renderer.dispose();
       renderer.forceContextLoss();
@@ -262,7 +337,7 @@ export async function createWorkbenchScene(
     reducedMotion.removeEventListener("change", syncMotionPreference);
     input.dispose();
     interactions.dispose();
-    controls.dispose();
+    orbitInput.dispose();
     model.dispose();
     atlas.dispose();
     renderer.dispose();
@@ -308,6 +383,15 @@ export async function createWorkbenchScene(
     reset: resetView,
     resetAt(x, y) {
       if (!input.hitPart(x, y)) resetView();
+    },
+    setTouchInteraction(active) {
+      if (orbitInput.setTouchInteraction(active)) {
+        input.cancelGesture();
+        end();
+      }
+    },
+    toggleYellowDrawer() {
+      interactions.activate("drawer-2");
     },
     dispose,
   };

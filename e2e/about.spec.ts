@@ -19,7 +19,8 @@ test.describe("About page", () => {
     );
 
     await expect(page.getByLabel(copy.experience)).toBeVisible();
-    const githubLinks = page.locator('a[href="https://github.com/HashFlowSY"]');
-    expect(await githubLinks.count()).toBeGreaterThan(0);
+    await expect(
+      page.getByRole("link", { name: "查看 GitHub 主页", exact: true }),
+    ).toHaveAttribute("href", "https://github.com/HashFlowSY");
   });
 });

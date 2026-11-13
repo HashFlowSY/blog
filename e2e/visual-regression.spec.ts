@@ -135,7 +135,7 @@ test.describe("Focused visual regression", () => {
   });
 
   test.describe("mobile viewport", () => {
-    test.use({ viewport: VISUAL_MOBILE_VIEWPORT });
+    test.use({ hasTouch: true, viewport: VISUAL_MOBILE_VIEWPORT });
 
     test("captures the home page with mobile navigation open", async ({
       page,

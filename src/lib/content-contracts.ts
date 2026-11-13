@@ -158,6 +158,10 @@ const projectFields = {
   role: nonBlankTextSchema,
   duration: nonBlankTextSchema,
   result: nonBlankTextSchema,
+  evidence: z
+    .object({ label: nonBlankTextSchema, url: absoluteHttpsUrlSchema })
+    .strict()
+    .optional(),
   source: absoluteHttpsUrlSchema.optional(),
   demo: absoluteHttpsUrlSchema.optional(),
   featured: z.boolean(),

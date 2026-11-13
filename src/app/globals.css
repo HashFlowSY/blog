@@ -325,6 +325,7 @@ button {
   line-height: 1;
   text-transform: uppercase;
   cursor: pointer;
+  visibility: hidden;
   opacity: 0;
   transform: translateY(14px);
   pointer-events: none;
@@ -335,6 +336,7 @@ button {
     color 120ms steps(2, end);
 }
 body.is-scrolled .back-to-top {
+  visibility: visible;
   opacity: 1;
   transform: translateY(0);
   pointer-events: auto;
@@ -527,22 +529,41 @@ h3 {
 .prose ul,
 .prose ol {
   margin: 0 0 1.25em;
-  padding-left: 1.4em;
+  padding-inline-start: 1.5em;
 }
-.prose .contains-task-list {
-  padding-left: 0;
-  list-style: none;
+.prose ul {
+  list-style-type: disc;
+}
+.prose ul ul {
+  list-style-type: circle;
+}
+.prose ul ul ul {
+  list-style-type: square;
+}
+.prose ol {
+  list-style-type: decimal;
+}
+.prose li + li {
+  margin-block-start: 0.3em;
+}
+.prose li > :is(ul, ol) {
+  margin-block: 0.3em 0;
+}
+.prose li > p:last-child {
+  margin-block-end: 0;
 }
 .prose .task-list-item {
-  display: flex;
-  gap: 0.55em;
-  align-items: flex-start;
+  position: relative;
+  list-style-type: none;
 }
-.prose .task-list-item input[type="checkbox"] {
-  flex: 0 0 auto;
+.prose .task-list-item > input[type="checkbox"],
+.prose .task-list-item > p:first-child > input[type="checkbox"]:first-child {
+  position: absolute;
+  inset-block-start: 0.43em;
+  inset-inline-start: -1.35em;
   width: 1em;
   height: 1em;
-  margin-top: 0.42em;
+  margin: 0;
   accent-color: var(--accent);
 }
 .prose table {
@@ -1521,6 +1542,7 @@ body:has(.portfolio-page) .back-to-top {
 
 .portfolio-prose.prose a {
   color: #202326;
+  text-decoration-line: underline;
   text-decoration-color: #e0c600;
   text-decoration-thickness: 3px;
 }

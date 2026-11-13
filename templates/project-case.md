@@ -23,6 +23,9 @@ demo: "<可选：HTTPS 演示地址>"
 role: "<本人实际负责的工作>"
 duration: "<实际参与或交付周期>"
 result: "<有证据支持的实际结果>"
+evidence: # 可选。没有可公开的链接时，省略整个字段。
+  label: "<证据链接的名称>"
+  url: "<HTTPS 证据链接>"
 featured: false
 draft: false
 ```

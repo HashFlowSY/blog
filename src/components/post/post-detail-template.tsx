@@ -1,3 +1,4 @@
+import { ReadingBackToTop } from "@/components/layout/back-to-top";
 import { DetailToolbar } from "@/components/layout/detail-toolbar";
 import { SITE } from "@/lib/site";
 
@@ -109,6 +110,7 @@ export function PostDetailTemplate({
 }: PostDetailTemplateProps) {
   const tags = post.tags;
   const { headings, html } = post.renderedContent;
+  const titleParts = post.title.match(/^(.+?(?:：|:\s)\s*)(\S.*)$/u);
 
   return (
     <article
@@ -117,6 +119,7 @@ export function PostDetailTemplate({
     >
       <div className="portfolio-shell">
         <DetailToolbar
+          bodyId="article-body"
           collection="posts"
           slug={post.slug}
           headings={headings}
@@ -126,7 +129,20 @@ export function PostDetailTemplate({
           className="portfolio-article-hero content-reading-width"
           aria-labelledby="post-title"
         >
-          <h1 id="post-title">{post.title}</h1>
+          <h1
+            id="post-title"
+            tabIndex={-1}
+            aria-label={titleParts ? post.title : undefined}
+          >
+            {titleParts ? (
+              <>
+                <span>{titleParts[1]}</span>
+                <span>{titleParts[2]}</span>
+              </>
+            ) : (
+              post.title
+            )}
+          </h1>
           <p className="portfolio-lede">{post.summary}</p>
           <div className="portfolio-article-meta" aria-label="文章信息">
             <time dateTime={post.date}>{formatDetailDate(post.date)}</time>
@@ -150,6 +166,7 @@ export function PostDetailTemplate({
               dangerouslySetInnerHTML={{ __html: html }}
             />
           </CodeBlockEnhancer>
+          <ReadingBackToTop titleId="post-title" />
         </div>
 
         {relatedPosts.length > 0 && (
@@ -175,8 +192,8 @@ export function PostDetailTemplate({
           aria-labelledby="writing-contact-title"
         >
           <div>
-            <h2 id="writing-contact-title">想继续讨论这个问题？</h2>
-            <p>欢迎通过 GitHub 继续讨论。</p>
+            <h2 id="writing-contact-title">了解我的其他项目</h2>
+            <p>可以在 GitHub 查看我的公开仓库。</p>
           </div>
           <a
             className="portfolio-button"
@@ -184,7 +201,7 @@ export function PostDetailTemplate({
             target="_blank"
             rel="noopener noreferrer"
           >
-            {SITE.githubProfile.label}
+            查看 GitHub 主页
           </a>
         </section>
       </div>

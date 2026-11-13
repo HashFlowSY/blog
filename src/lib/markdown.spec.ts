@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { renderMarkdown } from "./markdown";
+import { renderMarkdown, renderPostMarkdown } from "./markdown";
 
 async function renderHtml(markdown: string): Promise<string> {
   return (await renderMarkdown(markdown)).html;
@@ -167,11 +167,75 @@ describe("renderMarkdown", () => {
       ].join("\n"),
     );
 
-    expect(html).toContain("<table>");
-    expect(html).toContain("<th>术语</th>");
+    expect(html).toContain('<table class="glossary-table">');
+    expect(html).toContain('<th scope="col">术语</th>');
     expect(html).toContain("<td>免费版</td>");
     expect(html).toContain("<del>删除</del>");
     expect(html).toContain('<a href="https://example.com/docs">');
+  });
+
+  it("marks only the two-column term and definition table", async () => {
+    const rendered = await renderMarkdown(
+      [
+        "| **术语** | 说明 |",
+        "| --- | --- |",
+        "| Free | 免费版 |",
+        "",
+        "| 术语 | 说明 | 链接 |",
+        "| --- | --- | --- |",
+        "| Free | 免费版 | 示例 |",
+        "",
+        "| 列一 | 列二 |",
+        "| --- | --- |",
+        "| 值一 | 值二 |",
+      ].join("\n"),
+    );
+    const document = new DOMParser().parseFromString(
+      rendered.html,
+      "text/html",
+    );
+    expect(document.querySelectorAll("table")).toHaveLength(3);
+    const glossary = document.querySelectorAll("table.glossary-table");
+    expect(glossary).toHaveLength(1);
+    expect(glossary[0]?.querySelectorAll('th[scope="col"]')).toHaveLength(2);
+  });
+
+  it("collects visible search blocks without raw markup or generated controls", async () => {
+    const rendered = await renderPostMarkdown(
+      [
+        "## 使用前的检查清单",
+        "",
+        "[直达检查](#user-content-使用前的检查清单) 与 **正文**[^n]",
+        "",
+        "- 首项",
+        "  - 第二层",
+        "",
+        "| 术语 | 说明 |",
+        "| --- | --- |",
+        "| 月抛站 | 测试用词 |",
+        "",
+        "```ts",
+        'const value = "<match>";',
+        "console.log(value);",
+        "```",
+        "",
+        "[^n]: 这是脚注。",
+        "",
+        "<script>hiddenRawText</script>",
+      ].join("\n"),
+    );
+
+    expect(rendered.textBlocks).toEqual([
+      "使用前的检查清单",
+      "直达检查 与 正文",
+      "首项",
+      "第二层",
+      "术语 说明",
+      "月抛站 测试用词",
+      'const value = "<match>"; console.log(value);',
+      "这是脚注。",
+    ]);
+    expect(Object.isFrozen(rendered.textBlocks)).toBe(true);
   });
 
   it("renders task lists and footnotes using the supported safe attributes", async () => {

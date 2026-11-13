@@ -1,0 +1,68 @@
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 12px;
+}
+
+.empty:global(.portfolio-empty-state) {
+  padding-block: 20px 12px;
+}
+
+.empty button {
+  padding-inline-start: 0;
+}
+
+.snippet:global(.content-card-summary) {
+  margin-block-start: 6px;
+  font-size: 14px;
+}
+
+.snippet mark {
+  background: var(--studio-yellow);
+  color: var(--studio-ink);
+}
+
+@media (max-width: 760px) {
+  .archive :global(.content-list-intro) {
+    padding-block: 15px 12px;
+  }
+
+  .archive :global(.content-list-intro h1) {
+    margin-block-end: 6px;
+    font-size: clamp(29px, 8vw, 34px);
+  }
+
+  .archive :global(.content-list-intro p) {
+    font-size: 15px;
+  }
+
+  .archive :global(.content-list-section) {
+    padding-block-start: 12px;
+  }
+
+  .archive :global(.archive-toolbar) {
+    gap: 10px 14px;
+  }
+
+  .archive :global(.archive-search),
+  .archive :global(.archive-topics) {
+    gap: 5px;
+  }
+
+  .archive :global(.portfolio-topic-row) {
+    gap: 5px;
+  }
+
+  .archive :global(.portfolio-topic-row button) {
+    min-width: 44px;
+    padding-inline: 8px;
+  }
+
+  .archive :global(.archive-result-summary) {
+    flex-wrap: wrap;
+    min-height: 0;
+    column-gap: 8px;
+    row-gap: 0;
+    margin-block: 10px 8px;
+  }
+}

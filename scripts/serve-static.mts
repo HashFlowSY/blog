@@ -9,6 +9,7 @@ const requiredArtifacts = [
   "feed.xml",
   "index.html",
   "robots.txt",
+  "search-index.json",
   "sitemap.xml",
 ] as const;
 

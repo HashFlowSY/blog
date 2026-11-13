@@ -176,7 +176,14 @@ summary: "The newer entry."
 draft: false`,
     );
     writePost(rootDir, "idea.md", "draft: true", "");
-    writeProjectCase(rootDir, "catalog-project.md", completeProjectFrontmatter);
+    writeProjectCase(
+      rootDir,
+      "catalog-project.md",
+      `${completeProjectFrontmatter}
+evidence:
+  label: "Read the verification report"
+  url: "https://example.com/report"`,
+    );
 
     const catalog = await buildContentCatalog({ rootDir });
 
@@ -193,7 +200,12 @@ draft: false`,
       role: "Development",
       duration: "Two weeks",
       result: "Published successfully.",
+      evidence: {
+        label: "Read the verification report",
+        url: "https://example.com/report",
+      },
     });
+    expect(Object.isFrozen(catalog.projectCases[0]?.evidence)).toBe(true);
   });
 
   it("builds an empty Catalog when the optional collection directories are absent", async () => {

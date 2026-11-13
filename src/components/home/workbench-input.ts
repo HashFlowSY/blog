@@ -208,6 +208,11 @@ export function createWorkbenchInput(
   canvas.addEventListener("pointerleave", clearHover, capture);
 
   return {
+    cancelGesture() {
+      cancelPress();
+      pointers.clear();
+      clearHover();
+    },
     hitPart(x: number, y: number) {
       return Boolean(pick(x, y));
     },

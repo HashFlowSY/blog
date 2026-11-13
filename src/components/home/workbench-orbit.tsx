@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 
 import styles from "./assembly-workbench.module.css";
 
@@ -16,12 +16,16 @@ export function preloadWorkbenchScene() {
   return sceneModule;
 }
 
+const workbenchZoomStep = 1.15;
+
 export type WorkbenchModelStatus = "loading" | "ready" | "failed";
 
 export function WorkbenchOrbit({
   onStatus,
+  touchActive,
 }: {
-  onStatus?: (status: WorkbenchModelStatus) => void;
+  onStatus: (status: WorkbenchModelStatus) => void;
+  touchActive: boolean;
 }) {
   const instructionsId = useId();
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -38,8 +42,8 @@ export function WorkbenchOrbit({
         if (cancelled || !canvas.current) return;
         viewer = await sceneFactory.createWorkbenchScene(
           canvas.current,
-          (next) => {
-            if (!cancelled) setMessage(next);
+          (message) => {
+            if (!cancelled) setMessage(message);
           },
         );
         if (cancelled) {
@@ -48,11 +52,11 @@ export function WorkbenchOrbit({
         }
         engine.current = viewer;
         setStatus("ready");
-        onStatus?.("ready");
+        onStatus("ready");
       } catch {
         if (cancelled) return;
         setStatus("failed");
-        onStatus?.("failed");
+        onStatus("failed");
       }
     }
     // Let the completed illustration reach the screen before compiling WebGL.
@@ -66,6 +70,10 @@ export function WorkbenchOrbit({
       viewer?.dispose();
     };
   }, [onStatus]);
+
+  useLayoutEffect(() => {
+    engine.current?.setTouchInteraction(touchActive);
+  }, [status, touchActive]);
 
   function handleKey(event: KeyboardEvent<HTMLDivElement>) {
     if (event.altKey || event.ctrlKey || event.metaKey || !engine.current)
@@ -85,13 +93,17 @@ export function WorkbenchOrbit({
         break;
       case "+":
       case "=":
-        engine.current.zoom(1.15);
+        engine.current.zoom(workbenchZoomStep);
         break;
       case "-":
-        engine.current.zoom(1 / 1.15);
+        engine.current.zoom(1 / workbenchZoomStep);
         break;
       case "Home":
         engine.current.reset();
+        break;
+      case "Enter":
+      case " ":
+        if (!event.repeat) engine.current.toggleYellowDrawer();
         break;
       default:
         return;
@@ -111,9 +123,10 @@ export function WorkbenchOrbit({
       data-model-status={status}
       tabIndex={status === "ready" ? 0 : -1}
       onKeyDown={handleKey}
-      onPointerDown={(event) =>
-        event.currentTarget.focus({ preventScroll: true })
-      }
+      onPointerDown={(event) => {
+        if (event.pointerType !== "touch")
+          event.currentTarget.focus({ preventScroll: true });
+      }}
     >
       <canvas
         ref={canvas}
@@ -124,7 +137,9 @@ export function WorkbenchOrbit({
         }
       />
       <span id={instructionsId} className={styles["srOnly"]}>
-        拖动可360度旋转，滚轮或双指缩放。方向键旋转，加号和减号缩放，Home键或双击空白处复位视角。
+        拖动可 360
+        度旋转。触屏先开启操作，再用双指缩放。方向键旋转，加号和减号缩放，按
+        Home 键或双击空白处复位视角。按 Enter 或空格开合黄色抽屉。
       </span>
       <span className={styles["srOnly"]} role="status">
         {message}

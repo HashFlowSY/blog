@@ -643,5 +643,16 @@ test.describe("generated static artifact", () => {
       title: "Hashflow｜AI 全栈工程师",
     });
     await expectBasePathReferences(page);
+    const recovery = page.getByRole("main");
+    await expect(
+      recovery.getByRole("link", { name: "返回首页" }),
+    ).toHaveAttribute("href", routePath("/"));
+    await recovery.getByRole("link", { name: "浏览文章" }).click();
+    await expect(page).toHaveURL(
+      (url) => url.pathname === routePath("/posts/"),
+    );
+    await expect(
+      page.getByRole("heading", { name: "技术写作", level: 1 }),
+    ).toBeVisible();
   });
 });

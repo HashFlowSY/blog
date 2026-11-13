@@ -11,14 +11,15 @@ import {
   waitForWorkbenchModel,
 } from "./helpers/workbench";
 
-import type { Locator, Page } from "@playwright/test";
+import type { Locator } from "@playwright/test";
 
-async function clickArtworkPoint(
-  page: Page,
+const yellowDrawerFront = [1108, 793] as const;
+
+function artworkScreenPoint(
   workbench: Locator,
   point: readonly [number, number],
 ) {
-  const { x, y } = await workbench
+  return workbench
     .locator("svg")
     .first()
     .evaluate((drawing, [x, y]) => {
@@ -29,7 +30,6 @@ async function clickArtworkPoint(
       );
       return { x: screen.x, y: screen.y };
     }, point);
-  await page.mouse.click(x, y);
 }
 
 test.describe("Home page", () => {
@@ -144,7 +144,7 @@ test.describe("Home page", () => {
     }
   });
 
-  test("opens and closes a drawer from its front with reduced motion", async ({
+  test("opens a drawer from its front and toggles it by keyboard with reduced motion", async ({
     page,
   }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
@@ -156,10 +156,12 @@ test.describe("Home page", () => {
     ).not.toBeVisible();
     const view = await waitForWorkbenchModel(workbench);
     const canvas = view.locator("canvas");
-
+    await expect(
+      workbench.getByText("试试交互", { exact: true }),
+    ).toBeVisible();
     await view.scrollIntoViewIfNeeded();
-    const yellowFace = [1108, 793] as const;
-    await clickArtworkPoint(page, workbench, yellowFace);
+    const { x, y } = await artworkScreenPoint(workbench, yellowDrawerFront);
+    await page.mouse.click(x, y);
     await expect(
       workbench.getByText("拉出黄色抽屉", { exact: true }),
     ).toBeAttached();
@@ -167,11 +169,13 @@ test.describe("Home page", () => {
 
     await view.press("Home");
     await expect(canvas).toHaveAttribute("data-view", "model");
-    await clickArtworkPoint(page, workbench, yellowFace);
+    await view.press("Enter");
     await expect(
       workbench.getByText("合上黄色抽屉", { exact: true }),
     ).toBeAttached();
     await expect(canvas).toHaveAttribute("data-view", "drawing");
+    await view.press("Space");
+    await expect(canvas).toHaveAttribute("data-view", "model");
   });
 
   test("redraws the two computer screens in place after typing", async ({
@@ -191,7 +195,8 @@ test.describe("Home page", () => {
       [[767, 458], "笔记本正在打字"],
       [[1082, 435], "外接键盘正在打字"],
     ] as const) {
-      await clickArtworkPoint(page, workbench, screen);
+      const { x, y } = await artworkScreenPoint(workbench, screen);
+      await page.mouse.click(x, y);
       await page.clock.fastForward(600);
       await expect(canvas).toHaveAttribute("data-view", "model");
       await expect(workbench.getByText(typing, { exact: true })).toBeAttached();
@@ -310,15 +315,33 @@ test.describe("Home page", () => {
     );
     await view.press("Home");
     await page.clock.runFor(32);
-    const box = await canvas.boundingBox();
-    if (!box) throw new Error("Missing model canvas");
     for (let step = 0; step < 7; step++) await view.press("+");
-    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-    await page.mouse.wheel(0, -500);
     await page.clock.runFor(64);
     expect(Number(await canvas.getAttribute("data-zoom"))).toBeCloseTo(2.3, 3);
-    await view.press("Home");
+    await view.press("-");
     await page.clock.runFor(32);
+    expect(Number(await canvas.getAttribute("data-zoom"))).toBeCloseTo(2, 3);
+
+    await view.scrollIntoViewIfNeeded();
+    const wheelBox = await canvas.boundingBox();
+    if (!wheelBox) throw new Error("Missing model canvas");
+    const beforeWheel = await page.evaluate(() => scrollY);
+    await page.mouse.move(
+      wheelBox.x + wheelBox.width / 2,
+      wheelBox.y + wheelBox.height / 2,
+    );
+    await page.mouse.wheel(0, 350);
+    await expect
+      .poll(() => page.evaluate(() => scrollY))
+      .toBeGreaterThan(beforeWheel);
+    await page.clock.runFor(64);
+    expect(Number(await canvas.getAttribute("data-zoom"))).toBeCloseTo(2, 3);
+
+    await view.press("Home");
+    await view.scrollIntoViewIfNeeded();
+    await page.clock.runFor(32);
+    const box = await canvas.boundingBox();
+    if (!box) throw new Error("Missing model canvas");
     for (let drag = 0; drag < 4; drag++) {
       await page.mouse.move(
         box.x + box.width * 0.75,
@@ -425,46 +448,67 @@ test.describe("Home page", () => {
     const view = await waitForWorkbenchModel(workbench);
     await view.scrollIntoViewIfNeeded();
     const canvas = view.locator("canvas");
-    const box = await canvas.boundingBox();
-    if (!box) throw new Error("Missing touch model");
     const touch = await page.context().newCDPSession(page);
     await touch.send("Emulation.setTouchEmulationEnabled", {
       enabled: true,
       maxTouchPoints: 2,
     });
+
+    async function canvasBounds() {
+      const box = await canvas.boundingBox();
+      if (!box) throw new Error("Missing touch model");
+      return box;
+    }
+
+    async function swipe(x: number, y: number, dx: number, dy: number) {
+      await touch.send("Input.dispatchTouchEvent", {
+        type: "touchStart",
+        touchPoints: [{ id: 1, x, y }],
+      });
+      for (let step = 1; step <= 8; step++) {
+        await touch.send("Input.dispatchTouchEvent", {
+          type: "touchMove",
+          touchPoints: [{ id: 1, x: x + step * dx, y: y + step * dy }],
+        });
+      }
+      await touch.send("Input.dispatchTouchEvent", {
+        type: "touchEnd",
+        touchPoints: [],
+      });
+    }
+
+    await expect(canvas).toHaveCSS("touch-action", "pan-y pinch-zoom");
+    const idleBox = await canvasBounds();
+    const idleScroll = await page.evaluate(() => scrollY);
+    await swipe(
+      Math.round(idleBox.x + idleBox.width * 0.5),
+      Math.round(idleBox.y + idleBox.height * 0.7),
+      0,
+      -12,
+    );
+    await expect
+      .poll(() => page.evaluate(() => scrollY))
+      .toBeGreaterThan(idleScroll);
+    await expect(canvas).toHaveAttribute("data-pitch", "0");
+    await expect(canvas).toHaveAttribute("data-zoom", "1");
+
+    const enter = workbench.getByRole("button", { name: "操作工作台" });
+    const exit = workbench.getByRole("button", { name: "退出操作" });
+    await enter.click();
+    await expect(exit).toBeVisible();
+    await expect(canvas).toHaveCSS("touch-action", "none");
+    // End the preceding native fling before measuring the interaction gesture.
+    await page.evaluate(() => scrollTo({ top: scrollY, behavior: "instant" }));
+    const box = await canvasBounds();
     const x = Math.round(box.x + box.width * 0.35),
       y = Math.round(box.y + box.height * 0.6);
     const scrollBefore = await page.evaluate(() => scrollY);
-    await touch.send("Input.dispatchTouchEvent", {
-      type: "touchStart",
-      touchPoints: [{ id: 1, x, y }],
-    });
-    for (let i = 1; i <= 8; i++)
-      await touch.send("Input.dispatchTouchEvent", {
-        type: "touchMove",
-        touchPoints: [{ id: 1, x: x + i * 10, y }],
-      });
-    await touch.send("Input.dispatchTouchEvent", {
-      type: "touchEnd",
-      touchPoints: [],
-    });
+    await swipe(x, y, 10, 0);
     await page.clock.fastForward(750);
     expect(
       Math.abs(Number(await canvas.getAttribute("data-yaw"))),
     ).toBeGreaterThan(30);
-    await touch.send("Input.dispatchTouchEvent", {
-      type: "touchStart",
-      touchPoints: [{ id: 1, x, y }],
-    });
-    for (let i = 1; i <= 8; i++)
-      await touch.send("Input.dispatchTouchEvent", {
-        type: "touchMove",
-        touchPoints: [{ id: 1, x, y: y - i * 10 }],
-      });
-    await touch.send("Input.dispatchTouchEvent", {
-      type: "touchEnd",
-      touchPoints: [],
-    });
+    await swipe(x, y, 0, -10);
     await page.clock.fastForward(750);
     expect(
       Math.abs(Number(await canvas.getAttribute("data-pitch"))),
@@ -492,22 +536,93 @@ test.describe("Home page", () => {
     });
     await page.clock.fastForward(750);
     expect(Number(await canvas.getAttribute("data-zoom"))).toBeGreaterThan(1.2);
+    await swipe(8, 600, 0, -12);
+    await expect
+      .poll(() => page.evaluate(() => scrollY))
+      .toBeGreaterThan(scrollBefore);
+
+    await exit.click();
+    await expect(canvas).toHaveCSS("touch-action", "pan-y pinch-zoom");
+
+    await enter.click();
+    await expect(canvas).toHaveCSS("touch-action", "none");
+    await view.press("Home");
+    await page.clock.runFor(48);
+    const drawerOpened = workbench.getByText("拉出黄色抽屉", { exact: true });
+    await view.scrollIntoViewIfNeeded();
+    const drawer = await artworkScreenPoint(workbench, yellowDrawerFront);
+    const drawerTouch = {
+      id: 1,
+      x: Math.round(drawer.x),
+      y: Math.round(drawer.y),
+    };
     await touch.send("Input.dispatchTouchEvent", {
       type: "touchStart",
-      touchPoints: [{ id: 1, x: 8, y: 600 }],
+      touchPoints: [drawerTouch],
     });
-    for (let i = 1; i <= 8; i++)
-      await touch.send("Input.dispatchTouchEvent", {
-        type: "touchMove",
-        touchPoints: [{ id: 1, x: 8, y: 600 - i * 12 }],
-      });
+    await touch.send("Input.dispatchTouchEvent", {
+      type: "touchCancel",
+      touchPoints: [],
+    });
+    await page.clock.runFor(48);
+    await expect(drawerOpened).toHaveCount(0);
+    await expect(canvas).toHaveAttribute("data-view", "drawing");
+    await touch.send("Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: [drawerTouch],
+    });
     await touch.send("Input.dispatchTouchEvent", {
       type: "touchEnd",
       touchPoints: [],
     });
+    await expect(drawerOpened).toBeAttached();
+    await page.clock.fastForward(750);
+
+    await page.setViewportSize({ width: 667, height: 375 });
+    await canvas.evaluate((element) => {
+      const { top, height } = element.getBoundingClientRect();
+      window.scrollTo({
+        top: scrollY + top + height / 2 - innerHeight / 2,
+        behavior: "instant",
+      });
+    });
+    const [exitBox, headerBox] = await Promise.all([
+      exit.boundingBox(),
+      page.getByRole("banner").boundingBox(),
+    ]);
+    if (!exitBox || !headerBox)
+      throw new Error("Missing workbench exit or header");
+    expect(exitBox.y).toBeGreaterThanOrEqual(headerBox.y + headerBox.height);
+    expect(exitBox.y + exitBox.height).toBeLessThanOrEqual(375);
+
+    await page.setViewportSize({ width: 320, height: 844 });
+    await view.press("ArrowRight");
+    await view.press("+");
+    await page.clock.runFor(48);
+    const zoom = await canvas.getAttribute("data-zoom");
+    const yaw = await canvas.getAttribute("data-yaw");
+    await view.press("Escape");
+    await expect(enter).toBeFocused();
+    await expect(canvas).toHaveCSS("touch-action", "pan-y pinch-zoom");
+    await expect(canvas).toHaveAttribute("data-zoom", zoom!);
+    await expect(canvas).toHaveAttribute("data-yaw", yaw!);
+    await view.press("Enter");
+    await expect(
+      workbench.getByText("合上黄色抽屉", { exact: true }),
+    ).toBeAttached();
+    await view.scrollIntoViewIfNeeded();
+    const inactiveBox = await canvasBounds();
+    const exitScroll = await page.evaluate(() => scrollY);
+    await swipe(
+      Math.round(inactiveBox.x + inactiveBox.width * 0.5),
+      Math.round(inactiveBox.y + inactiveBox.height * 0.7),
+      0,
+      -12,
+    );
     await expect
       .poll(() => page.evaluate(() => scrollY))
-      .toBeGreaterThan(scrollBefore);
+      .toBeGreaterThan(exitScroll);
+    await expect(canvas).toHaveAttribute("data-yaw", yaw!);
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth),
     ).toBeLessThanOrEqual(320);

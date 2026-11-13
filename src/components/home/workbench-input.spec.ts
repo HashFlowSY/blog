@@ -138,4 +138,18 @@ describe("workbench pointer input", () => {
     expect(view.motion.stopTurningVise).toHaveBeenCalledOnce();
     expect(view.motion.activate).not.toHaveBeenCalled();
   });
+
+  it("discards an unfinished gesture when leaving touch interaction", () => {
+    const view = viewer();
+    const drawer = view.point(-1, 0);
+    view.cover.position.y = 2;
+    view.send("pointerdown", drawer, { pointerType: "touch" });
+    view.input.cancelGesture();
+    view.send("pointerup", drawer, { pointerType: "touch" });
+    expect(view.motion.activate).not.toHaveBeenCalled();
+
+    view.send("pointerdown", drawer, { pointerType: "touch" });
+    view.send("pointerup", drawer, { pointerType: "touch" });
+    expect(view.motion.activate).toHaveBeenCalledExactlyOnceWith("drawer-2");
+  });
 });

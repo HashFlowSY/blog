@@ -670,6 +670,28 @@ describe("strict content contracts", () => {
       expect(hasError(result, unsafeFile, "source")).toBe(true);
     });
 
+    it("requires both a readable label and an HTTPS URL when evidence is provided", () => {
+      const publicDir = createPublicDirectory();
+      const filePath = "content/projects/zh-CN/evidence.md";
+      const result = validateProjectCaseContracts(
+        [
+          {
+            filePath,
+            frontmatter: {
+              ...publishedProject(),
+              evidence: { label: " ", url: "javascript:alert('unsafe')" },
+            },
+            body: "# Project body",
+          },
+        ],
+        { publicDir },
+      );
+
+      expect(hasError(result, filePath, "evidence.label")).toBe(true);
+      expect(hasError(result, filePath, "evidence.url")).toBe(true);
+      expect(result.entries).toHaveLength(0);
+    });
+
     it("rejects public template state, invalid types, and duplicate slugs", () => {
       const publicDir = createPublicDirectory();
       const templateFile = "content/projects/zh-CN/template.md";
