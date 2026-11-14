@@ -54,14 +54,14 @@ test.describe("Projects", () => {
     await expect(page.getByText(STABLE_PROJECT.description)).toBeVisible();
     await expect(
       page.getByText(
-        "文章缺少必填字段时，静态站点构建失败，阻止不完整内容发布。",
+        "站点已在 GitHub Pages 上线，公开了两篇技术文章和一个项目案例。",
       ),
     ).toBeVisible();
     await expect(
-      page.getByRole("link", { name: "查看缺少字段时的构建校验测试" }),
+      page.getByRole("link", { name: "查看 GitHub Pages 部署记录" }),
     ).toHaveAttribute(
       "href",
-      /^https:\/\/github\.com\/HashFlowSY\/blog\/blob\/[a-f0-9]{40}\/src\/lib\/content-catalog\.spec\.ts#L\d+/,
+      /^https:\/\/github\.com\/HashFlowSY\/blog\/actions\/runs\/\d+$/,
     );
 
     const sourceLink = page.getByRole("link", { name: copy.source });

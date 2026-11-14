@@ -109,8 +109,10 @@ const publishedFragments = [
     "/projects/personal-blog/",
     [
       "概述",
+      "首页交互工作台",
       "内容管线",
       "markdown-渲染与-xss-防护",
+      "文章检索",
       "cjk-阅读时间",
       "文章推荐",
       "中文单站与-seo",

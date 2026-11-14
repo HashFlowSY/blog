@@ -26,7 +26,7 @@ const STABLE_PROJECT = {
   slug: "personal-blog",
   title: "Personal Blog",
   description:
-    "基于 Next.js 16 静态导出的中文个人作品站，包含类型安全的内容管线、CJK 阅读时间、标签感知推荐和完整测试验证。",
+    "Hashflow 的中文技术博客与作品集，包含手绘 3D 工作台、文章全文搜索和构建时 Markdown 渲染。",
 } as const;
 
 function routeForPost(slug: string = STABLE_POST.slug): string {
