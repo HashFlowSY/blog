@@ -4,7 +4,7 @@
 
 ## 当前模型的偏差
 
-仓库中的设计依据是二维插画及其成稿图层。当前模型先用固定的透视相机把画面标定点投到指定平面，再用矩形、圆柱和挤出轮廓生成实体。部分函数保留一条边或一个角，随后以平均深度、共用宽度或装配点调整其余角。旋转时这些几何保持固定，画面的遮挡和透视由观察相机计算。 [设计素材](../../README.md#L72) · [参考相机与射线求交](../../src/components/home/workbench-view.ts#L27) · [桌板矩形化](../../src/components/home/workbench-model.ts#L289) · [交互时的相机更新](../../src/components/home/workbench-scene.ts#L169)
+仓库中的设计依据是二维插画及其成稿图层。当前模型先用固定的透视相机把画面标定点投到指定平面，再用矩形、圆柱和挤出轮廓生成实体。部分函数保留一条边或一个角，随后以平均深度、共用宽度或装配点调整其余角。旋转时这些几何保持固定，画面的遮挡和透视由观察相机计算。 [设计素材](workbench-source/) · [参考相机与射线求交](../../src/components/home/workbench-view.ts#L27) · [桌板矩形化](../../src/components/home/workbench-model.ts#L289) · [交互时的相机更新](../../src/components/home/workbench-scene.ts#L169)
 
 对 `e0c5029` 做了裸网格重投影。用运行时的参考相机把实际三维坐标投到 1536 × 1024 原稿坐标系，和代码已有的原画标定点比较。叠图以首页的三个成稿图层为底图，蓝线为所选实体在该角度的可见边界，橙点为原画标定点，蓝点为相应的几何位置。数值反映这组标定点的偏差。 [网格叠图](../../qa-evidence/workbench-geometry-research/geometry-overlay.png) · [测量坐标与计算结果](../../qa-evidence/workbench-geometry-research/projected-geometry.json)
 

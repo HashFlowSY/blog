@@ -1,492 +1,109 @@
-# Blog
+# Hashflow · 技术博客与作品集
 
-A Chinese personal portfolio built with Next.js 16. It presents real Project Cases and technical writing, and is deployed as a static site on GitHub Pages.
+我是 Hashflow。这里记录我使用 AI 工具和开发软件的实践，也展示我在项目中负责的工作、技术取舍和可核实的成果。站点用中文写作，由 Next.js 静态构建并部署到 GitHub Pages。
 
-## Features
+[在线首页](https://hashflowsy.github.io/blog/) · [技术写作](https://hashflowsy.github.io/blog/posts/) · [项目案例](https://hashflowsy.github.io/blog/projects/) · [关于与联系](https://hashflowsy.github.io/blog/about/#contact) · [RSS](https://hashflowsy.github.io/blog/feed.xml)
 
-- **Static Export** — Pure HTML/CSS/JS, no server required
-- **Unified Portfolio UI** — One workbench and portfolio system across the home page, Project Cases, Posts, and about page
-- **Hand-Drawn Workbench** — Pencil construction from points to a textured 3D model with 360-degree orbit. Scrolling over it moves the page; on touchscreens, a control turns on model gestures
-- **Strict Content Catalog** — Posts and Project Cases use explicit, Zod-validated frontmatter and build as one atomic snapshot
-- **Chinese-Only Routes** — Root, posts, projects, about, RSS, sitemap, and content all target Chinese
-- **Syntax Highlighting** — Code blocks with language labels, copy button, line highlighting
-- **Post Search** — Filter by topic and search published Posts by title, summary, tags, or body text. The browser loads `/search-index.json` on the first keyword search
-- **Post Reading Template** — Shared reading layout with section links and progress through the body
-- **SEO** — Sitemap, robots.txt, canonical URLs, noindex 404
-- **RSS Feed** — `/feed.xml`
-- **Reading Stats** — Visible prose counts and estimated time on post details; estimated time on post cards
-- **XSS Safe** — All Markdown HTML sanitized via rehype-sanitize
-- **CI/CD** — Auto-deploy on push to `main` via GitHub Actions
+[![Hashflow 首页：左侧是个人介绍，右侧是手绘交互工作台](e2e/visual-regression.spec.ts-snapshots/home-desktop-chromium-visual-linux.png)](https://hashflowsy.github.io/blog/)
 
-## Tech Stack
+## 现在可以看什么
 
-| Technology                                            | Purpose                               |
-| ----------------------------------------------------- | ------------------------------------- |
-| [Next.js 16](https://nextjs.org)                      | Framework (App Router, static export) |
-| [React 19](https://react.dev)                         | UI library                            |
-| [TypeScript 5](https://www.typescriptlang.org)        | Type safety (strict mode)             |
-| [Tailwind CSS 4](https://tailwindcss.com)             | Styling                               |
-| [Zod 4](https://zod.dev)                              | Frontmatter validation                |
-| [remark / rehype](https://github.com/remarkjs/remark) | Markdown processing pipeline          |
-| [Shiki](https://shiki.style/)                         | Build-time syntax highlighting        |
-| [Vitest](https://vitest.dev)                          | Unit testing                          |
-| [Playwright](https://playwright.dev)                  | End-to-end testing                    |
-| [ESLint 9](https://eslint.org)                        | Linting (flat config)                 |
-| [Prettier 3](https://prettier.io)                     | Code formatting                       |
-| [husky](https://typicode.github.io/husky)             | Git hooks                             |
-| [pnpm 11.28.10](https://pnpm.io)                      | Package manager                       |
+- **工作台**：铅笔在首页逐步画出工作台。画完后可拖动 360° 查看 Three.js 模型，也可操作抽屉和台灯。触屏上先点「操作工作台」；WebGL 不可用时会保留二维成稿。
+- **两篇文章**：[用 Codex 定制桌面宠物：流程与踩坑](https://hashflowsy.github.io/blog/posts/2026-05-02/) 和 [AI 服务中转站：常见术语与风险清单](https://hashflowsy.github.io/blog/posts/2026-04-30/)。文章列表支持主题筛选和关键词搜索，详情提供目录、阅读进度、预计时长与推荐文章。
+- **一个项目案例**：[Personal Blog](https://hashflowsy.github.io/blog/projects/personal-blog/) 记录了本站的实现与验证。后续案例待整理[可公开的项目事实和证据](.scratch/site-experience/issues/01-add-real-project-evidence.md)。
 
-## Project Structure
+[部署记录](https://github.com/HashFlowSY/blog/actions/workflows/deploy.yml) · [现状调研与开源 README 对照](docs/research/readme-audit.md)
 
-```
-content/
-├── posts/zh-CN/              # Chinese blog posts (Markdown)
-└── projects/zh-CN/           # Chinese Project Cases (Markdown)
+## 本地启动
 
-src/
-├── app/
-│   ├── layout.tsx            # Root layout + site shell
-│   ├── globals.css           # Shared workbench and portfolio styles
-│   ├── studio.css            # Paper palette, layout and interaction styling
-│   ├── page.tsx              # Home
-│   ├── about/                # About page
-│   ├── posts/                # Blog posts (list + detail)
-│   ├── projects/             # Projects (list + detail)
-│   ├── not-found.tsx         # 404 page
-│   ├── sitemap.ts            # Auto-generated sitemap
-│   ├── robots.ts             # robots.txt
-│   ├── search-index.json/    # Published article search index
-│   └── feed.xml/             # RSS feed
-├── components/
-│   ├── home/                 # Pencil drawing, construction timing and 3D workbench
-│   ├── layout/               # Header, footer, site shell, back-to-top
-│   ├── markdown/             # Shared Markdown body, code frames and reading tools
-│   ├── post/                 # Post archive, detail and cards
-│   └── project/              # Project Case card, list
-└── lib/                      # Data layer, utilities
-    ├── content-catalog.ts    # Atomic content discovery, validation, and queries
-    ├── content-contracts.ts  # Strict Post and Project Case frontmatter contracts
-    ├── markdown/             # Frontmatter, document compilation and reading stats
-    ├── site.ts               # Site URL config
-    └── feed.ts               # RSS XML builder
-```
-
-The workbench uses one model for the finished drawing and the orbit view.
-The original art and texture source layers live under `docs/design/`.
-The [workbench assembly plan](docs/design/workbench-assembly-plan.md) describes
-how to bake the atlas and the finished drawing layers for the static export.
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 24.22.2 or a newer 24.x patch (`.nvmrc` pins the validated version)
-- pnpm 11.28.10
-
-### Install
+使用 Node.js `24.22.2`（见 [`.nvmrc`](.nvmrc)，项目支持从此版本起的 Node.js 24.x）和 pnpm `11.28.10`。
 
 ```bash
-git clone <repo-url> && cd blog
-pnpm install
-```
-
-### Environment Variables
-
-Create `.env.local` for local development:
-
-```env
-NEXT_PUBLIC_SITE_URL=http://localhost:3000
-BASE_PATH=
-```
-
-See [Environment Variables](#environment-variables) for the full list.
-
-### Development
-
-```bash
+git clone https://github.com/HashFlowSY/blog.git
+cd blog
+pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+打开 [http://localhost:3000](http://localhost:3000)。本地开发可直接启动；如果需要生成带域名的链接，可在 `.env.local` 中设置 `NEXT_PUBLIC_SITE_URL=http://localhost:3000`。生产构建的地址要求见[构建与部署](#构建与部署)。
 
-### Build
+## 写作与发布
 
-`pnpm build` runs in production mode. The `http://localhost:3000` value above
-is for `pnpm dev` only and is rejected by a production build. Pass a bare HTTPS
-deployment origin explicitly so it overrides the local development settings:
+文章放在 [`content/posts/zh-CN/`](content/posts/zh-CN/)，项目放在 [`content/projects/zh-CN/`](content/projects/zh-CN/)。两类内容都使用目录下的 `.md` 文件，页面 URL 不含 `/zh-CN/`。
 
-```bash
-NODE_ENV=production NEXT_PUBLIC_SITE_URL=https://example.com BASE_PATH= NEXT_PUBLIC_BASE_PATH= pnpm build
-```
-
-Replace `https://example.com` with the deployed site origin. Static output is
-generated in the `out/` directory. Canonical URLs, RSS URLs, and sitemap URLs
-are written into that artifact at build time. Rebuild separately for every
-deployment target with its final origin and base path; do not reuse an artifact
-between localhost, preview, and production.
-
-### Verify the deployable static artifact
-
-Build the same representative GitHub Pages project-site artifact that the
-release gate validates:
-
-```bash
-NODE_ENV=production NEXT_PUBLIC_SITE_URL=https://example.com BASE_PATH=/blog NEXT_PUBLIC_BASE_PATH=/blog pnpm build
-```
-
-Start a read-only preview of the existing output, then open
-[http://127.0.0.1:4173/blog/](http://127.0.0.1:4173/blog/):
-
-```bash
-pnpm preview:static
-```
-
-Run the complete Chromium artifact suite, Chromium-only accessibility and
-keyboard checks, focused visual project, and smaller WebKit smoke suite against
-that same output with:
-
-```bash
-pnpm test:e2e:static
-```
-
-The `chromium-a11y` static project is part of that command and runs only in
-Chromium. It scans the home page (`/`), post list (`/posts/`), stable post
-fixture (`/posts/2026-04-30/`), project list (`/projects/`), stable real project
-fixture (`/projects/personal-blog/`), and the generated 404 document. The 404
-check first verifies an HTTP 404 response and byte-for-byte equality with
-`out/404.html`, then runs the accessibility scan. All pages are served from the
-same `/blog` build of `out/`.
-
-The gate uses `@axe-core/playwright@4.12.1` and fails when any violation has
-`serious` or `critical` impact. Failure output includes the axe rule id, impact,
-help text/URL, and each matched DOM target. Moderate and minor findings do not
-lower this threshold. Automated scanning complements the focused keyboard
-tests for the skip link, mobile menu, navigation links, and isolated copy
-control fixture.
-
-Run only the accessibility project with:
-
-```bash
-pnpm test:e2e:static:a11y
-```
-
-To inspect a browser project independently:
-
-```bash
-pnpm test:e2e:static:chromium
-pnpm test:e2e:static:a11y
-pnpm test:e2e:static:visual
-pnpm test:e2e:static:webkit
-```
-
-These commands require an already-complete `out/` directory. They only serve
-and test that directory: they do not run `next dev`, `next start`, or an
-implicit rebuild. The preview server uses Node 24's built-in HTTP and file
-system modules, so this harness adds no static-server dependency. Failure
-screenshots and traces are separated under
-`test-results/static-artifact/chromium/` and
-`test-results/static-artifact/chromium-a11y/` for the accessibility project,
-`test-results/static-artifact/chromium-visual/` for the visual project, and
-`test-results/static-artifact/webkit/`; the HTML report is written to
-`playwright-static-report/`. A visual failure keeps the expected, actual, and
-diff PNGs alongside its trace and screenshot in the visual project directory.
-
-The `chromium-visual` project owns exactly four viewport screenshots: the home
-page at `1440x900`, the stable post
-`/posts/2026-04-30/` at `1440x900`, the real project
-`/projects/personal-blog/` at `1440x900`, and the home page at `375x667` with
-the mobile navigation open. It uses Chromium with a fixed device scale factor,
-light color scheme, reduced motion, `zh-CN` locale, and `Asia/Shanghai`
-timezone. The snapshots live in
-`e2e/visual-regression.spec.ts-snapshots/`; names include `linux` and the
-`chromium-visual` project marker through Playwright's platform/project suffix.
-Linux files therefore end in `-chromium-visual-linux.png`; Darwin explicitly
-skips the project and never creates or accepts a canonical baseline (the
-underlying Playwright suffix would be `-darwin` if that guard were removed).
-The visual project is excluded from
-development-server tests and from the ordinary Chromium project, and WebKit
-remains smoke-only.
-
-On non-Linux hosts, the visual project is explicitly reported as skipped so
-`pnpm test:e2e:static` can still exercise the non-visual static suites without
-looking for Darwin baselines. Linux CI runs all four comparisons and fails if
-any canonical PNG is missing or exceeds the comparison limit.
-
-### Visual baseline review
-
-Canonical PNGs must be generated in a Linux/Chromium environment aligned with
-CI, using the Playwright version pinned by `pnpm-lock.yaml` and the CI runner's
-architecture (the committed baseline uses the amd64 image variant). Do not
-generate or commit a baseline from macOS or a different Linux architecture.
-The visual project disables automatic snapshot updates. The desktop home
-screenshot allows one differing pixel for Chromium's text antialiasing at the
-edge of the workbench hint. The other three screenshots require an exact match.
-
-For an intentional baseline change, run the update explicitly in the approved
-Linux environment, inspect every expected/actual/diff image, then run two
-ordinary comparison passes:
-
-```bash
-pnpm test:e2e:static:visual --update-snapshots
-pnpm test:e2e:static:visual
-pnpm test:e2e:static:visual
-```
-
-Review the PNG diff with the code change and commit the four baseline files
-together. Updating snapshots is never part of the default test command.
-
-Accessibility suppressions are intentionally local: there is no shared
-site-wide rule-disable list. A suppression is permitted only beside the
-specific page/rule, with the rule id, concrete reason, and exact scope written
-in the test. It must not silently affect another page.
-
-## Writing Content
-
-### Post
-
-Create a Markdown file in `content/posts/zh-CN/`:
-
-````markdown
----
-title: "My New Post"
-slug: "my-new-post"
-date: "2026-04-02"
-updated: "2026-04-03"
-tags: ["nextjs", "tutorial"]
-summary: "A short description of the post."
-draft: false
----
-
-Your Markdown content here. Code blocks get syntax highlighting:
-
-```typescript
-console.log("Hello, World!");
-```
-````
-
-### Project Case
-
-Create a Markdown file in `content/projects/zh-CN/`:
+新建 `content/posts/zh-CN/static-deploy-notes.md`，例如：
 
 ```markdown
 ---
-title: "My Project"
-slug: "my-project"
-date: "2026-04-02"
-tags: ["react", "typescript"]
-description: "A brief project description."
-cover: "/assets/my-project-cover.jpg"
-source: "https://github.com/user/repo"
-demo: "https://demo.example.com"
-role: "My actual responsibility"
-duration: "2026-01 to 2026-03"
-result: "An outcome supported by evidence"
-evidence:
-  label: "Read the verification report"
-  url: "https://github.com/user/repo/blob/main/docs/verification.md"
-featured: true
+title: "一次静态站点部署记录"
+slug: "static-deploy-notes"
+date: "2026-11-14"
+tags: ["静态站点"]
+summary: "记录构建、产物检查和发布的过程。"
 draft: false
 ---
 
-Detailed project description in Markdown.
+## 构建产物
+
+用 `pnpm build` 生成用于发布的静态文件。
 ```
 
-### Template Case
+运行开发服务器后，可在 `/posts/static-deploy-notes/` 查看这篇示例文章。`slug` 决定公开地址，与文件名无关，在同一内容集合内必须唯一。新内容用小写字母、数字和短横线组成描述性 slug。纯日期会被拒绝，历史地址 `2026-04-30` 和 `2026-05-02` 除外。[稳定链接约定](docs/adr/0003-use-explicit-stable-slugs.md)
 
-`templates/project-case.md` is an internal Template Case. It is outside the
-Content Catalog's scanned directories and is never public portfolio evidence.
-Copy it only after real, publishable facts and a local cover asset are ready;
-do not add a public `template` field.
+`draft: true` 可暂留草稿，已填写的字段仍要通过校验。发布时设为 `draft: false`，并补齐必填字段和正文。文章可选填 `updated`，日期不得早于 `date`。YAML 中的未知字段和重复键会报错。[字段规则](src/lib/content-contracts.ts)
 
-### Draft
+项目案例可参照[真实案例源码](content/projects/zh-CN/personal-blog.md)和[作者模板](templates/project-case.md)。项目用 `description` 代替 `summary`，另需填写 `role`、`duration`、`result`、`cover` 和 `featured`。封面必须是 `public/` 中已存在的文件，例如 `/assets/personal-blog-home.jpg`。`source`、`demo` 和 `evidence` 都可省略；填写 `evidence` 时需提供 `label` 和 `url`，所有这些外链均使用完整 HTTPS 地址。
 
-A Draft must explicitly declare `draft: true`. It may omit publication fields
-and its Markdown body, but every field it provides must still have a valid type
-and format.
+### Markdown 约定
 
-### Markdown Support
+- 支持 CommonMark 及 GFM 表格、任务列表、脚注，自动生成标题锚点。同一篇内可用 `#构建产物` 这样的片段；链接到其他页面时使用目标页实际发布的锚点。
+- 站内链接与图片使用 `/posts/example/`、`/assets/figure.png` 这类路径，编译时会加上部署前缀。原始 HTML 会被忽略，生成的正文按白名单净化。
+- 代码由 Shiki 在构建时高亮，页面可复制原文。围栏可指定 [Shiki 支持的语言](https://shiki.style/languages)，例如 `typescript {1,3-5}` 会突出第 1、3 至 5 行。省略语言时按纯文本显示。未知语言、无效或越界的行号会导致构建报错。
 
-Posts and Project Cases use safe static Markdown. Supported authoring features:
+## 构建与部署
 
-- CommonMark headings, paragraphs, emphasis, links, blockquotes, ordered lists, unordered lists, inline code, and fenced code blocks
-- GitHub Flavored Markdown tables, task lists, strikethrough, footnotes, and autolink literals
-- Markdown images with sanitized `src`, `alt`, and `title`
-- Automatic heading anchors for `h1` through `h6`; use `#heading-slug` for links within the same Markdown file. Use the published fragment for links to another page.
-- Use unprefixed root paths such as `/assets/figure.png` and `/posts/example/`; the compiler applies the deployment base path.
-- Code highlighting uses [Shiki's bundled language names and aliases](https://shiki.style/languages). Omit the language, or use `text`, `plaintext`, `txt`, or `plain` for plain text.
-- Add `{1,3-5}` after the language to highlight those lines. Unknown languages and invalid or out-of-range line numbers stop the build with a source location.
-- Reading stats count visible prose, including inline code and footnote text. Block code remains searchable and does not add reading time.
+用与静态验证默认值一致的 `/blog` 配置构建 `out/`：
 
-Intentional exclusions:
-
-- No MDX files
-- No embedded React components
-- No arbitrary raw HTML as a supported content feature
-- No iframe or script embeds
-
-### Frontmatter Reference
-
-#### Post
-
-| Field     | Required for a published Post | Description                                                               |
-| --------- | ----------------------------- | ------------------------------------------------------------------------- |
-| `title`   | Yes                           | Non-empty title                                                           |
-| `slug`    | Yes                           | Stable lowercase kebab-case URL segment; it never comes from the filename |
-| `date`    | Yes                           | Real `YYYY-MM-DD` calendar date                                           |
-| `updated` | No                            | Real `YYYY-MM-DD` date that is not earlier than `date`                    |
-| `tags`    | Yes                           | At least one non-empty, unique tag after trimming                         |
-| `summary` | Yes                           | Non-empty summary                                                         |
-| `draft`   | Yes                           | Explicitly `false` for a published Post and `true` for a Draft            |
-
-#### Project Case
-
-| Field         | Required for a published Project Case | Description                                                               |
-| ------------- | ------------------------------------- | ------------------------------------------------------------------------- |
-| `title`       | Yes                                   | Non-empty title                                                           |
-| `slug`        | Yes                                   | Stable lowercase kebab-case URL segment; it never comes from the filename |
-| `date`        | Yes                                   | Real `YYYY-MM-DD` calendar date                                           |
-| `tags`        | Yes                                   | At least one non-empty, unique tag after trimming                         |
-| `description` | Yes                                   | Non-empty project summary                                                 |
-| `cover`       | Yes                                   | Root-relative asset that exists inside `public/`                          |
-| `role`        | Yes                                   | The author's actual responsibility                                        |
-| `duration`    | Yes                                   | Actual participation or delivery period                                   |
-| `result`      | Yes                                   | Outcome supported by publishable evidence                                 |
-| `evidence`    | No                                    | Public evidence link with non-empty `label` and absolute HTTPS `url`      |
-| `source`      | No                                    | Absolute HTTPS source URL                                                 |
-| `demo`        | No                                    | Absolute HTTPS demo URL                                                   |
-| `featured`    | Yes                                   | Explicit boolean controlling the home-page selection                      |
-| `draft`       | Yes                                   | Explicitly `false` for a published Project Case and `true` for a Draft    |
-
-Use YAML 1.2 frontmatter enclosed by `---` lines at the start of the file.
-Duplicate keys and unknown fields are rejected. Published Posts and Project
-Cases require a non-empty Markdown body.
-
-## Chinese-Only Routing
-
-The site no longer uses locale-prefixed routes or translation files. Add Chinese content under `content/posts/zh-CN/` and `content/projects/zh-CN/`; public pages are served at `/`, `/posts/`, `/projects/`, `/about/`, and `/feed.xml`.
-
-## Deployment
-
-### GitHub Pages (Automatic)
-
-The included GitHub Actions workflow (`deploy.yml`) handles everything:
-
-1. Push to `main` triggers the workflow
-2. `actions/configure-pages` reads `BASE_PATH` from the configured Pages URL:
-   - `username.github.io` → empty (root)
-   - `username.github.io/repo-name` → `/repo-name`
-   - `your-domain.com` → empty when Pages serves the site at that domain's root
-3. The reusable quality workflow runs linting, non-incremental TypeScript,
-   coverage, dependency audit, and the development-server Chromium suite
-4. `pnpm build` generates static files in `out/`; Chromium, accessibility,
-   focused Linux visual, and WebKit smoke checks verify that exact directory
-   under the computed base path
-5. The same verified `out/` directory is deployed to GitHub Pages
-
-**Setup:**
-
-1. Go to repo **Settings → Pages → Source**
-2. Select **GitHub Actions** as the source
-3. Go to **Settings → Secrets and variables → Actions → Variables**
-4. Add `NEXT_PUBLIC_SITE_URL` to **Repository variables**(e.g. `https://username.github.io`)
-5. Push to `main` — deployment starts automatically
-
-### Custom Domain
-
-Configure the custom domain in **Settings → Pages**, set `NEXT_PUBLIC_SITE_URL`
-to its HTTPS origin in GitHub Variables, and configure DNS accordingly. The
-workflow reads the resulting Pages URL, including its path, before building.
-
-## Environment Variables
-
-| Variable                | Required   | Description                                                                               |
-| ----------------------- | ---------- | ----------------------------------------------------------------------------------------- |
-| `NEXT_PUBLIC_SITE_URL`  | Production | Build-time origin for sitemap, robots, RSS, and canonical URLs                            |
-| `BASE_PATH`             | No         | URL prefix for project pages; omitted or empty means the site root                        |
-| `NEXT_PUBLIC_BASE_PATH` | No         | Automatically bundled from the resolved base path; explicit values must match `BASE_PATH` |
-
-### NEXT_PUBLIC_SITE_URL
-
-The final deployment origin. During `pnpm build`, it is written into sitemap,
-robots.txt, RSS feed URLs, and canonical links together with `BASE_PATH`.
-Build again whenever either value changes; a static artifact is only valid for
-the origin and base path used to create it.
-
-For releases, it must be a bare HTTPS origin: no path, query, hash, or
-trailing slash. `http://localhost` is allowed only for local development. Put
-any repository path in `BASE_PATH`, not in this value.
-
-**Local development:**
-
-```env
-NEXT_PUBLIC_SITE_URL=http://localhost:3000
+```bash
+NEXT_PUBLIC_SITE_URL=https://example.com BASE_PATH=/blog NEXT_PUBLIC_BASE_PATH=/blog pnpm build
 ```
 
-**GitHub Pages (default address):**
+如需在浏览器中手动检查产物，运行 `pnpm preview:static`，打开 [http://127.0.0.1:4173/blog/](http://127.0.0.1:4173/blog/)。运行自动化静态测试前，先关闭手动预览；Playwright 会自行启动预览服务。
 
-```
-# Settings → Secrets and variables → Actions → Variables
-Name:  NEXT_PUBLIC_SITE_URL
-Value: https://username.github.io
-```
+| 构建变量                | 用途                                                                                                                 |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_SITE_URL`  | 生产构建必填，值为 HTTPS origin，例如 `https://hashflowsy.github.io`。末尾不加斜杠，也不带 `/blog`、查询参数或片段。 |
+| `BASE_PATH`             | 站点部署前缀。本项目使用 `/blog`；部署在域名根路径时留空。非空值以 `/` 开头，末尾不加斜杠。                          |
+| `NEXT_PUBLIC_BASE_PATH` | 由 Next.js 配置注入浏览器。若手动同时设置此变量和 `BASE_PATH`，两者必须一致。                                        |
 
-**GitHub Pages (custom domain):**
+canonical、RSS、站点地图和资源链接在构建时写入产物。更换域名或部署前缀时，用目标配置重新构建。
 
-```
-Name:  NEXT_PUBLIC_SITE_URL
-Value: https://your-domain.com
-```
+在 GitHub Pages 的 **Settings → Pages → Source** 选择 **GitHub Actions**，并在 **Settings → Secrets and variables → Actions → Variables** 设置 `NEXT_PUBLIC_SITE_URL`。推送到 `main` 或手动触发后，[发布流程](.github/workflows/deploy.yml)会读取 Pages 的路径配置，验证构建产物，再部署同一份 `out/`。
 
-### BASE_PATH
+## 开发与验证
 
-The URL prefix for GitHub Pages project sites. `deploy.yml` reads it from the
-configured Pages URL, so repository sites and custom domains use their actual
-deployment path.
+| 命令                                         | 检查内容                                                                  |
+| -------------------------------------------- | ------------------------------------------------------------------------- |
+| `pnpm lint` / `pnpm format:check`            | ESLint / Prettier 格式检查                                                |
+| `pnpm exec tsc --noEmit --incremental false` | TypeScript 类型检查                                                       |
+| `pnpm test` / `pnpm test:coverage`           | 单元测试 / 单元测试与覆盖率门槛                                           |
+| `pnpm test:e2e`                              | 对开发服务器运行 Chromium 浏览器测试                                      |
+| `pnpm test:e2e:static`                       | 对已构建的 `out/` 运行 Chromium、无障碍、Linux 截图比对和 WebKit 冒烟测试 |
 
-Use either an empty value or a normalized root-relative path without a trailing
-slash (for example, `/blog`). It cannot contain an origin, query, or hash. When
-`NEXT_PUBLIC_BASE_PATH` is set, it must exactly match `BASE_PATH`.
+提交到 `main` 的 PR 执行[共享质量检查](.github/workflows/quality.yml)，包括依赖审计。发布时还会验证静态产物，覆盖带 `/blog` 的页面、资源、RSS 和 404。浏览器安装、根路径测试和视觉基线更新见[静态产物验证指南](docs/static-verification.md)。完整脚本见 [`package.json`](package.json)。
 
-- `username.github.io` → `BASE_PATH=` (empty)
-- `username.github.io/repo-name` → `BASE_PATH=/repo-name`
+## 源码入口
 
-For a manual project-site build, `BASE_PATH=/blog` is sufficient. Next.js
-automatically bundles the resolved value as `NEXT_PUBLIC_BASE_PATH` for client
-components. If you also set the public variable explicitly (including in
-`.env.local`), the two values must match. The GitHub Actions workflow supplies
-`BASE_PATH` and uses this same automatic client configuration.
+| 位置                                                       | 负责什么                                                                                     |
+| ---------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| [`src/app/`](src/app/)                                     | Next.js App Router 的页面、RSS、站点地图和搜索索引入口                                       |
+| [`src/components/home/`](src/components/home/)             | 铅笔动画和 Three.js 工作台，见[工作台设计及贴图生成](docs/design/workbench-assembly-plan.md) |
+| [`src/lib/content-catalog.ts`](src/lib/content-catalog.ts) | 校验文章与案例并生成统一的内容快照，供页面、RSS、搜索和站点地图使用                          |
+| [`src/lib/markdown/`](src/lib/markdown/)                   | Markdown 净化、目录与搜索文本提取、阅读统计和构建时 Shiki 高亮                               |
+| [`src/lib/site.ts`](src/lib/site.ts)                       | 站点名称、联系入口和 URL 配置                                                                |
 
-### Local Development
+核心技术为 Next.js 16、React 19、TypeScript、Tailwind CSS 4、Three.js、Zod 和 Shiki。静态站点、稳定链接和真实案例等取舍见[架构决策记录](docs/adr/)。
 
-Create `.env.local` in the project root:
+## 许可证
 
-```env
-NEXT_PUBLIC_SITE_URL=http://localhost:3000
-BASE_PATH=
-```
-
-## Scripts
-
-| Command                                      | Description                                                             |
-| -------------------------------------------- | ----------------------------------------------------------------------- |
-| `pnpm dev`                                   | Start the development server                                            |
-| `pnpm build`                                 | Build the production static artifact in `out/`                          |
-| `pnpm lint`                                  | Run ESLint                                                              |
-| `pnpm lint:fix`                              | Run ESLint with auto-fix                                                |
-| `pnpm format:check`                          | Check Prettier formatting                                               |
-| `pnpm exec tsc --noEmit --incremental false` | Run the release TypeScript check                                        |
-| `pnpm test`                                  | Run unit tests                                                          |
-| `pnpm test:watch`                            | Run unit tests in watch mode                                            |
-| `pnpm test:coverage`                         | Run unit tests with coverage                                            |
-| `pnpm audit --audit-level low`               | Check production and development dependencies for known vulnerabilities |
-| `pnpm test:e2e`                              | Run the development-server Chromium suite                               |
-| `pnpm preview:static`                        | Serve an existing static artifact at `/blog` by default                 |
-| `pnpm test:e2e:static`                       | Run static Chromium, a11y, focused visual, and WebKit smoke projects    |
-| `pnpm test:e2e:static:chromium`              | Run the ordinary static Chromium suite                                  |
-| `pnpm test:e2e:static:a11y`                  | Run the Chromium-only accessibility and keyboard gate                   |
-| `pnpm test:e2e:static:visual`                | Run four strict Chromium visual comparisons on Linux only               |
-| `pnpm test:e2e:static:webkit`                | Run the reduced static WebKit smoke suite                               |
-
-## License
-
-Private repository. All rights reserved.
+本仓库公开可读，尚未声明开源许可证。保留所有权利。
