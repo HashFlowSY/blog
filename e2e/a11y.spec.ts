@@ -11,6 +11,7 @@ import {
   STABLE_PROJECT,
   test,
 } from "./fixtures";
+import { waitForRouteEntry } from "./helpers/navigation";
 import { visitStaticPage } from "./helpers/static-page";
 import { routePath } from "./static-artifact-config";
 
@@ -75,14 +76,7 @@ async function prepareA11yPage(
   expectedStatus = 200,
 ): Promise<void> {
   await visitStaticPage(page, pathname, { expectedStatus });
-  // CSS overrides cannot stop the route entry's Web Animation. Wait for the
-  // client effect and its real completion before measuring text contrast.
-  await expect(page.locator("body")).toHaveAttribute("data-route", /\S+/);
-  await page.locator("main").evaluate(async (element) => {
-    await Promise.all(
-      element.getAnimations().map((animation) => animation.finished),
-    );
-  });
+  await waitForRouteEntry(page);
 }
 
 test.describe("Accessibility scans on the static artifact", () => {
