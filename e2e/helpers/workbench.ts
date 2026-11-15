@@ -10,11 +10,13 @@ export async function installDrawingClock(page: Page) {
   await page.clock.pauseAt(new Date(start.valueOf() + 1000));
 }
 
+export function workbenchScene(workbench: Locator) {
+  return workbench.locator("[data-drawing-state]");
+}
+
 export async function drawTo(page: Page, workbench: Locator, progress: number) {
-  const scene = workbench.locator("[data-progress]");
-  await expect(
-    workbench.getByRole("button", { name: "暂停构建" }),
-  ).toBeVisible();
+  const scene = workbenchScene(workbench);
+  await expect(scene).toHaveAttribute("data-drawing-state", "drawing");
   const current = Number(await scene.getAttribute("data-progress"));
   await page.clock.fastForward(
     Math.max(0, drawingTime(progress) - drawingTime(current)) + 16,
@@ -145,10 +147,10 @@ export async function movePencilToDrawing(page: Page, workbench: Locator) {
   const pen = workbench.locator('[data-construction-layer="pencil"]');
   for (
     let step = 0;
-    step < 8 && (await pen.getAttribute("data-phase")) !== "drawing";
+    step < 20 && (await pen.getAttribute("data-phase")) !== "drawing";
     step++
   ) {
-    await page.clock.runFor(40);
+    await page.clock.runFor(16);
   }
   await expect(pen).toHaveAttribute("data-phase", "drawing");
 }

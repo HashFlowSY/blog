@@ -102,7 +102,7 @@ describe("AssemblyWorkbench", () => {
   function scene() {
     return screen
       .getByRole("region", { name: "交互工作台" })
-      .querySelector("[data-progress]")!;
+      .querySelector("[data-drawing-state]")!;
   }
 
   function revealCanvas(intersectionRatio = 1) {
@@ -114,8 +114,9 @@ describe("AssemblyWorkbench", () => {
     revealCanvas(0.39);
     advanceTo(1200);
     expect(scene()).toHaveAttribute("data-progress", "0");
-    expect(screen.queryByRole("button", { name: "暂停构建" })).toBeNull();
+    expect(scene()).toHaveAttribute("data-drawing-state", "waiting");
     revealCanvas(0.6);
+    expect(scene()).toHaveAttribute("data-drawing-state", "drawing");
     advanceTo(2400);
     expect(Number(scene().getAttribute("data-progress"))).toBeGreaterThan(0);
     first.unmount();
@@ -140,6 +141,7 @@ describe("AssemblyWorkbench", () => {
     advanceTo(drawingTime(80));
     expect(planes).toHaveAttribute("opacity", "1");
     expect(scene().querySelector('[data-workbench-art="rest"]')).toBeNull();
+    expect(screen.queryAllByRole("button")).toHaveLength(0);
     advanceTo(drawingDuration);
     expect(
       scene().querySelector('[data-workbench-art="rest"]'),
@@ -147,18 +149,20 @@ describe("AssemblyWorkbench", () => {
     expect(
       screen.queryByRole("img", { name: /工作台构建/ }),
     ).not.toBeInTheDocument();
+    expect(scene()).toHaveAttribute("data-drawing-state", "complete");
+    expect(frames.size).toBe(0);
   });
 
-  it("pauses and resumes drawing without leaving a stuck or interrupted pencil", () => {
+  it("waits for the document to become visible before starting", () => {
+    const hidden = vi.spyOn(document, "hidden", "get").mockReturnValue(true);
     render(<AssemblyWorkbench />);
     revealCanvas();
-    advanceTo(1200);
-    const paused = scene().getAttribute("data-progress");
-    fireEvent.click(screen.getByRole("button", { name: "暂停构建" }));
-    advanceTo(4000);
-    expect(scene()).toHaveAttribute("data-progress", paused);
-    fireEvent.click(screen.getByRole("button", { name: "继续构建" }));
-    advanceTo(4000 + drawingDuration);
+    expect(scene()).toHaveAttribute("data-drawing-state", "waiting");
+    expect(frames.size).toBe(0);
+    hidden.mockReturnValue(false);
+    fireEvent(document, new Event("visibilitychange"));
+    expect(scene()).toHaveAttribute("data-drawing-state", "drawing");
+    advanceTo(drawingDuration);
     expect(scene()).toHaveAttribute("data-complete", "true");
   });
 
@@ -177,7 +181,7 @@ describe("AssemblyWorkbench", () => {
       screen.queryByRole("group", { name: "二维工作台部件" }),
     ).not.toBeInTheDocument();
     revealCanvas();
-    advanceTo(drawingDuration + 1200);
+    advanceTo(drawingDuration + drawingTime(9));
     expect(Number(scene().getAttribute("data-progress"))).toBeGreaterThan(0);
     expect(Number(scene().getAttribute("data-progress"))).toBeLessThan(18);
   });
@@ -189,13 +193,14 @@ describe("AssemblyWorkbench", () => {
     time = 100000;
     fireEvent(window, new PageTransitionEvent("pageshow", { persisted: true }));
     expect(scene()).toHaveAttribute("data-progress", "0");
+    expect(frames.size).toBe(0);
     revealCanvas();
-    advanceTo(101200);
+    advanceTo(100000 + drawingTime(9));
     expect(Number(scene().getAttribute("data-progress"))).toBeGreaterThan(0);
     expect(Number(scene().getAttribute("data-progress"))).toBeLessThan(18);
   });
 
-  it("shows finished artwork for reduced motion and restores parts on a fresh visit", async () => {
+  it("shows the finished artwork with reduced motion and resets retained controls on restoration", async () => {
     vi.stubGlobal(
       "matchMedia",
       vi.fn(() => ({ matches: true })),
@@ -207,31 +212,15 @@ describe("AssemblyWorkbench", () => {
     expect(
       screen.getByRole("group", { name: "二维工作台部件" }),
     ).toBeInTheDocument();
-    const movedParts = ["黄色抽屉", "工具箱", "台钳手柄", "圆凳"];
-    for (const name of movedParts) {
-      const button = screen.getByRole("button", { name });
-      expect(button).toHaveAttribute("aria-pressed", "false");
-      fireEvent.click(button);
-      expect(button).toHaveAttribute("aria-pressed", "true");
-    }
-    fireEvent.click(screen.getByRole("button", { name: "工作灯" }));
-    expect(screen.getByRole("button", { name: "工作灯" })).toHaveAttribute(
-      "aria-pressed",
-      "false",
-    );
+    expect(screen.getAllByRole("button")).toHaveLength(6);
+    const laptop = screen.getByRole("button", { name: "笔记本" });
+    fireEvent.click(laptop);
+    expect(screen.getByText("图纸已就绪")).toBeInTheDocument();
     expect(frames.size).toBe(0);
     fireEvent(window, new PageTransitionEvent("pageshow", { persisted: true }));
     expect(scene()).toHaveAttribute("data-complete", "true");
-    for (const name of movedParts) {
-      expect(screen.getByRole("button", { name })).toHaveAttribute(
-        "aria-pressed",
-        "false",
-      );
-    }
-    expect(screen.getByRole("button", { name: "工作灯" })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
+    expect(screen.queryByText("图纸已就绪")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "笔记本" })).not.toBe(laptop);
     expect(frames.size).toBe(0);
   });
 
@@ -271,13 +260,7 @@ describe("AssemblyWorkbench", () => {
         scene().querySelector('[data-workbench-art="rest"]'),
       ).toBeInTheDocument();
       if (result === "load") {
-        const start = screen.getByRole("button", { name: "操作工作台" });
-        fireEvent.click(start);
-        const exit = screen.getByRole("button", { name: "退出操作" });
-        expect(exit).toHaveAttribute("aria-pressed", "true");
-        fireEvent.keyDown(exit, { key: "Escape" });
-        expect(start).toHaveFocus();
-        expect(start).toHaveAttribute("aria-pressed", "false");
+        expect(screen.getAllByRole("button")).toHaveLength(6);
       } else {
         expect(
           screen.queryByRole("group", { name: "二维工作台部件" }),
@@ -289,19 +272,15 @@ describe("AssemblyWorkbench", () => {
     },
   );
 
-  it("pauses when hidden and cleans up its frame when unmounted", () => {
-    const { unmount } = render(<AssemblyWorkbench />);
+  it("finishes an in-progress drawing when the document is hidden", () => {
+    render(<AssemblyWorkbench />);
     revealCanvas();
-    advanceTo(1200);
-    const paused = scene().getAttribute("data-progress");
+    advanceTo(drawingTime(40));
+    expect(frames.size).toBe(1);
     vi.spyOn(document, "hidden", "get").mockReturnValue(true);
     fireEvent(document, new Event("visibilitychange"));
-    advanceTo(9000);
-    expect(scene()).toHaveAttribute("data-progress", paused);
-    expect(frames.size).toBe(0);
-    fireEvent.click(screen.getByRole("button", { name: "继续构建" }));
-    expect(frames.size).toBe(1);
-    unmount();
+    expect(scene()).toHaveAttribute("data-drawing-state", "complete");
+    expect(scene()).toHaveAttribute("data-progress", "100");
     expect(frames.size).toBe(0);
   });
 });

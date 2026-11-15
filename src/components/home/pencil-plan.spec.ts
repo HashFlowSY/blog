@@ -4,13 +4,14 @@ import { drawingProgress, drawingTime, hatchPath } from "./pencil-plan";
 
 describe("pencil playback timing", () => {
   it.each([0, 9, 18, 41, 58, 78, 82, 84.7, 95, 99.9, 100])(
-    "resumes at the same drawing position at %s percent",
+    "maps %s percent to its time and back",
     (progress) => {
       expect(drawingProgress(drawingTime(progress))).toBeCloseTo(progress, 8);
     },
   );
 
   it("reserves more time for the final details than the initial construction", () => {
+    expect(drawingTime(100)).toBeLessThan(5000);
     expect(drawingTime(100) - drawingTime(82)).toBeGreaterThan(drawingTime(82));
     expect(drawingProgress(-100)).toBe(0);
     expect(drawingProgress(drawingTime(100) + 1000)).toBe(100);

@@ -1,11 +1,8 @@
 # 2026-11-15 首页二维工作台验收
 
-- 固定视觉基准是 [第二张概念图](docs/design/workbench-2d/concept-1440.png)。在 Linux Chromium 的 1440 × 900 CSS 像素、DPR 1 视口，收笔且部件归位后，坐标 `(618, 91)` 起的 720 × 607 画稿选区与基准逐像素比对，437,040 个像素的 RGB 完全相同。
-- 首屏效果见仓库内的[桌面截图基线](e2e/visual-regression.spec.ts-snapshots/home-desktop-chromium-visual-linux.png)，画稿区域由[原画像素比对](e2e/visual-regression.spec.ts)验证。工作台、透视线和落地阴影沿用原图。导航、标题、按钮和项目入口使用网页文字及控件，字体栅格化随浏览器变化。提示文案为「点按部件试试」。
-- [首页浏览器用例](e2e/home.spec.ts)覆盖落点、轮廓、排线、细节、收笔、抽屉原位恢复和屏内逐笔出图；[部件状态测试](src/components/home/workbench-interactions.spec.ts)检查台钳掉落与回夹等时序。细节遮罩采用柔边，弱化补绘纸面和原图之间的切边。
-- 移动端菜单效果见[手机截图基线](e2e/visual-regression.spec.ts-snapshots/home-mobile-menu-open-chromium-visual-linux.png)。[触屏与窄屏用例](e2e/interaction.spec.ts)、[首页用例](e2e/home.spec.ts)和[组件测试](src/components/home/assembly-workbench.spec.tsx)验证纵向滚动、进入及退出操作、点按抽屉、键盘和减少动态效果。
-
-final result: passed
+- 在 Linux Chromium 的 1440 × 900 CSS 像素、DPR 1 视口，收笔且部件归位后，从坐标 `(618, 91)` 起取 720 × 607 画稿选区，与第二张概念图逐像素比对，要求 RGB 零差异。[概念图](docs/design/workbench-2d/concept-1440.png) · [像素比对](e2e/visual-regression.spec.ts)
+- 整页截图用于复核桌面首屏、手机裁剪、触屏操作栏移除后的布局和移动端菜单。[桌面截图基线](e2e/visual-regression.spec.ts-snapshots/home-desktop-chromium-visual-linux.png) · [手机截图基线](e2e/visual-regression.spec.ts-snapshots/home-mobile-menu-open-chromium-visual-linux.png)
+- 播放检查包括进入视口约 4.8 秒后收笔、绘制期间切换标签页、浏览器历史恢复及减少动态效果。收笔后验证两台设备的逐笔出图、叶片轻摆归位、六个热点的键盘操作，以及从触屏热点起手滑动时的页面滚动。[首页浏览器用例](e2e/home.spec.ts) · [窄屏用例](e2e/interaction.spec.ts) · [组件测试](src/components/home/assembly-workbench.spec.tsx)
 
 ## 历史验收记录
 

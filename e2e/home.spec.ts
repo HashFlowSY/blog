@@ -10,22 +10,21 @@ import {
   paintedPencilLength,
   waitForFinishedWorkbench,
   waitForWorkbenchArtwork,
+  workbenchScene,
 } from "./helpers/workbench";
 
 test.describe("Home page", () => {
-  test("redraws on entry, return, back and refresh without progress or replay controls", async ({
+  test("redraws on entry, return, back and refresh without playback controls", async ({
     page,
   }) => {
     await installDrawingClock(page);
     await goToHome(page);
     const workbench = page.getByRole("region", { name: "交互工作台" });
-    const scene = workbench.locator("[data-progress]");
+    const scene = workbenchScene(workbench);
     async function expectFreshDrawing() {
       await expect(scene).toHaveAttribute("data-progress", "0");
-      await expect(
-        workbench.getByRole("button", { name: "暂停构建" }),
-      ).toBeVisible();
       await drawTo(page, workbench, 2);
+      await expect(workbench.getByRole("button")).toHaveCount(0);
       expect(
         Number(
           await workbench
@@ -73,8 +72,13 @@ test.describe("Home page", () => {
     const marks = workbench.locator(
       '[data-construction-layer="points"] circle[visibility="visible"]',
     );
+    await expect(workbenchScene(workbench)).toHaveAttribute(
+      "data-drawing-state",
+      "drawing",
+    );
     await expect(marks).toHaveCount(0);
-    await drawTo(page, workbench, 1);
+    // The first point starts around 42 ms into the shortened animation.
+    await page.clock.runFor(32);
     await expect(marks).toHaveCount(0);
     await drawTo(page, workbench, 2);
     await expect(
@@ -123,41 +127,88 @@ test.describe("Home page", () => {
     }
   });
 
-  test("opens the yellow drawer by pointer and restores the original drawing by keyboard", async ({
+  test("exposes only the computers and leaves and keeps the other artwork static", async ({
     page,
   }) => {
-    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await installDrawingClock(page);
     await goToHome(page);
     const workbench = page.getByRole("region", { name: "交互工作台" });
+    await drawTo(page, workbench, 100);
     const scene = await waitForFinishedWorkbench(workbench);
-    await expect(
-      workbench.locator('[data-construction-layer="pencil"]'),
-    ).not.toBeVisible();
-    await expect(workbench.getByText("点按部件试试")).toBeVisible();
+    await expect(workbench.getByRole("button")).toHaveCount(6);
+    for (const name of [
+      "笔记本",
+      "显示器",
+      "外接键盘",
+      "盆栽叶片",
+      "左侧叶片",
+      "右侧叶片",
+    ]) {
+      await expect(
+        workbench.getByRole("button", { name, exact: true }),
+      ).toHaveCount(1);
+    }
 
-    const drawer = workbench.getByRole("button", { name: "黄色抽屉" });
-    await expect(drawer).toHaveAttribute("aria-pressed", "false");
     await waitForWorkbenchArtwork(scene);
-    const resting = await scene.screenshot();
-    await drawer.click();
-    await expect(drawer).toHaveAttribute("aria-pressed", "true");
-    await expect(
-      workbench.getByRole("status").filter({ hasText: "拉出黄色抽屉" }),
-    ).toBeAttached();
     await page.mouse.move(0, 0);
-    await drawer.blur();
-    expect((await scene.screenshot()).equals(resting)).toBe(false);
-
-    await drawer.press("Enter");
-    await expect(drawer).toHaveAttribute("aria-pressed", "false");
-    await expect(
-      workbench.getByRole("status").filter({ hasText: "合上黄色抽屉" }),
-    ).toBeAttached();
-    await drawer.blur();
+    const resting = await scene.screenshot();
+    const points = await scene.locator("svg").evaluate((element) => {
+      const transform = (element as SVGSVGElement).getScreenCTM();
+      if (!transform)
+        throw new Error("Finished drawing has no coordinate transform");
+      return [
+        [938, 223], // work light
+        [808, 286], // hanging tool
+        [1072, 447], // mouse
+        [771, 524], // toolbox
+        [882, 546], // stool
+        [1076, 605], // drawer
+        [1147, 445], // vise handle
+      ].map(([x, y]) => {
+        const point = new DOMPoint(x, y).matrixTransform(transform);
+        return { x: point.x, y: point.y };
+      });
+    });
+    for (const { x, y } of points) await page.mouse.click(x, y);
+    const handle = points.at(-1)!;
+    await page.mouse.down();
+    await page.mouse.move(handle.x + 16, handle.y + 16, { steps: 4 });
+    await page.mouse.up();
+    await page.mouse.move(0, 0);
+    await page.clock.runFor(100);
     expect((await scene.screenshot()).equals(resting)).toBe(true);
+  });
 
-    await drawer.press("Space");
-    await expect(drawer).toHaveAttribute("aria-pressed", "true");
+  test("sways the plant on hover and keyboard activation, then restores the drawing", async ({
+    page,
+  }) => {
+    await installDrawingClock(page);
+    await goToHome(page);
+    const workbench = page.getByRole("region", { name: "交互工作台" });
+    await drawTo(page, workbench, 100);
+    const scene = await waitForFinishedWorkbench(workbench);
+    const leaf = workbench.getByRole("button", {
+      name: "盆栽叶片",
+      exact: true,
+    });
+    const movingLeaves = scene.locator('[data-workbench-part^="leaf-"]');
+
+    await leaf.hover();
+    await page.clock.runFor(96);
+    await expect(scene.locator('[data-workbench-part="leaf-0"]')).toHaveCount(
+      1,
+    );
+    await expect(scene.locator('[data-workbench-part="leaf-1"]')).toHaveCount(
+      1,
+    );
+    await page.mouse.move(0, 0);
+    await page.clock.runFor(2400);
+    await expect(movingLeaves).toHaveCount(0);
+
+    await leaf.press("Space");
+    await page.clock.runFor(96);
+    await expect(movingLeaves).toHaveCount(2);
   });
 
   test("redraws the two computer screens in place after typing", async ({
@@ -178,8 +229,16 @@ test.describe("Home page", () => {
       const screen = workbench.locator(`[data-blueprint-device="${device}"]`);
       await workbench.getByRole("button", { name, exact: true }).click();
       await page.clock.fastForward(600);
+      await expect(screen).toHaveAttribute("data-phase", "typing");
       await expect(workbench.getByText(typing, { exact: true })).toBeAttached();
+      const otherDevice = device === "laptop" ? "显示器" : "笔记本";
+      await workbench
+        .getByRole("button", { name: otherDevice, exact: true })
+        .click();
+      await expect(workbench.locator("[data-blueprint-device]")).toHaveCount(1);
+      await expect(screen).toHaveAttribute("data-phase", "typing");
       await page.clock.fastForward(1600);
+      await expect(screen).toHaveAttribute("data-phase", "drawing");
       await expect(
         workbench.getByText("正在逐笔绘图", { exact: true }),
       ).toBeAttached();
@@ -190,14 +249,15 @@ test.describe("Home page", () => {
       await expect(
         workbench.getByText("图纸绘制完成", { exact: true }),
       ).toBeAttached();
+      await expect(screen).toHaveCount(0);
     }
     expect(errors).toEqual([]);
   });
 
-  test("waits for a short viewport and keeps touch scrolling from opening parts", async ({
+  test("waits for the workbench to enter view and lets touch tap parts without activating them on scroll", async ({
     page,
   }) => {
-    await page.setViewportSize({ width: 320, height: 568 });
+    await page.setViewportSize({ width: 320, height: 360 });
     const touch = await page.context().newCDPSession(page);
     await touch.send("Emulation.setTouchEmulationEnabled", {
       enabled: true,
@@ -206,35 +266,43 @@ test.describe("Home page", () => {
     await installDrawingClock(page);
     await goToHome(page);
     const workbench = page.getByRole("region", { name: "交互工作台" });
-    const scene = workbench.locator("[data-progress]");
+    const scene = workbenchScene(workbench);
     await page.clock.fastForward(1000);
-    await expect(scene).toHaveAttribute("data-progress", "0");
-    await expect(
-      workbench.getByRole("button", { name: "暂停构建" }),
-    ).toHaveCount(0);
+    await expect(scene).toHaveAttribute("data-drawing-state", "waiting");
+    await expect(workbench.getByRole("button")).toHaveCount(0);
     await scene.scrollIntoViewIfNeeded();
     await drawTo(page, workbench, 100);
     await page.setViewportSize({ width: 320, height: 844 });
+    await expect(workbench.getByRole("button")).toHaveCount(6);
 
-    const enter = workbench.getByRole("button", { name: "操作工作台" });
-    const exit = workbench.getByRole("button", { name: "退出操作" });
-    const drawer = workbench.getByRole("button", { name: "黄色抽屉" });
+    const keyboard = workbench.getByRole("button", {
+      name: "外接键盘",
+      exact: true,
+    });
+    const leaf = workbench.getByRole("button", {
+      name: "右侧叶片",
+      exact: true,
+    });
+    const screen = workbench.locator('[data-blueprint-device="display"]');
 
-    async function drawerPoint() {
-      await drawer.scrollIntoViewIfNeeded();
-      const bounds = await drawer.boundingBox();
-      if (!bounds) throw new Error("The drawer must be a visible touch target");
-      return {
-        id: 1,
-        x: Math.round(bounds.x + bounds.width / 2),
-        y: Math.round(bounds.y + bounds.height / 2),
-      };
+    async function center(target: typeof keyboard) {
+      return target.evaluate((element) => {
+        element.scrollIntoView({ block: "center", behavior: "instant" });
+        const bounds = element.getBoundingClientRect();
+        const x = Math.round(bounds.x + bounds.width / 2);
+        const y = Math.round(bounds.y + bounds.height / 2);
+        if (!element.contains(document.elementFromPoint(x, y)))
+          throw new Error(
+            "The workbench part's center must accept touch input",
+          );
+        return { id: 1, x, y };
+      });
     }
 
-    async function tapDrawer() {
+    async function tap(target: typeof keyboard) {
       await touch.send("Input.dispatchTouchEvent", {
         type: "touchStart",
-        touchPoints: [await drawerPoint()],
+        touchPoints: [await center(target)],
       });
       await touch.send("Input.dispatchTouchEvent", {
         type: "touchEnd",
@@ -242,10 +310,7 @@ test.describe("Home page", () => {
       });
     }
 
-    await tapDrawer();
-    await expect(drawer).toHaveAttribute("aria-pressed", "false");
-    await enter.click();
-    const point = await drawerPoint();
+    const point = await center(keyboard);
 
     await touch.send("Input.dispatchTouchEvent", {
       type: "touchStart",
@@ -255,9 +320,18 @@ test.describe("Home page", () => {
       type: "touchCancel",
       touchPoints: [],
     });
-    await expect(drawer).toHaveAttribute("aria-pressed", "false");
+    await expect(screen).toHaveCount(0);
 
-    const scrollBefore = await page.evaluate(() => scrollY);
+    const scrollBefore = await page.evaluate(() => {
+      const start = scrollY;
+      function markScrollEnd() {
+        if (scrollY === start) return;
+        document.documentElement.dataset["workbenchScrollFinished"] = "true";
+        document.removeEventListener("scrollend", markScrollEnd);
+      }
+      document.addEventListener("scrollend", markScrollEnd);
+      return start;
+    });
     await touch.send("Input.dispatchTouchEvent", {
       type: "touchStart",
       touchPoints: [point],
@@ -271,36 +345,35 @@ test.describe("Home page", () => {
       type: "touchEnd",
       touchPoints: [],
     });
-    await expect
-      .poll(() => page.evaluate(() => scrollY))
-      .toBeGreaterThan(scrollBefore);
-    await expect(drawer).toHaveAttribute("aria-pressed", "false");
+    // Touch momentum can move the hotspot after the first scroll event.
+    await expect(page.locator("html")).toHaveAttribute(
+      "data-workbench-scroll-finished",
+      "true",
+    );
+    expect(await page.evaluate(() => scrollY)).toBeGreaterThan(scrollBefore);
+    await expect(screen).toHaveCount(0);
 
-    await page.evaluate(() => scrollTo({ top: scrollY, behavior: "instant" }));
-    await tapDrawer();
-    await expect(drawer).toHaveAttribute("aria-pressed", "true");
+    await tap(keyboard);
+    await expect(screen).toHaveAttribute("data-phase", "typing");
+    await page.clock.fastForward(5000);
+    await expect(screen).toHaveCount(0);
 
     await page.setViewportSize({ width: 667, height: 375 });
-    await scene.evaluate((element) => {
-      const { top, height } = element.getBoundingClientRect();
-      window.scrollTo({
-        top: scrollY + top + height / 2 - innerHeight / 2,
-        behavior: "instant",
-      });
+    await leaf.evaluate((element) => {
+      element.scrollIntoView({ block: "center", behavior: "instant" });
     });
-    const [exitBox, headerBox] = await Promise.all([
-      exit.boundingBox(),
+    const [leafBox, headerBox] = await Promise.all([
+      leaf.boundingBox(),
       page.getByRole("banner").boundingBox(),
     ]);
-    if (!exitBox || !headerBox)
-      throw new Error("Missing workbench exit or header");
-    expect(exitBox.y).toBeGreaterThanOrEqual(headerBox.y + headerBox.height);
-    expect(exitBox.y + exitBox.height).toBeLessThanOrEqual(375);
-
-    await drawer.press("Escape");
-    await expect(enter).toBeFocused();
-    await tapDrawer();
-    await expect(drawer).toHaveAttribute("aria-pressed", "true");
+    if (!leafBox || !headerBox) throw new Error("Missing leaf or header");
+    expect(leafBox.y).toBeGreaterThanOrEqual(headerBox.y + headerBox.height);
+    expect(leafBox.y + leafBox.height).toBeLessThanOrEqual(375);
+    await tap(leaf);
+    await page.clock.runFor(96);
+    await expect(scene.locator('[data-workbench-part="leaf-2"]')).toHaveCount(
+      1,
+    );
     await touch.detach();
   });
 

@@ -8,7 +8,7 @@
 
 ## 现在可以看什么
 
-- **工作台**：首页从落点画到线条、排线和细节。画完后，可以点按画里的抽屉、台灯、屏幕等部件，也可以用键盘操作。触屏先点「操作工作台」。
+- **工作台**。首页用铅笔从落点画到线条、排线和细节，约 4.8 秒收笔。随后可直接点按电脑或盆栽，也可以用键盘操作。
 - **两篇文章**：[用 Codex 定制桌面宠物：流程与踩坑](https://hashflowsy.github.io/blog/posts/2026-05-02/) 和 [AI 服务中转站：常见术语与风险清单](https://hashflowsy.github.io/blog/posts/2026-04-30/)。文章列表支持主题筛选和关键词搜索，详情提供目录、阅读进度、预计时长与推荐文章。
 - **一个项目案例**：[Personal Blog](https://hashflowsy.github.io/blog/projects/personal-blog/) 记录了本站的实现与验证。后续案例待整理[可公开的项目事实和证据](.scratch/site-experience/issues/01-add-real-project-evidence.md)。
 
@@ -94,13 +94,13 @@ canonical、RSS、站点地图和资源链接在构建时写入产物。更换�
 
 ## 源码入口
 
-| 位置                                                       | 负责什么                                                                            |
-| ---------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| [`src/app/`](src/app/)                                     | Next.js App Router 的页面、RSS、站点地图和搜索索引入口                              |
-| [`src/components/home/`](src/components/home/)             | 铅笔动画和二维部件交互，见[工作台设计](docs/design/workbench-interaction-design.md) |
-| [`src/lib/content-catalog.ts`](src/lib/content-catalog.ts) | 校验文章与案例并生成统一的内容快照，供页面、RSS、搜索和站点地图使用                 |
-| [`src/lib/markdown/`](src/lib/markdown/)                   | Markdown 净化、目录与搜索文本提取、阅读统计和构建时 Shiki 高亮                      |
-| [`src/lib/site.ts`](src/lib/site.ts)                       | 站点名称、联系入口和 URL 配置                                                       |
+| 位置                                                       | 负责什么                                                                                  |
+| ---------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| [`src/app/`](src/app/)                                     | Next.js App Router 的页面、RSS、站点地图和搜索索引入口                                    |
+| [`src/components/home/`](src/components/home/)             | 铅笔绘制、电脑出图和叶片轻摆，见[工作台设计](docs/design/workbench-interaction-design.md) |
+| [`src/lib/content-catalog.ts`](src/lib/content-catalog.ts) | 校验文章与案例并生成统一的内容快照，供页面、RSS、搜索和站点地图使用                       |
+| [`src/lib/markdown/`](src/lib/markdown/)                   | Markdown 净化、目录与搜索文本提取、阅读统计和构建时 Shiki 高亮                            |
+| [`src/lib/site.ts`](src/lib/site.ts)                       | 站点名称、联系入口和 URL 配置                                                             |
 
 核心技术为 Next.js 16、React 19、TypeScript、Tailwind CSS 4、SVG、Zod 和 Shiki。静态站点、稳定链接和真实案例等取舍见[架构决策记录](docs/adr/)。
 

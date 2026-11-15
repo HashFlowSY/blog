@@ -1,12 +1,9 @@
 .workbench {
-  display: grid;
-  grid-template-areas: "scene";
   min-width: 0;
 }
 
 .scene {
   position: relative;
-  grid-area: scene;
   aspect-ratio: 1440 / 682;
   overflow: clip;
 }
@@ -50,65 +47,6 @@
   outline-offset: 2px;
 }
 
-.crank {
-  cursor: grab;
-}
-
-.workbench[data-touch-active="true"] .crank {
-  touch-action: none;
-}
-
-.crank:active {
-  cursor: grabbing;
-}
-
-.controls {
-  position: relative;
-  z-index: 1;
-  grid-area: scene;
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  align-self: end;
-  justify-self: end;
-  min-height: 44px;
-  margin: 0 7% 2.1% 0;
-}
-
-.desktopHint {
-  margin: 0;
-  color: var(--studio-muted);
-  font-size: clamp(12px, 1vw, 14px);
-  line-height: 1.5;
-}
-
-.touchMode,
-.buildButton {
-  padding: 0 11px;
-  min-height: 44px;
-  border: 1px solid var(--studio-ink);
-  background: var(--studio-paper);
-  color: var(--studio-ink);
-  font-size: 13px;
-  cursor: pointer;
-}
-
-.touchMode {
-  display: none;
-}
-
-.touchMode:hover,
-.workbench[data-touch-active="true"] .touchMode,
-.buildButton:hover {
-  background: var(--studio-yellow);
-}
-
-.touchMode:focus-visible,
-.buildButton:focus-visible {
-  outline: 2px solid var(--studio-ink);
-  outline-offset: 3px;
-}
-
 .srOnly {
   position: absolute;
   margin: 0;
@@ -130,40 +68,6 @@
     inset-inline-start: calc(-570 / 770 * 100%);
     inset-inline-end: auto;
     width: calc(1440 / 770 * 100%);
-  }
-
-  .controls {
-    margin-inline-end: 22px;
-  }
-}
-
-@media (any-pointer: coarse) {
-  .workbench {
-    grid-template-areas:
-      "controls"
-      "scene";
-  }
-
-  .controls {
-    grid-area: controls;
-    justify-self: stretch;
-    margin: 0;
-    padding-inline: 22px;
-  }
-
-  .workbench[data-touch-active="true"] .controls {
-    position: sticky;
-    z-index: 2;
-    top: var(--studio-header-height);
-    background: var(--studio-paper);
-  }
-
-  .desktopHint {
-    display: none;
-  }
-
-  .touchMode {
-    display: block;
   }
 }
 

@@ -19,13 +19,18 @@ test.describe("Continuous browsing interactions", () => {
     expect(bounds.x + bounds.width).toBeLessThanOrEqual(320);
     const parts = workbench.getByRole("group", { name: "二维工作台部件" });
     await expect(parts).toBeVisible();
-    await expect(parts.getByRole("button", { name: "黄色抽屉" })).toBeVisible();
-    for (const button of await parts.getByRole("button").all()) {
+    const buttons = parts.getByRole("button");
+    await expect(buttons).toHaveCount(6);
+    for (const button of await buttons.all()) {
       const target = await button.boundingBox();
       if (!target) throw new Error("A workbench part has no touch area");
       expect(target.x).toBeGreaterThanOrEqual(bounds.x);
       expect(target.x + target.width).toBeLessThanOrEqual(
         bounds.x + bounds.width,
+      );
+      expect(target.y).toBeGreaterThanOrEqual(bounds.y);
+      expect(target.y + target.height).toBeLessThanOrEqual(
+        bounds.y + bounds.height,
       );
     }
     expect(

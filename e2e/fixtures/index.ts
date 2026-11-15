@@ -26,7 +26,7 @@ const STABLE_PROJECT = {
   slug: "personal-blog",
   title: "Personal Blog",
   description:
-    "Hashflow 的中文技术博客与作品集，包含手绘二维交互工作台、文章全文搜索和构建时 Markdown 渲染。",
+    "Hashflow 的中文技术博客与作品集，包含手绘工作台上的电脑和盆栽交互、文章全文搜索和构建时 Markdown 渲染。",
 } as const;
 
 function routeForPost(slug: string = STABLE_POST.slug): string {

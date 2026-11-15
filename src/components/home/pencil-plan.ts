@@ -75,12 +75,12 @@ export function hatchPath(
 // More than half of playback is reserved for the final details.
 const playbackStops = [
   [0, 0],
-  [18, 2800],
-  [58, 6000],
-  [78, 7650],
-  [82, 7950],
-  [99.6, 18950],
-  [100, 19400],
+  [18, 693],
+  [58, 1485],
+  [78, 1893],
+  [82, 1967],
+  [99.6, 4689],
+  [100, 4800],
 ] as const;
 
 export const drawingDuration = playbackStops.at(-1)![1];

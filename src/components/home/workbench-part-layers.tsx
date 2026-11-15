@@ -4,43 +4,19 @@ import { assetPath } from "@/lib/site";
 
 import { pencilEase } from "./pencil-plan";
 import { workbenchPartArt } from "./workbench-art";
-import { drawerActions } from "./workbench-parts";
 
-import type { WorkbenchArtImage, WorkbenchArtPoint } from "./workbench-art";
+import type { WorkbenchArtImage } from "./workbench-art";
 import type { WorkbenchPose } from "./workbench-interactions";
-import type { WorkbenchPart } from "./workbench-parts";
-
-const noOffset: WorkbenchArtPoint = [0, 0];
-
-export function partOffset(
-  part: WorkbenchPart,
-  pose: WorkbenchPose,
-): WorkbenchArtPoint {
-  switch (part) {
-    case "drawer-0":
-    case "drawer-1":
-    case "drawer-2":
-      return [-32 * pose.drawers[part], 14 * pose.drawers[part]];
-    case "stool":
-      return [-53 * pose.stoolSlide, 2 * pose.stoolSlide];
-    case "vise-slide":
-    case "vise-handle":
-      return [-12 * pose.vise.opening, 4 * pose.vise.opening];
-    default:
-      return noOffset;
-  }
-}
+import type { WorkbenchLeaf } from "./workbench-parts";
 
 function Sprite({
   image,
   part,
   opacity,
-  brightness,
 }: {
   image: WorkbenchArtImage;
-  part?: WorkbenchPart;
+  part?: WorkbenchLeaf;
   opacity?: number;
-  brightness?: number;
 }) {
   const [x, y, width, height] = image.box;
   return (
@@ -52,11 +28,6 @@ function Sprite({
       height={height}
       opacity={opacity}
       data-workbench-part={part}
-      style={
-        brightness === undefined
-          ? undefined
-          : { filter: `brightness(${brightness})` }
-      }
     />
   );
 }
@@ -95,8 +66,7 @@ function ScreenAnimation({
   screen: NonNullable<WorkbenchPose["screen"]>;
 }) {
   const id = useId();
-  const art = workbenchPartArt[`${screen.device}-screen`];
-  const cover = art?.cover;
+  const { cover } = workbenchPartArt[`${screen.device}-screen`];
   const paths = circuitPaths[screen.device];
   return (
     <g
@@ -108,51 +78,45 @@ function ScreenAnimation({
           : "typing"
       }
     >
-      {cover && (
-        <>
-          <defs>
-            <mask
-              id={id}
-              x="0"
-              y="0"
-              width="1440"
-              height="900"
-              maskUnits="userSpaceOnUse"
-            >
-              <rect width="1440" height="900" fill="white" />
-              {paths
-                .flatMap((path) => path.split(/ (?=M )/))
-                .map((path, index, all) => {
-                  const fraction = pencilEase(
-                    screen.progress * all.length - index,
-                  );
-                  return fraction > 0 ? (
-                    <path
-                      key={path}
-                      d={path}
-                      fill="none"
-                      stroke="black"
-                      strokeWidth="4"
-                      strokeLinecap="round"
-                      pathLength="1"
-                      strokeDasharray="1"
-                      strokeDashoffset={1 - fraction}
-                    />
-                  ) : null;
-                })}
-              <rect
-                width="1440"
-                height="900"
-                fill="black"
-                opacity={pencilEase((screen.progress - 0.87) / 0.13)}
-              />
-            </mask>
-          </defs>
-          <g mask={`url(#${id})`}>
-            <Sprite image={cover} opacity={screen.clearInk} />
-          </g>
-        </>
-      )}
+      <defs>
+        <mask
+          id={id}
+          x="0"
+          y="0"
+          width="1440"
+          height="900"
+          maskUnits="userSpaceOnUse"
+        >
+          <rect width="1440" height="900" fill="white" />
+          {paths
+            .flatMap((path) => path.split(/ (?=M )/))
+            .map((path, index, all) => {
+              const fraction = pencilEase(screen.progress * all.length - index);
+              return fraction > 0 ? (
+                <path
+                  key={path}
+                  d={path}
+                  fill="none"
+                  stroke="black"
+                  strokeWidth="4"
+                  strokeLinecap="round"
+                  pathLength="1"
+                  strokeDasharray="1"
+                  strokeDashoffset={1 - fraction}
+                />
+              ) : null;
+            })}
+          <rect
+            width="1440"
+            height="900"
+            fill="black"
+            opacity={pencilEase((screen.progress - 0.87) / 0.13)}
+          />
+        </mask>
+      </defs>
+      <g mask={`url(#${id})`}>
+        <Sprite image={cover} opacity={screen.clearInk} />
+      </g>
       {screen.keyIndex !== undefined && (
         <KeyFeedback
           device={screen.device}
@@ -196,173 +160,28 @@ function KeyFeedback({
   );
 }
 
-const woodJourney = [
-  [0, 0, 0],
-  [465 / 1625, -10, 26],
-  [610 / 1625, -29, 11],
-  [735 / 1625, -48, 56],
-  [1275 / 1625, -101, 270],
-  [1380 / 1625, -111, 251],
-  [1460 / 1625, -115, 270],
-  [1, -123, 270],
-] as const;
-
-function woodPosition(
-  stock: WorkbenchPose["vise"]["stock"],
-): WorkbenchArtPoint {
-  if (stock.phase === "held") return noOffset;
-  if (stock.phase === "grounded") return [-123, 270];
-  if (stock.phase === "returning") {
-    const t = stock.progress;
-    return [-123 * (1 - t), 270 * (1 - t) - 230 * t * (1 - t)];
-  }
-  for (let index = 1; index < woodJourney.length; index++) {
-    const from = woodJourney[index - 1]!;
-    const to = woodJourney[index]!;
-    if (stock.progress <= to[0]) {
-      const t = (stock.progress - from[0]) / (to[0] - from[0]);
-      return [from[1] + (to[1] - from[1]) * t, from[2] + (to[2] - from[2]) * t];
-    }
-  }
-  return [-123, 270];
-}
-
 export function WorkbenchPartLayers({ pose }: { pose: WorkbenchPose }) {
-  const moved: { part: WorkbenchPart; transform: string; reveal?: number }[] =
-    [];
-  for (const [part, angle] of pose.swings) {
-    const anchor = workbenchPartArt[part]?.anchor;
-    if (anchor && angle !== 0) {
-      moved.push({
-        part,
-        transform: `rotate(${(angle * 180) / Math.PI} ${anchor[0]} ${anchor[1]})`,
-      });
-    }
-  }
-  for (const part of [...drawerActions, "vise-slide"] as const) {
-    const [x, y] = partOffset(part, pose);
-    if (x !== 0 || y !== 0) {
-      const reveal =
-        part === "vise-slide" ? pose.vise.opening : pose.drawers[part];
-      moved.push({ part, transform: `translate(${x} ${y})`, reveal });
-    }
-  }
-  if (pose.latch > 0 && pose.lid === 0) {
-    moved.push({
-      part: "case-latches",
-      transform: `translate(0 ${pose.latch * 3})`,
-    });
-  }
-  if (pose.lid > 0) {
-    moved.push({
-      part: "case-lid",
-      transform: `translate(764 495) scale(1 ${1 - pose.lid * 1.55}) translate(-764 -495)`,
-      reveal: pose.lid,
-    });
-  }
-  if (pose.vise.opening > 0 || pose.vise.handleAngle !== 0) {
-    const [x, y] = partOffset("vise-handle", pose);
-    const [cx, cy] = workbenchPartArt["vise-handle"]?.anchor ?? [1144, 435];
-    moved.push({
-      part: "vise-handle",
-      transform: `translate(${x} ${y}) rotate(${(-pose.vise.handleAngle * 180) / Math.PI} ${cx} ${cy})`,
-    });
-  }
-  const stock = pose.vise.stock;
-  if (stock.phase !== "held") {
-    const [x, y] = woodPosition(stock);
-    const angle =
-      stock.phase === "falling"
-        ? stock.progress * 340
-        : stock.phase === "returning"
-          ? (1 - stock.progress) * 30
-          : 30;
-    moved.push({
-      part: "vise-stock",
-      transform: `translate(${x} ${y}) rotate(${angle} 1164 412)`,
-    });
-  }
-  if (pose.stoolSlide > 0) {
-    const [x, y] = partOffset("stool", pose);
-    moved.push({
-      part: "stool",
-      transform: `translate(${x} ${y})`,
-      reveal: pose.stoolSlide,
-    });
-  }
-
-  const diffuser = workbenchPartArt["lamp-diffuser"]?.sprite;
-  const caseArt = workbenchPartArt["case-base"];
-  const openedCase = pencilEase((pose.lid - 0.38) / 0.62);
-  const mouse = pose.mouse && workbenchPartArt[pose.mouse.part];
+  const moved = [...pose.swings].filter(([, angle]) => angle !== 0);
   return (
     <>
-      {moved.map(({ part, reveal }) => {
-        const art = workbenchPartArt[part];
-        return art?.cover ? (
-          <Sprite
-            key={part}
-            image={art.cover}
-            opacity={reveal === undefined ? 1 : Math.min(1, reveal * 12)}
-          />
-        ) : null;
-      })}
-      {caseArt?.cover && openedCase > 0 && (
-        <Sprite image={caseArt.cover} opacity={openedCase} />
-      )}
-      {moved.map(({ part, transform, reveal }) => {
-        const art = workbenchPartArt[part];
-        if (!art) return null;
-        if (part === "case-lid") {
-          return (
-            <g key={part} data-workbench-part={part}>
-              {art.sprite && openedCase < 1 && (
-                <g transform={transform}>
-                  <Sprite image={art.sprite} opacity={1 - openedCase} />
-                </g>
-              )}
-              {caseArt?.open && (
-                <Sprite image={caseArt.open} opacity={openedCase} />
-              )}
-            </g>
-          );
-        }
+      {moved.map(([part]) => (
+        <Sprite key={part} image={workbenchPartArt[part].cover} />
+      ))}
+      {moved.map(([part, angle]) => {
+        const {
+          anchor: [x, y],
+          sprite,
+        } = workbenchPartArt[part];
         return (
-          <g key={part}>
-            {art.open && (
-              <Sprite
-                image={art.open}
-                opacity={pencilEase(((reveal ?? 0) - 0.26) / 0.74)}
-              />
-            )}
-            {art.sprite && (
-              <g transform={transform}>
-                <Sprite image={art.sprite} part={part} />
-              </g>
-            )}
+          <g
+            key={part}
+            transform={`rotate(${(angle * 180) / Math.PI} ${x} ${y})`}
+          >
+            <Sprite image={sprite} part={part} />
           </g>
         );
       })}
-      {diffuser && pose.light < 1 && (
-        <Sprite
-          image={diffuser}
-          brightness={0.58 + 0.42 * pose.light}
-          part="lamp-diffuser"
-        />
-      )}
       {pose.screen && <ScreenAnimation screen={pose.screen} />}
-      {pose.mouse && mouse?.sprite && (
-        <g transform={`translate(0 ${pose.mouse.press * 0.8})`}>
-          <Sprite image={mouse.sprite} part={pose.mouse.part} />
-          <path
-            d={mouse.outline}
-            fill="none"
-            stroke="#d3a142"
-            strokeWidth="0.8"
-            opacity={pose.mouse.glow}
-          />
-        </g>
-      )}
     </>
   );
 }

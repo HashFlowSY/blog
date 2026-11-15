@@ -9,7 +9,7 @@ tags:
   - shiki
   - github-pages
   - tailwindcss
-description: "Hashflow 的中文技术博客与作品集，包含手绘二维交互工作台、文章全文搜索和构建时 Markdown 渲染。"
+description: "Hashflow 的中文技术博客与作品集，包含手绘工作台上的电脑和盆栽交互、文章全文搜索和构建时 Markdown 渲染。"
 cover: "/assets/personal-blog-home.jpg"
 source: "https://github.com/HashFlowSY/blog"
 demo: "https://hashflowsy.github.io/blog/"
@@ -29,9 +29,9 @@ draft: false
 
 ## 首页交互工作台
 
-首页用铅笔逐步画出工作台。绘制完成后，访客可以点按画中的部件开关工作灯、拉出抽屉、打开工具箱，也可以拖动台钳手柄。触屏先点「操作工作台」，使用键盘时可聚焦部件再按 Enter 或空格。
+首页用铅笔逐步画出工作台，约 4.8 秒收笔。点按笔记本、外接显示器或外接键盘，会先看到键位反馈，再看到对应屏幕逐笔出图。点按或用鼠标扫过一片叶子，会带动它和相邻叶片轻摆。触屏可以直接点按，使用键盘时可以聚焦部件后按 Enter 或空格。
 
-画稿、绘制路径和部件的触发范围使用同一套二维坐标。拉出抽屉等动作只改变相关区域，部件归位后恢复原稿的笔触与阴影。[工作台设计](https://github.com/HashFlowSY/blog/blob/main/docs/design/workbench-interaction-design.md)
+画稿、绘制路径和部件的触发范围使用同一套二维坐标。屏幕绘图和叶片摆动只覆盖各自的区域，动作结束后恢复原画。[工作台设计](https://github.com/HashFlowSY/blog/blob/main/docs/design/workbench-interaction-design.md)
 
 ## 内容管线
 

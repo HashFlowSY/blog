@@ -15,6 +15,7 @@ import {
   paintedPencilLength,
   waitForFinishedWorkbench,
   waitForWorkbenchArtwork,
+  workbenchScene,
 } from "./helpers/workbench";
 
 test.describe("WebKit smoke", () => {
@@ -27,8 +28,12 @@ test.describe("WebKit smoke", () => {
     const revealed = workbench.locator(
       '[data-construction-layer="points"] circle[visibility="visible"]',
     );
+    await expect(workbenchScene(workbench)).toHaveAttribute(
+      "data-drawing-state",
+      "drawing",
+    );
     await expect(revealed).toHaveCount(0);
-    await drawTo(page, workbench, 1);
+    await page.clock.runFor(32);
     await expect(revealed).toHaveCount(0);
     await drawTo(page, workbench, 2);
     await expect(
@@ -48,7 +53,7 @@ test.describe("WebKit smoke", () => {
     await expect(workbench.getByRole("slider")).toHaveCount(0);
   });
 
-  test("switches the work light by keyboard and resets it after a refresh", async ({
+  test("starts the computer animation by keyboard and resets it after a refresh", async ({
     page,
   }) => {
     await installDrawingClock(page);
@@ -56,19 +61,22 @@ test.describe("WebKit smoke", () => {
     const workbench = page.getByRole("region", { name: "交互工作台" });
     await drawTo(page, workbench, 100);
     await waitForFinishedWorkbench(workbench);
-    const light = workbench.getByRole("button", { name: "工作灯" });
-    await expect(light).toHaveAttribute("aria-pressed", "true");
-    await light.press("Space");
-    await expect(light).toHaveAttribute("aria-pressed", "false");
+    const laptop = workbench.getByRole("button", {
+      name: "笔记本",
+      exact: true,
+    });
+    const screen = workbench.locator('[data-blueprint-device="laptop"]');
+    await laptop.press("Space");
+    await expect(screen).toHaveAttribute("data-phase", "typing");
     await page.reload();
-    await expect(workbench.locator("[data-progress]")).toHaveAttribute(
+    await expect(workbenchScene(workbench)).toHaveAttribute(
       "data-progress",
       "0",
     );
-    await expect(light).toHaveCount(0);
+    await expect(laptop).toHaveCount(0);
     await drawTo(page, workbench, 100);
-    await waitForFinishedWorkbench(workbench);
-    await expect(light).toHaveAttribute("aria-pressed", "true");
+    await expect(laptop).toBeVisible();
+    await expect(screen).toHaveCount(0);
   });
 
   test("renders the home page and primary navigation", async ({ page }) => {
