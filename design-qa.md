@@ -2,7 +2,7 @@
 
 - 在 Linux Chromium 的 1440 × 900 CSS 像素、DPR 1 视口，收笔且部件归位后，从坐标 `(618, 91)` 起取 720 × 607 画稿选区，与第二张概念图逐像素比对，要求 RGB 零差异。[概念图](docs/design/workbench-2d/concept-1440.png) · [像素比对](e2e/visual-regression.spec.ts)
 - 整页截图用于复核桌面首屏、手机裁剪、触屏操作栏移除后的布局和移动端菜单。[桌面截图基线](e2e/visual-regression.spec.ts-snapshots/home-desktop-chromium-visual-linux.png) · [手机截图基线](e2e/visual-regression.spec.ts-snapshots/home-mobile-menu-open-chromium-visual-linux.png)
-- 播放检查包括进入视口约 4.8 秒后收笔、绘制期间切换标签页、浏览器历史恢复及减少动态效果。收笔后验证两台设备的逐笔出图、叶片轻摆归位、工作灯开关、七个热点的键盘操作，以及从触屏热点起手滑动时的页面滚动。[首页浏览器用例](e2e/home.spec.ts) · [窄屏用例](e2e/interaction.spec.ts) · [组件测试](src/components/home/assembly-workbench.spec.tsx)
+- 播放检查包括标出定位点后按区域画完、进入视口约 4.8 秒后收笔、绘制期间切换标签页、浏览器历史恢复及减少动态效果。浏览器测试比较绘制途中已画好的挂具和笔记本屏幕与最终成稿中的同一选区，要求像素一致。收笔后验证两台设备的逐笔出图、叶片轻摆归位、工作灯开关、七个热点的键盘操作，以及从触屏热点起手滑动时的页面滚动。[首页浏览器用例](e2e/home.spec.ts) · [窄屏用例](e2e/interaction.spec.ts) · [组件测试](src/components/home/assembly-workbench.spec.tsx)
 
 ## 历史验收记录
 

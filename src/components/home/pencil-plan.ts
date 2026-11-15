@@ -1,4 +1,3 @@
-export type DrawingBounds = readonly [number, number, number, number];
 export type PencilPoint = readonly [number, number];
 
 export interface PencilStroke {
@@ -26,24 +25,16 @@ export function strokeFraction(
 }
 
 export function hatchPath(
-  bounds: DrawingBounds,
-  angle = -32,
-  spacing = 5,
-  polygon?: readonly PencilPoint[],
+  polygon: readonly PencilPoint[],
+  angle: number,
+  spacing: number,
 ): string {
-  const [x, y, width, height] = bounds;
   const radians = (angle * Math.PI) / 180;
   const ux = Math.cos(radians);
   const uy = Math.sin(radians);
   const vx = -uy;
   const vy = ux;
-  const corners = polygon ?? [
-    [x, y],
-    [x + width, y],
-    [x + width, y + height],
-    [x, y + height],
-  ];
-  const projected = corners.map(
+  const projected = polygon.map(
     ([cx = 0, cy = 0]) => [cx * ux + cy * uy, cx * vx + cy * vy] as const,
   );
   const vs = projected.map(([, v]) => v);
@@ -72,14 +63,11 @@ export function hatchPath(
   return path.join(" ");
 }
 
-// More than half of playback is reserved for the final details.
+export const positioningEnd = 18;
+
 const playbackStops = [
   [0, 0],
-  [18, 693],
-  [58, 1485],
-  [78, 1893],
-  [82, 1967],
-  [99.6, 4689],
+  [positioningEnd, 693],
   [100, 4800],
 ] as const;
 

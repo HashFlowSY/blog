@@ -89,14 +89,6 @@ export function AssemblyWorkbench() {
   const sceneRef = useRef<HTMLDivElement>(null);
   const complete = phase === "complete";
   const interactiveReady = complete && artStatus === "ready";
-  const stage =
-    progress >= 82
-      ? "整件"
-      : progress >= 58
-        ? "面"
-        : progress >= 18
-          ? "线"
-          : "点";
 
   useEffect(() => {
     let mounted = true;
@@ -217,7 +209,7 @@ export function AssemblyWorkbench() {
               : complete
                 ? "手绘工作台"
                 : phase === "drawing"
-                  ? `工作台构建：${stage}阶段`
+                  ? "正在绘制的工作台"
                   : "待绘制的工作台"
           }
         >

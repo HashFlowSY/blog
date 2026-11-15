@@ -1,65 +1,47 @@
-import { strokeGeometry } from "./pencil-path";
 import {
   constructionFraction,
   pencilEase,
   strokeFraction,
 } from "./pencil-plan";
-import {
-  detailStrokes,
-  pencilEdges,
-  pointStrokes,
-  shadedPlanes,
-} from "./workbench-geometry";
+import { drawingAreas, pointStrokes } from "./workbench-geometry";
 
 import type { PencilPoint, PencilStroke } from "./pencil-plan";
 
 // The renderer and cursor read these same stroke windows. Only one stroke is
 // active at a time; the gaps are real pen lifts rather than trailing motion.
-const wearBudget = {
-  points: 0.06,
-  lines: 0.28,
-  planes: 0.28,
-  details: 0.32,
-  tip: 0.06,
-} as const;
-type WearStage = keyof typeof wearBudget;
-const strokes: readonly (PencilStroke & { stage: WearStage })[] = [
-  ...pointStrokes.map((stroke) => ({ ...stroke, stage: "points" as const })),
-  ...pencilEdges.map((stroke) => ({ ...stroke, stage: "lines" as const })),
-  ...shadedPlanes.map((stroke) => ({ ...stroke, stage: "planes" as const })),
-  ...detailStrokes.map((stroke, index, all) => ({
+const areaStrokes = drawingAreas.flatMap((area) => area.strokes);
+const pointWear = 0.06 / pointStrokes.length;
+const lastStroke = areaStrokes.at(-1);
+const strokeCost = areaStrokes
+  .slice(0, -1)
+  .reduce((total, stroke) => total + Math.sqrt(stroke.length), 0);
+const strokes: readonly (PencilStroke & {
+  minY: number;
+  length: number;
+  wear: number;
+})[] = [
+  ...pointStrokes.map((stroke) => ({ ...stroke, wear: pointWear })),
+  ...areaStrokes.map((stroke) => ({
     ...stroke,
-    // Keep a little graphite for the final stroke, then use it up on paper.
-    stage: index === all.length - 1 ? ("tip" as const) : ("details" as const),
+    // Reserve a visible graphite tip for the final stroke.
+    wear:
+      stroke === lastStroke
+        ? 0.06
+        : (0.88 * Math.sqrt(stroke.length)) / strokeCost,
   })),
 ];
 
-const measuredStrokes = strokes.map((stroke) => {
-  const geometry = stroke.point
-    ? { from: stroke.point, to: stroke.point, minY: stroke.point[1], length: 2 }
-    : strokeGeometry(stroke.path);
-  return { ...stroke, ...geometry };
-});
-
-const stageCosts = { points: 0, lines: 0, planes: 0, details: 0, tip: 0 };
-for (const stroke of measuredStrokes)
-  stageCosts[stroke.stage] += Math.sqrt(stroke.length);
 let usedMaterial = 0;
-export const pencilRoute = measuredStrokes.map((stroke) => {
-  const wear =
-    (wearBudget[stroke.stage] * Math.sqrt(stroke.length)) /
-    stageCosts[stroke.stage];
+export const pencilRoute = strokes.map((stroke) => {
   const wearBefore = usedMaterial;
-  usedMaterial += wear;
-  return { ...stroke, wear, wearBefore };
+  usedMaterial += stroke.wear;
+  return { ...stroke, wearBefore };
 });
 
 export const fullPencilLength = 224;
 export const wornPencilLength = 0;
 
-// Each visible stage consumes material. Normalize within stages so dense hatch
-// masks cannot postpone almost all visible wear until the final illustration.
-// Only contact consumes material; lifts and pauses retain the current length.
+// Contact consumes material. Lifts retain the current length.
 export function pencilLength(progress: number): number {
   const next = pencilRoute.find((stroke) => progress < stroke.end);
   const used = next

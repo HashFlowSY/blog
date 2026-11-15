@@ -10,9 +10,8 @@ describe("pencil playback timing", () => {
     },
   );
 
-  it("reserves more time for the final details than the initial construction", () => {
+  it("finishes within the automatic playback window", () => {
     expect(drawingTime(100)).toBeLessThan(5000);
-    expect(drawingTime(100) - drawingTime(82)).toBeGreaterThan(drawingTime(82));
     expect(drawingProgress(-100)).toBe(0);
     expect(drawingProgress(drawingTime(100) + 1000)).toBe(100);
   });
@@ -22,7 +21,16 @@ describe("pencil shading", () => {
   it.each([-76, -52, -32, 0, 35, 90])(
     "keeps the %s-degree stroke on the region",
     (angle) => {
-      const points = hatchPath([20, 30, 100, 70], angle)
+      const points = hatchPath(
+        [
+          [20, 30],
+          [120, 30],
+          [120, 100],
+          [20, 100],
+        ],
+        angle,
+        5,
+      )
         .match(/-?\d+(?:\.\d+)?/g)!
         .map(Number);
       for (let index = 0; index < points.length; index += 2) {
@@ -35,11 +43,15 @@ describe("pencil shading", () => {
   );
 
   it("clips the actual shading path to the plane rather than moving the pencil through its bounding box", () => {
-    const points = hatchPath([0, 0, 100, 100], -34, 10, [
-      [0, 0],
-      [100, 0],
-      [0, 100],
-    ])
+    const points = hatchPath(
+      [
+        [0, 0],
+        [100, 0],
+        [0, 100],
+      ],
+      -34,
+      10,
+    )
       .match(/-?\d+(?:\.\d+)?/g)!
       .map(Number);
     for (let index = 0; index < points.length; index += 2) {

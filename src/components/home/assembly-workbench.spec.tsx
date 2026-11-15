@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AssemblyWorkbench } from "./assembly-workbench";
 import { drawingDuration, drawingTime } from "./pencil-plan";
 import { WorkbenchDrawing } from "./workbench-drawing";
-import { pointStrokes } from "./workbench-geometry";
+import { drawingAreas, pointStrokes } from "./workbench-geometry";
 
 describe("AssemblyWorkbench", () => {
   it("only shows a positioning dot after the pencil has touched that point", () => {
@@ -29,9 +29,9 @@ describe("AssemblyWorkbench", () => {
       expect(Number(circle?.getAttribute("opacity"))).toBeGreaterThan(0);
     }
     rerender(<WorkbenchDrawing progress={18} />);
-    for (const path of container.querySelectorAll(
-      '[data-construction-layer="lines"] path',
-    )) {
+    const paths = container.querySelectorAll("[data-pencil-path]");
+    expect(paths.length).toBeGreaterThan(0);
+    for (const path of paths) {
       expect(path).toHaveAttribute("visibility", "hidden");
     }
   });
@@ -128,26 +128,30 @@ describe("AssemblyWorkbench", () => {
     expect(Number(scene().getAttribute("data-progress"))).toBeGreaterThan(0);
   });
 
-  it("constructs points, lines, and planes before the interactive finished view", () => {
+  it("releases each completed area before enabling the finished workbench", () => {
     render(<AssemblyWorkbench />);
     revealCanvas();
-    const lines = scene().querySelector('[data-construction-layer="lines"]');
-    const planes = scene().querySelector('[data-construction-layer="planes"]');
-    expect(lines).toHaveAttribute("opacity", "0");
-    expect(planes).toHaveAttribute("opacity", "0");
-    advanceTo(drawingTime(55));
-    expect(lines).toHaveAttribute("opacity", "1");
-    expect(planes).toHaveAttribute("opacity", "0");
-    advanceTo(drawingTime(80));
-    expect(planes).toHaveAttribute("opacity", "1");
+    const first = drawingAreas[0]!;
+    const second = drawingAreas[1]!;
+    const firstArea = `[data-drawing-area="${first.id}"]`;
+    const secondArea = `[data-drawing-area="${second.id}"]`;
+
+    advanceTo(drawingTime(first.end - 0.01));
+    expect(scene().querySelector(firstArea)).toBeInTheDocument();
+    advanceTo(drawingTime((first.end + second.strokes[0]!.start) / 2));
+    expect(scene().querySelector(firstArea)).not.toBeInTheDocument();
+    expect(scene().querySelector(secondArea)).toBeInTheDocument();
     expect(scene().querySelector('[data-workbench-art="rest"]')).toBeNull();
+    expect(
+      screen.getByRole("img", { name: "正在绘制的工作台" }),
+    ).toBeInTheDocument();
     expect(screen.queryAllByRole("button")).toHaveLength(0);
     advanceTo(drawingDuration);
     expect(
       scene().querySelector('[data-workbench-art="rest"]'),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("img", { name: /工作台构建/ }),
+      screen.queryByRole("img", { name: "正在绘制的工作台" }),
     ).not.toBeInTheDocument();
     expect(scene()).toHaveAttribute("data-drawing-state", "complete");
     expect(frames.size).toBe(0);

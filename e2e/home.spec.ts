@@ -1,5 +1,7 @@
 import { expect } from "@playwright/test";
 
+import { drawingAreas } from "../src/components/home/workbench-geometry";
+
 import { SITE_COPY, STABLE_PROJECT, test } from "./fixtures";
 import { goToHome } from "./helpers/navigation";
 import {
@@ -125,6 +127,84 @@ test.describe("Home page", () => {
       await movePencilToDrawing(page, workbench);
       await expectPencilAtStroke(workbench);
     }
+  });
+
+  test("finishes hanging tools and the notebook screen before moving on", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await installDrawingClock(page);
+    await goToHome(page);
+    const workbench = page.getByRole("region", { name: "交互工作台" });
+    const scene = workbenchScene(workbench);
+    await page.addStyleTag({
+      content:
+        '[data-construction-layer="pencil"] { visibility: hidden !important; }',
+    });
+    const [toolsClip, notebookClip] = await scene
+      .locator('svg[focusable="false"]')
+      .evaluate((element) => {
+        const transform = (element as SVGSVGElement).getScreenCTM();
+        if (!transform) throw new Error("Drawing has no coordinate transform");
+        const clip = (
+          left: number,
+          top: number,
+          right: number,
+          bottom: number,
+        ) => {
+          const topLeft = new DOMPoint(left, top).matrixTransform(transform);
+          const bottomRight = new DOMPoint(right, bottom).matrixTransform(
+            transform,
+          );
+          const x = Math.ceil(topLeft.x);
+          const y = Math.ceil(topLeft.y);
+          return {
+            x,
+            y,
+            width: Math.floor(bottomRight.x) - x,
+            height: Math.floor(bottomRight.y) - y,
+          };
+        };
+        return [clip(1150, 327, 1191, 361), clip(770, 356, 868, 412)] as const;
+      });
+
+    const pegboard = drawingAreas.find((area) => area.id === "pegboard")!;
+    await drawTo(page, workbench, 2);
+    const toolsPaper = await page.screenshot({ clip: toolsClip, scale: "css" });
+    const notebookPaper = await page.screenshot({
+      clip: notebookClip,
+      scale: "css",
+    });
+    await drawTo(page, workbench, pegboard.end);
+    const toolsDrawn = await page.screenshot({ clip: toolsClip, scale: "css" });
+    expect(
+      (await page.screenshot({ clip: notebookClip, scale: "css" })).equals(
+        notebookPaper,
+      ),
+    ).toBe(true);
+
+    await drawTo(page, workbench, 70);
+    await expect(scene).toHaveAttribute("data-drawing-state", "drawing");
+    const notebookDrawn = await page.screenshot({
+      clip: notebookClip,
+      scale: "css",
+    });
+
+    await drawTo(page, workbench, 100);
+    await waitForWorkbenchArtwork(await waitForFinishedWorkbench(workbench));
+
+    expect(toolsDrawn.equals(toolsPaper)).toBe(false);
+    expect(
+      toolsDrawn.equals(
+        await page.screenshot({ clip: toolsClip, scale: "css" }),
+      ),
+    ).toBe(true);
+    expect(notebookDrawn.equals(notebookPaper)).toBe(false);
+    expect(
+      notebookDrawn.equals(
+        await page.screenshot({ clip: notebookClip, scale: "css" }),
+      ),
+    ).toBe(true);
   });
 
   test("exposes only the computers, leaves, and light and keeps the other artwork static", async ({

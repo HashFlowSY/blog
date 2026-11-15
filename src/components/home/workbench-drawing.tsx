@@ -4,14 +4,9 @@ import { preload } from "react-dom";
 import { assetPath } from "@/lib/site";
 
 import styles from "./assembly-workbench.module.css";
-import { pencilEase, strokeFraction } from "./pencil-plan";
+import { pencilEase, positioningEnd, strokeFraction } from "./pencil-plan";
 import { workbenchArtRoot, workbenchSheet } from "./workbench-art";
-import {
-  detailStrokes,
-  pencilEdges,
-  pointStrokes,
-  shadedPlanes,
-} from "./workbench-geometry";
+import { drawingAreas, pointStrokes } from "./workbench-geometry";
 import { WorkbenchPencil } from "./workbench-pencil";
 
 import type { PencilStroke } from "./pencil-plan";
@@ -24,23 +19,18 @@ const { width, height, top, sceneHeight } = workbenchSheet;
 function RevealStroke({
   stroke,
   progress,
-  width,
-  clipPath,
 }: {
-  stroke: PencilStroke;
+  stroke: PencilStroke & { width: number };
   progress: number;
-  width: number;
-  clipPath?: string;
 }) {
   const fraction = strokeFraction(progress, stroke);
   return (
     <path
       d={stroke.path}
       data-pencil-path={stroke.id}
-      clipPath={clipPath}
       fill="none"
-      stroke="white"
-      strokeWidth={width}
+      stroke="black"
+      strokeWidth={stroke.width}
       strokeLinejoin="round"
       strokeLinecap="round"
       pathLength="1"
@@ -59,10 +49,11 @@ export function WorkbenchDrawing({
   children?: ReactNode;
 }) {
   const id = useId();
-  const inkMask = `${id}-ink`;
-  const softEdge = `${id}-edge`;
+  const paperMask = `${id}-paper`;
   const complete = progress >= 100;
-  const finishOpacity = pencilEase((progress - 99.4) / 0.6);
+  const unfinished = drawingAreas.filter((area) => progress < area.end);
+  // Draw shared edges within a single fill so no paper seam can show through.
+  const paperPath = unfinished.map(({ points }) => `M${points}Z`).join("");
   preload(finishedArtwork, { as: "image", type: "image/webp" });
   preload(drawingPaper, { as: "image", type: "image/webp" });
 
@@ -75,120 +66,55 @@ export function WorkbenchDrawing({
       aria-hidden="true"
       focusable="false"
     >
+      <image
+        href={finishedArtwork}
+        width={width}
+        height={height}
+        data-workbench-art={complete ? "rest" : undefined}
+      />
       {complete ? (
-        <>
-          <image
-            href={finishedArtwork}
-            width={width}
-            height={height}
-            data-workbench-art="rest"
-            data-construction-layer="finish"
-          />
-          {children}
-        </>
+        children
       ) : (
         <>
-          <image href={drawingPaper} width={width} height={height} />
           <defs>
-            <filter id={softEdge} x="-30%" y="-30%" width="160%" height="160%">
-              <feGaussianBlur stdDeviation="4" />
-            </filter>
-            {shadedPlanes.map((plane) => (
-              <clipPath key={plane.id} id={`${id}-${plane.id}`}>
-                <polygon
-                  points={plane.polygon
-                    .map((point) => point.join(","))
-                    .join(" ")}
-                />
+            {unfinished.map(({ id: area, points }) => (
+              <clipPath key={area} id={`${id}-${area}`}>
+                <polygon points={points} />
               </clipPath>
             ))}
-            {detailStrokes.map(
-              ({ id: strokeId, bounds: [x, y, width, height] }) => (
-                <mask
-                  key={strokeId}
-                  id={`${id}-${strokeId}`}
-                  x={x - 16}
-                  y={y - 16}
-                  width={width + 32}
-                  height={height + 32}
-                  maskUnits="userSpaceOnUse"
-                >
-                  <rect
-                    x={x}
-                    y={y}
-                    width={width}
-                    height={height}
-                    fill="white"
-                    filter={`url(#${softEdge})`}
-                  />
-                </mask>
-              ),
-            )}
             <mask
-              id={inkMask}
+              id={paperMask}
               x="0"
               y="0"
               width={width}
               height={height}
               maskUnits="userSpaceOnUse"
             >
-              <g
-                data-construction-layer="lines"
-                opacity={Number(progress > 18)}
-              >
-                {pencilEdges.map((stroke) => (
-                  <RevealStroke
-                    key={stroke.id}
-                    stroke={stroke}
-                    progress={progress}
-                    width={8}
-                  />
-                ))}
-              </g>
-              <g
-                data-construction-layer="planes"
-                opacity={Number(progress > 58)}
-              >
-                {shadedPlanes.map((stroke) => (
-                  <RevealStroke
-                    key={stroke.id}
-                    stroke={stroke}
-                    progress={progress}
-                    width={18}
-                    clipPath={`url(#${id}-${stroke.id})`}
-                  />
-                ))}
-              </g>
-              <g data-construction-layer="details">
-                {detailStrokes.map((stroke) => (
-                  <g key={stroke.id} mask={`url(#${id}-${stroke.id})`}>
+              <path d={paperPath} fill="white" />
+              {unfinished.map(({ id: area, strokes }) => (
+                <g
+                  key={area}
+                  clipPath={`url(#${id}-${area})`}
+                  data-drawing-area={area}
+                >
+                  {strokes.map((stroke) => (
                     <RevealStroke
+                      key={stroke.id}
                       stroke={stroke}
                       progress={progress}
-                      width={18}
                     />
-                  </g>
-                ))}
-              </g>
-              <rect
-                width={width}
-                height={height}
-                fill="white"
-                opacity={finishOpacity}
-              />
+                  ))}
+                </g>
+              ))}
             </mask>
           </defs>
-          <image
-            href={finishedArtwork}
-            width={width}
-            height={height}
-            mask={`url(#${inkMask})`}
-            data-construction-layer="finish"
-            style={{ opacity: Number(progress > 18) }}
-          />
+          <g mask={`url(#${paperMask})`}>
+            <rect width={width} height={height} fill="var(--studio-paper)" />
+            <image href={drawingPaper} width={width} height={height} />
+          </g>
           <g
             data-construction-layer="points"
-            opacity={1 - pencilEase((progress - 58) / 28)}
+            opacity={1 - pencilEase((progress - positioningEnd) / 6)}
           >
             {pointStrokes.map((stroke, index) => {
               const fraction = strokeFraction(progress, stroke);

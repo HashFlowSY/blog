@@ -7,6 +7,7 @@ import {
   pencilRoute,
   wornPencilLength,
 } from "./pencil-route";
+import { drawingAreas } from "./workbench-geometry";
 
 import type { PencilPoint, PencilStroke } from "./pencil-plan";
 
@@ -28,11 +29,11 @@ describe("pencil route", () => {
   });
 
   it.each([
-    "topLeft-topRight",
-    "plane-rack",
-    "left-leg-contour",
+    "notebook-contour",
+    "screen-contour",
+    "stool-contour",
     "laptop-hatch",
-    "plant-hatch",
+    "shelf-hatch",
   ])("places the tip on the actual leading stroke of %s", (id) => {
     const stroke = pencilRoute.find((stroke) => stroke.id === id)!;
     const pose = pencilPosition(
@@ -113,9 +114,10 @@ describe("pencil route", () => {
 });
 
 describe("pencil material", () => {
-  it("visibly wears during outlines and planes before the final details", () => {
-    expect(pencilLength(58)).toBeLessThan(fullPencilLength * 0.7);
-    expect(pencilLength(82)).toBeLessThan(fullPencilLength * 0.4);
+  it("consumes graphite in each drawing area", () => {
+    for (const { strokes, end } of drawingAreas) {
+      expect(pencilLength(end)).toBeLessThan(pencilLength(strokes[0]!.start));
+    }
   });
 
   it("uses material monotonically and exhausts it exactly when the last stroke ends", () => {

@@ -1,18 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  schedulePencilStrokes,
-  splitPencilPath,
-  strokeGeometry,
-} from "./pencil-path";
+import { schedulePencilStrokes, strokeGeometry } from "./pencil-path";
 
 describe("pencil path geometry", () => {
   it("keeps disconnected contour lengths separate from air travel", () => {
-    const parts = splitPencilPath("M 0 0 L 3 0 M 1000 0 L 1002 0").map(
-      strokeGeometry,
-    );
-    expect(parts.map((part) => part.length)).toEqual([3, 2]);
-    expect(parts[1]?.from).toEqual([1000, 0]);
+    expect(strokeGeometry("M 0 0 L 3 0 M 1000 0 L 1002 0").length).toBe(5);
     expect(strokeGeometry("M 0 0 L 3 0 L 3 4 Z")).toMatchObject({
       length: 12,
       from: [0, 0],

@@ -7,12 +7,6 @@ export interface StrokeGeometry {
   minY: number;
 }
 
-// The authored drawing uses absolute M/L/Q/C/Z commands. Keep disconnected
-// subpaths separate so an SVG move never becomes a teleporting pencil tip.
-export function splitPencilPath(path: string): string[] {
-  return path.match(/M[^M]*/g)?.map((part) => part.trim()) ?? [];
-}
-
 export function strokeGeometry(path: string): StrokeGeometry {
   let current: PencilPoint = [0, 0];
   let from: PencilPoint = current;
@@ -83,7 +77,6 @@ export function strokeGeometry(path: string): StrokeGeometry {
 export interface StrokeDraft extends StrokeGeometry {
   id: string;
   path: string;
-  weight?: number;
 }
 
 // Give travel its own budget. A distant object must not inherit the tiny
@@ -112,9 +105,7 @@ export function schedulePencilStrokes<T extends StrokeDraft>(
   const flightScale = flightTotal
     ? Math.min(1, (duration * 0.45) / flightTotal)
     : 1;
-  const ink = strokes.map(
-    (stroke) => (42 + Math.sqrt(stroke.length) * 2.2) * (stroke.weight ?? 1),
-  );
+  const ink = strokes.map((stroke) => 42 + Math.sqrt(stroke.length) * 2.2);
   const inkTotal = ink.reduce((sum, value) => sum + value, 0);
   const inkScale = (duration - flightTotal * flightScale) / inkTotal;
   let cursor = 0;
