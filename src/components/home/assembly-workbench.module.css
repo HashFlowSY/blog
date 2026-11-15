@@ -1,195 +1,117 @@
 .workbench {
+  display: grid;
+  grid-template-areas: "scene";
   min-width: 0;
-  border: 1px solid var(--studio-line);
-  background: var(--studio-paper);
 }
 
-.heading {
+.scene {
+  position: relative;
+  grid-area: scene;
+  aspect-ratio: 1440 / 682;
+  overflow: clip;
+}
+
+.sheet {
+  position: absolute;
+  inset: 0;
+}
+
+.interactive {
+  position: absolute;
+  inset: 0;
+}
+
+.drawing {
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.parts {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.hotspot {
+  position: absolute;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  touch-action: pan-y pinch-zoom;
+  pointer-events: auto;
+}
+
+.hotspot:focus-visible {
+  outline: 2px solid var(--studio-ink);
+  outline-offset: 2px;
+}
+
+.crank {
+  cursor: grab;
+}
+
+.workbench[data-touch-active="true"] .crank {
+  touch-action: none;
+}
+
+.crank:active {
+  cursor: grabbing;
+}
+
+.controls {
+  position: relative;
+  z-index: 1;
+  grid-area: scene;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
-  gap: 16px;
-  min-height: 61px;
-  padding: 8px 20px;
-  border-bottom: 1px solid var(--studio-line);
-}
-
-.workbench[data-touch-active="true"] .heading {
-  position: sticky;
-  z-index: 2;
-  top: var(--studio-header-height);
-  background: var(--studio-paper);
-}
-
-.heading h2 {
-  margin: 0;
-  color: var(--studio-ink);
-  font-family: var(--font-body);
-  font-size: 14px;
-  font-weight: 600;
-  letter-spacing: 0;
-  line-height: 1.6;
-  text-transform: none;
+  align-self: end;
+  justify-self: end;
+  min-height: 44px;
+  margin: 0 7% 2.1% 0;
 }
 
 .desktopHint {
   margin: 0;
   color: var(--studio-muted);
-  font-size: 13px;
+  font-size: clamp(12px, 1vw, 14px);
   line-height: 1.5;
 }
 
-.viewMode {
-  padding: 5px 8px;
-  border: 1px solid var(--studio-line);
-  color: var(--studio-muted);
-  font-family: var(--font-mono);
-  font-size: 12px;
-  line-height: 1;
-}
-
-.scene {
-  /* Leave room for the widest diagonal view at the default zoom. */
-  --workbench-framing: 0.76;
-  --workbench-drawing-left: -15%;
-  --workbench-drawing-top: 1%;
-  --workbench-drawing-width: 105%;
-
-  position: relative;
-  width: 100%;
-  aspect-ratio: 1.52;
-  min-height: 0;
-  overflow: hidden;
-  isolation: isolate;
-  background-color: #f8f4e9;
-  background-image: var(--studio-paper-grain);
-  background-repeat: repeat;
-  background-size: 640px 640px;
-}
-
-.illustration {
-  position: absolute;
-  inset: 0;
-  mix-blend-mode: multiply;
-  transform: scale(var(--workbench-framing));
-}
-
-.scene[data-model-ready="true"]:has(.modelCanvas[data-view="model"])
-  .illustration {
-  visibility: hidden;
-}
-
-.drawing {
-  position: absolute;
-  top: var(--workbench-drawing-top);
-  left: var(--workbench-drawing-left);
-  width: var(--workbench-drawing-width);
-  height: auto;
-  aspect-ratio: 1.5;
-  overflow: visible;
-  pointer-events: none;
-}
-
-.pencil {
-  pointer-events: none;
-}
-
-.orbit {
-  position: absolute;
-  inset: 0;
-  mix-blend-mode: multiply;
-  user-select: none;
-  -webkit-user-select: none;
-  pointer-events: none;
-}
-
-.orbit[data-model-status="ready"] {
-  pointer-events: auto;
-}
-
-.modelCanvas {
-  display: block;
-  width: 100%;
-  height: 100%;
-  opacity: 0;
-  cursor: grab;
-  touch-action: pan-y pinch-zoom;
-}
-
-.workbench[data-touch-active="true"] .modelCanvas {
-  touch-action: none;
-}
-
-.orbit[data-model-status="ready"] .modelCanvas[data-view="model"] {
-  opacity: 1;
-}
-
-.modelCanvas[data-actionable="true"] {
+.touchMode,
+.buildButton {
+  padding: 0 11px;
+  min-height: 44px;
+  border: 1px solid var(--studio-ink);
+  background: var(--studio-paper);
+  color: var(--studio-ink);
+  font-size: 13px;
   cursor: pointer;
-}
-
-.modelCanvas[data-dragging="true"] {
-  cursor: grabbing;
-}
-
-.orbit:focus-visible {
-  outline: 2px solid var(--studio-ink);
-  outline-offset: -5px;
 }
 
 .touchMode {
   display: none;
-  min-width: 44px;
-  min-height: 44px;
-  padding: 0 10px;
-  border: 1px solid var(--studio-line);
-  background: transparent;
-  color: var(--studio-ink);
-  font-family: var(--font-body);
-  font-size: 13px;
-  cursor: pointer;
 }
 
 .touchMode:hover,
-.workbench[data-touch-active="true"] .touchMode {
-  border-color: var(--studio-ink);
-  background: var(--studio-yellow);
-}
-
-.touchMode:focus-visible {
-  outline: 2px solid var(--studio-ink);
-  outline-offset: 2px;
-}
-
-.buildButton {
-  display: inline-flex;
-  min-height: 44px;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 0 11px;
-  border: 1px solid var(--studio-ink);
-  background: var(--studio-ink);
-  color: var(--studio-paper);
-  font-size: 13px;
-  cursor: pointer;
-  transition:
-    background var(--studio-duration-fast),
-    color var(--studio-duration-fast);
-}
-
+.workbench[data-touch-active="true"] .touchMode,
 .buildButton:hover {
   background: var(--studio-yellow);
-  color: var(--studio-ink);
 }
 
+.touchMode:focus-visible,
 .buildButton:focus-visible {
   outline: 2px solid var(--studio-ink);
-  outline-offset: 4px;
+  outline-offset: 3px;
 }
 
 .srOnly {
   position: absolute;
+  margin: 0;
   width: 1px;
   height: 1px;
   padding: 0;
@@ -199,29 +121,47 @@
 }
 
 @media (max-width: 760px) {
-  .heading {
-    gap: 8px;
-    padding-inline: 16px;
-  }
-  .buildButton {
-    gap: 10px;
-    padding-inline: 10px;
-  }
   .scene {
-    --workbench-framing: 1.08;
-    --workbench-drawing-top: 16%;
-    --workbench-drawing-left: -10%;
-    --workbench-drawing-width: 95%;
+    aspect-ratio: 770 / 682;
+  }
 
-    aspect-ratio: 1.18;
-    min-height: 272px;
+  /* The mobile frame crops the shared coordinate plane around the artwork. */
+  .sheet {
+    inset-inline-start: calc(-570 / 770 * 100%);
+    inset-inline-end: auto;
+    width: calc(1440 / 770 * 100%);
+  }
+
+  .controls {
+    margin-inline-end: 22px;
   }
 }
 
 @media (any-pointer: coarse) {
+  .workbench {
+    grid-template-areas:
+      "controls"
+      "scene";
+  }
+
+  .controls {
+    grid-area: controls;
+    justify-self: stretch;
+    margin: 0;
+    padding-inline: 22px;
+  }
+
+  .workbench[data-touch-active="true"] .controls {
+    position: sticky;
+    z-index: 2;
+    top: var(--studio-header-height);
+    background: var(--studio-paper);
+  }
+
   .desktopHint {
     display: none;
   }
+
   .touchMode {
     display: block;
   }
@@ -230,8 +170,5 @@
 @media (prefers-reduced-motion: reduce) {
   .pencil {
     display: none;
-  }
-  .buildButton {
-    transition: none;
   }
 }

@@ -2,29 +2,32 @@ import { expect } from "@playwright/test";
 
 import { routeForPost, STABLE_POST, test } from "./fixtures";
 import { goToHome, goToPost, goToPosts, goToRoute } from "./helpers/navigation";
-import { waitForWorkbenchModel } from "./helpers/workbench";
+import { waitForFinishedWorkbench } from "./helpers/workbench";
 
 test.describe("Continuous browsing interactions", () => {
-  test("keeps the solid 3D workbench inside a narrow phone viewport", async ({
+  test("keeps the drawing and its interactive parts inside a narrow viewport", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 320, height: 844 });
     await page.emulateMedia({ reducedMotion: "reduce" });
     await goToHome(page);
     const workbench = page.getByRole("region", { name: "交互工作台" });
-    const viewer = await waitForWorkbenchModel(workbench);
-    const canvas = await workbench
-      .locator('[data-complete="true"]')
-      .boundingBox();
-    const bounds = await viewer.boundingBox();
-    expect(canvas).not.toBeNull();
-    expect(bounds).not.toBeNull();
-    if (!canvas || !bounds)
-      throw new Error("Workbench canvas and solid model must be visible");
-    expect(bounds.x + bounds.width).toBeLessThanOrEqual(
-      canvas.x + canvas.width,
-    );
-    expect(canvas.x + canvas.width).toBeLessThanOrEqual(320);
+    const scene = await waitForFinishedWorkbench(workbench);
+    const bounds = await scene.boundingBox();
+    if (!bounds) throw new Error("Finished drawing must be visible");
+    expect(bounds.x).toBeGreaterThanOrEqual(0);
+    expect(bounds.x + bounds.width).toBeLessThanOrEqual(320);
+    const parts = workbench.getByRole("group", { name: "二维工作台部件" });
+    await expect(parts).toBeVisible();
+    await expect(parts.getByRole("button", { name: "黄色抽屉" })).toBeVisible();
+    for (const button of await parts.getByRole("button").all()) {
+      const target = await button.boundingBox();
+      if (!target) throw new Error("A workbench part has no touch area");
+      expect(target.x).toBeGreaterThanOrEqual(bounds.x);
+      expect(target.x + target.width).toBeLessThanOrEqual(
+        bounds.x + bounds.width,
+      );
+    }
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth),
     ).toBeLessThanOrEqual(320);

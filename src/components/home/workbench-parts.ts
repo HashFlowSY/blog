@@ -1,6 +1,5 @@
-type WorkbenchPoint = readonly [number, number, number];
 export type WorkbenchDevice = "laptop" | "display";
-type WorkbenchMouse = "mouse-left" | "mouse-right";
+export type WorkbenchMouse = "mouse-left" | "mouse-right";
 export const drawerActions = ["drawer-0", "drawer-1", "drawer-2"] as const;
 export const viseScrewPitch = 0.073;
 export type WorkbenchDrawer = (typeof drawerActions)[number];
@@ -31,21 +30,8 @@ export type WorkbenchPart =
   | "case-latches"
   | "vise-slide"
   | "vise-handle"
-  | "vise-grip"
   | "vise-stock"
   | "stool";
-
-export interface WorkbenchKeyContact {
-  center: WorkbenchPoint;
-  width: number;
-  depth: number;
-  yaw: number;
-}
-
-export interface WorkbenchMouseContact {
-  outline: readonly WorkbenchPoint[];
-  axis: WorkbenchPoint;
-}
 
 export function actionForPart(
   part: WorkbenchPart,
@@ -55,7 +41,7 @@ export function actionForPart(
   if (part.startsWith("case-")) return "case";
   if (part.startsWith("laptop")) return "laptop";
   if (part.startsWith("display")) return "display";
-  if (part === "vise-handle" || part === "vise-grip") return "vise";
+  if (part === "vise-handle") return "vise";
   if (part === "lamp" || part === "lamp-diffuser") return "lamp";
   if (part === "mouse-left" || part === "mouse-right" || part === "stool")
     return part;

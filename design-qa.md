@@ -1,4 +1,26 @@
-# 工作台二维与三维衔接验收
+# 2026-11-15 首页二维工作台验收
+
+- 固定视觉基准是 [第二张概念图](docs/design/workbench-2d/concept-1440.png)。在 Linux Chromium 的 1440 × 900 CSS 像素、DPR 1 视口，收笔且部件归位后，坐标 `(618, 91)` 起的 720 × 607 画稿选区与基准逐像素比对，437,040 个像素的 RGB 完全相同。
+- 首屏效果见仓库内的[桌面截图基线](e2e/visual-regression.spec.ts-snapshots/home-desktop-chromium-visual-linux.png)，画稿区域由[原画像素比对](e2e/visual-regression.spec.ts)验证。工作台、透视线和落地阴影沿用原图。导航、标题、按钮和项目入口使用网页文字及控件，字体栅格化随浏览器变化。提示文案为「点按部件试试」。
+- [首页浏览器用例](e2e/home.spec.ts)覆盖落点、轮廓、排线、细节、收笔、抽屉原位恢复和屏内逐笔出图；[部件状态测试](src/components/home/workbench-interactions.spec.ts)检查台钳掉落与回夹等时序。细节遮罩采用柔边，弱化补绘纸面和原图之间的切边。
+- 移动端菜单效果见[手机截图基线](e2e/visual-regression.spec.ts-snapshots/home-mobile-menu-open-chromium-visual-linux.png)。[触屏与窄屏用例](e2e/interaction.spec.ts)、[首页用例](e2e/home.spec.ts)和[组件测试](src/components/home/assembly-workbench.spec.tsx)验证纵向滚动、进入及退出操作、点按抽屉、键盘和减少动态效果。
+
+final result: passed
+
+## 历史验收记录
+
+以下保留迁移前的验收经过。文中的 `qa-evidence/` 路径是当时的本机取证位置，材料已随回退前备份移出仓库，不作为当前验收入口；当前画面与行为以本页上方的截图基线和测试为准。
+
+### 2026-11-15 首页工作台背景验收
+
+- 视觉参考为第二张设计稿，原图 1586 × 992，见 `qa-evidence/workbench-drafting/reference.png`。桌面实拍使用 1440 × 900 CSS 像素、DPR 1。参考图缩放至同尺寸后并排比对，左侧为设计稿，右侧为实现。见 `qa-evidence/workbench-drafting/desktop-comparison.png` 和工作台局部 `bench-comparison.png`。
+- 两侧使用首页的暖纸色、深色无衬线字和黄色主按钮。首屏保留两栏，标题、站点导航和代表项目入口清晰。工作台的透明成稿与三维画布共用首页纸面，透视辅助线延伸到左侧留白。实际模型使用现有石墨纹理，静止尺寸小于概念图，以给侧面和底视留出空间。
+- 首轮比对发现辅助线较重，提示离工作台过远，鼠标拖动时出现矩形焦点框。调整辅助线透明度和提示位置后重新截图。鼠标拖动时画面无外框，键盘旋转时显示焦点轮廓。见 `desktop-comparison-initial.png`、`desktop-final.png` 和 `desktop-orbit-final.png`。
+- 在 390 × 844 CSS 像素、DPR 1 的触屏视口验证进入和退出操作，画面无水平溢出。见 `mobile-final.png`。桌面另验证了拖动后切换到三维画面、方向键操作和跳转代表项目。页面脚本及新版素材加载通过。
+
+该版本的视觉验收通过。
+
+### 工作台二维与三维衔接验收
 
 ## 参考图与取景
 

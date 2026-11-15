@@ -13,11 +13,12 @@ import {
   installDrawingClock,
   movePencilToDrawing,
   paintedPencilLength,
-  waitForWorkbenchModel,
+  waitForFinishedWorkbench,
+  waitForWorkbenchArtwork,
 } from "./helpers/workbench";
 
 test.describe("WebKit smoke", () => {
-  test("draws contacted points and consumes the pencil before enabling the solid model", async ({
+  test("draws contacted points and consumes the pencil before revealing the finished illustration", async ({
     page,
   }) => {
     await installDrawingClock(page);
@@ -43,36 +44,31 @@ test.describe("WebKit smoke", () => {
     await movePencilToDrawing(page, workbench);
     await expectPencilAtStroke(workbench);
     await drawTo(page, workbench, 100);
-    await waitForWorkbenchModel(workbench);
+    await waitForWorkbenchArtwork(await waitForFinishedWorkbench(workbench));
     await expect(workbench.getByRole("slider")).toHaveCount(0);
   });
 
-  test("rotates the finished view and resets it when a refresh starts a fresh drawing", async ({
+  test("switches the work light by keyboard and resets it after a refresh", async ({
     page,
   }) => {
     await installDrawingClock(page);
     await goToHome(page);
     const workbench = page.getByRole("region", { name: "交互工作台" });
     await drawTo(page, workbench, 100);
-    const view = await waitForWorkbenchModel(workbench);
-    await view.press("ArrowLeft");
-    await page.clock.runFor(750);
-    await expect(view.locator("canvas")).toHaveAttribute("data-yaw", "-15");
-    for (let i = 0; i < 25; i++) await view.press("ArrowRight");
-    await page.clock.runFor(32);
-    expect(
-      Number(await view.locator("canvas").getAttribute("data-yaw")),
-    ).toBeCloseTo(360, 1);
+    await waitForFinishedWorkbench(workbench);
+    const light = workbench.getByRole("button", { name: "工作灯" });
+    await expect(light).toHaveAttribute("aria-pressed", "true");
+    await light.press("Space");
+    await expect(light).toHaveAttribute("aria-pressed", "false");
     await page.reload();
     await expect(workbench.locator("[data-progress]")).toHaveAttribute(
       "data-progress",
       "0",
     );
-    await expect(view).toHaveCount(0);
+    await expect(light).toHaveCount(0);
     await drawTo(page, workbench, 100);
-    await waitForWorkbenchModel(workbench);
-    await expect(view.locator("canvas")).toHaveAttribute("data-yaw", "0");
-    await expect(view.locator("canvas")).toHaveAttribute("data-pitch", "0");
+    await waitForFinishedWorkbench(workbench);
+    await expect(light).toHaveAttribute("aria-pressed", "true");
   });
 
   test("renders the home page and primary navigation", async ({ page }) => {

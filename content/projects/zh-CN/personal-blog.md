@@ -5,11 +5,11 @@ date: "2026-04-02"
 tags:
   - nextjs
   - typescript
-  - threejs
+  - svg
   - shiki
   - github-pages
   - tailwindcss
-description: "Hashflow 的中文技术博客与作品集，包含手绘 3D 工作台、文章全文搜索和构建时 Markdown 渲染。"
+description: "Hashflow 的中文技术博客与作品集，包含手绘二维交互工作台、文章全文搜索和构建时 Markdown 渲染。"
 cover: "/assets/personal-blog-home.jpg"
 source: "https://github.com/HashFlowSY/blog"
 demo: "https://hashflowsy.github.io/blog/"
@@ -29,9 +29,9 @@ draft: false
 
 ## 首页交互工作台
 
-首页先逐笔画出工作台，绘制完成后可以拖动旋转 360°。访客可以开关工作灯、拉出抽屉、打开工具箱，也可以转动台钳。触屏上先点「操作工作台」，再用单指旋转、双指缩放。WebGL 初始化失败时会保留二维成稿。
+首页用铅笔逐步画出工作台。绘制完成后，访客可以点按画中的部件开关工作灯、拉出抽屉、打开工具箱，也可以拖动台钳手柄。触屏先点「操作工作台」，使用键盘时可聚焦部件再按 Enter 或空格。
 
-二维成稿和 Three.js 模型共用几何、铅笔贴图和参考相机。拖动时切换到已经绘好的三维画面，回到初始视角且部件归位后重新显示成稿。[建模与贴图方案](https://github.com/HashFlowSY/blog/blob/44d8229/docs/design/workbench-assembly-plan.md) · [交互设计](https://github.com/HashFlowSY/blog/blob/44d8229/docs/design/workbench-interaction-design.md)
+画稿、绘制路径和部件的触发范围使用同一套二维坐标。拉出抽屉等动作只改变相关区域，部件归位后恢复原稿的笔触与阴影。[工作台设计](https://github.com/HashFlowSY/blog/blob/main/docs/design/workbench-interaction-design.md)
 
 ## 内容管线
 

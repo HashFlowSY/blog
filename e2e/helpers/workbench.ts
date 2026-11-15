@@ -22,21 +22,22 @@ export async function drawTo(page: Page, workbench: Locator, progress: number) {
   await expect
     .poll(async () => Number(await scene.getAttribute("data-progress")))
     .toBeGreaterThanOrEqual(progress);
-  // Let the finished illustration paint before the renderer's deferred setup.
-  if (progress === 100) await page.clock.runFor(48);
 }
 
-export async function waitForWorkbenchModel(workbench: Locator) {
-  const view = workbench.getByRole("group", { name: "可旋转的立体工作台" });
-  await expect(view).toHaveAttribute("data-model-status", "ready", {
-    timeout: 15000,
+export async function waitForFinishedWorkbench(workbench: Locator) {
+  const scene = workbench.locator('[data-complete="true"]');
+  await expect(scene).toBeVisible({ timeout: 15000 });
+  return scene;
+}
+
+export async function waitForWorkbenchArtwork(scene: Locator) {
+  const artwork = scene.locator('[data-workbench-art="rest"]');
+  await expect(artwork).toBeVisible();
+  await artwork.evaluate(async (element) => {
+    const image = new Image();
+    image.src = element.getAttribute("href")!;
+    await image.decode();
   });
-  const canvas = view.locator("canvas");
-  await expect(canvas).toHaveAttribute("data-renderer", "webgl2");
-  expect(Number(await canvas.getAttribute("data-triangles"))).toBeGreaterThan(
-    20000,
-  );
-  return view;
 }
 
 export async function paintedPencilLength(page: Page, workbench: Locator) {

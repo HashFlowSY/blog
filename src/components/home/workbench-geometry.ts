@@ -1,307 +1,161 @@
 import { schedulePencilStrokes, strokeGeometry } from "./pencil-path";
 import { hatchPath } from "./pencil-plan";
 
-export const vertices = {
-  footLeft: [542, 822],
-  footRight: [1248, 944],
-  footBackRight: [1365, 864],
-  footBackLeft: [656, 755],
-  topLeft: [512, 548],
-  topRight: [1248, 618],
-  topBackRight: [1365, 550],
-  topBackLeft: [645, 485],
-  apronLeft: [512, 575],
-  apronRight: [1248, 646],
-  apronBackRight: [1365, 576],
-  apronBackLeft: [645, 512],
-  rackTopLeft: [660, 246],
-  rackTopRight: [1355, 231],
-  rackBottomRight: [1355, 590],
-  rackBottomLeft: [660, 536],
-  shelfFrontLeft: [619, 240],
-  shelfFrontRight: [1382, 235],
-  shelfBackRight: [1355, 216],
-  shelfBackLeft: [647, 221],
-  cabinetTopLeft: [1055, 628],
-  cabinetTopRight: [1225, 645],
-  cabinetBottomRight: [1225, 904],
-  cabinetBottomLeft: [1055, 868],
-  cabinetBackTop: [1340, 580],
-  cabinetBackBottom: [1340, 838],
-  drawerTopLeft: [1055, 723],
-  drawerTopRight: [1225, 748],
-  monitorTopLeft: [1006, 386],
-  monitorTopRight: [1194, 392],
-  monitorBottomRight: [1185, 515],
-  monitorBottomLeft: [1006, 510],
-  monitorStandTop: [1098, 513],
-  monitorStandBottom: [1098, 553],
-  monitorBaseLeft: [1047, 561],
-  monitorBaseRight: [1163, 568],
-  laptopTopLeft: [675, 402],
-  laptopTopRight: [849, 400],
-  laptopBottomRight: [865, 512],
-  laptopBottomLeft: [685, 515],
-  laptopBaseLeft: [648, 531],
-  laptopBaseRight: [917, 547],
-} as const satisfies Record<string, readonly [number, number]>;
+import type { DrawingBounds, PencilPoint } from "./pencil-plan";
 
-type VertexId = keyof typeof vertices;
-
-const edges = [
-  ["topLeft", "topRight"],
-  ["topRight", "topBackRight"],
-  ["topBackRight", "topBackLeft"],
-  ["topBackLeft", "topLeft"],
-  ["topLeft", "apronLeft"],
-  ["topRight", "apronRight"],
-  ["topBackRight", "apronBackRight"],
-  ["apronLeft", "apronRight"],
-  ["apronRight", "apronBackRight"],
-  ["apronBackLeft", "apronLeft"],
-  ["apronLeft", "footLeft"],
-  ["apronRight", "footRight"],
-  ["apronBackRight", "footBackRight"],
-  ["apronBackLeft", "footBackLeft"],
-  ["rackTopLeft", "rackTopRight"],
-  ["rackTopRight", "rackBottomRight"],
-  ["rackBottomRight", "rackBottomLeft"],
-  ["rackBottomLeft", "rackTopLeft"],
-  ["shelfFrontLeft", "shelfFrontRight"],
-  ["shelfFrontRight", "shelfBackRight"],
-  ["shelfBackRight", "shelfBackLeft"],
-  ["shelfBackLeft", "shelfFrontLeft"],
-  ["cabinetTopLeft", "cabinetTopRight"],
-  ["cabinetTopRight", "cabinetBottomRight"],
-  ["cabinetBottomRight", "cabinetBottomLeft"],
-  ["cabinetBottomLeft", "cabinetTopLeft"],
-  ["cabinetTopRight", "cabinetBackTop"],
-  ["cabinetBackTop", "cabinetBackBottom"],
-  ["cabinetBackBottom", "cabinetBottomRight"],
-  ["drawerTopLeft", "drawerTopRight"],
-  ["monitorTopLeft", "monitorTopRight"],
-  ["monitorTopRight", "monitorBottomRight"],
-  ["monitorBottomRight", "monitorBottomLeft"],
-  ["monitorBottomLeft", "monitorTopLeft"],
-  ["monitorStandTop", "monitorStandBottom"],
-  ["monitorBaseLeft", "monitorStandBottom"],
-  ["monitorStandBottom", "monitorBaseRight"],
-  ["laptopTopLeft", "laptopTopRight"],
-  ["laptopTopRight", "laptopBottomRight"],
-  ["laptopBottomRight", "laptopBottomLeft"],
-  ["laptopBottomLeft", "laptopTopLeft"],
-  ["laptopBottomLeft", "laptopBaseLeft"],
-  ["laptopBaseLeft", "laptopBaseRight"],
-  ["laptopBaseRight", "laptopBottomRight"],
-] as const satisfies readonly (readonly [VertexId, VertexId])[];
-
-const planes = [
-  {
-    id: "rack",
-    corners: [
-      "rackTopLeft",
-      "rackTopRight",
-      "rackBottomRight",
-      "rackBottomLeft",
-    ],
-    color: "#e3dac8",
-  },
-  {
-    id: "cabinetSide",
-    corners: [
-      "cabinetTopRight",
-      "cabinetBackTop",
-      "cabinetBackBottom",
-      "cabinetBottomRight",
-    ],
-    color: "#c4baa7",
-  },
-  {
-    id: "cabinetFront",
-    corners: [
-      "cabinetTopLeft",
-      "cabinetTopRight",
-      "cabinetBottomRight",
-      "cabinetBottomLeft",
-    ],
-    color: "#e8deca",
-  },
-  {
-    id: "drawer",
-    corners: [
-      "drawerTopLeft",
-      "drawerTopRight",
-      "cabinetBottomRight",
-      "cabinetBottomLeft",
-    ],
-    color: "#d9c355",
-  },
-  {
-    id: "tableApron",
-    corners: ["topLeft", "topRight", "apronRight", "apronLeft"],
-    color: "#b9ae9c",
-  },
-  {
-    id: "tableTop",
-    corners: ["topLeft", "topRight", "topBackRight", "topBackLeft"],
-    color: "#e8dcc5",
-  },
-  {
-    id: "shelf",
-    corners: [
-      "shelfFrontLeft",
-      "shelfFrontRight",
-      "shelfBackRight",
-      "shelfBackLeft",
-    ],
-    color: "#c9bea8",
-  },
-  {
-    id: "monitor",
-    corners: [
-      "monitorTopLeft",
-      "monitorTopRight",
-      "monitorBottomRight",
-      "monitorBottomLeft",
-    ],
-    color: "#e5dece",
-  },
-  {
-    id: "laptopScreen",
-    corners: [
-      "laptopTopLeft",
-      "laptopTopRight",
-      "laptopBottomRight",
-      "laptopBottomLeft",
-    ],
-    color: "#ece4d4",
-  },
-  {
-    id: "laptopBase",
-    corners: [
-      "laptopBottomLeft",
-      "laptopBottomRight",
-      "laptopBaseRight",
-      "laptopBaseLeft",
-    ],
-    color: "#c8bfad",
-  },
-] as const satisfies readonly {
-  id: string;
-  corners: readonly VertexId[];
-  color: string;
-}[];
-
-// Fixed seeds keep pencil pressure and retracing stable while scrubbing/replaying.
-function pencilVariation(seed: number): number {
-  let value = Math.imul(seed + 1, 0x45d9f3b);
-  value = Math.imul(value ^ (value >>> 16), 0x45d9f3b);
-  return ((value ^ (value >>> 16)) >>> 0) / 0xffffffff - 0.5;
-}
-
-function pencilTrace(
-  from: readonly [number, number],
-  to: readonly [number, number],
-  seed: number,
-  retrace: number,
-): string {
-  const dx = to[0] - from[0];
-  const dy = to[1] - from[1];
-  const length = Math.hypot(dx, dy);
-  const nx = -dy / length;
-  const ny = dx / length;
-  const amplitude = 2.1 + retrace * 1.6;
-
-  function mark(t: number, index: number): string {
-    const drift = pencilVariation(seed + index * 13) * amplitude;
-    return `${(from[0] + dx * t + nx * drift).toFixed(2)} ${(from[1] + dy * t + ny * drift).toFixed(2)}`;
-  }
-
-  let path = `M ${mark(-0.003, 0)}`;
-  for (let section = 1; section <= 4; section++) {
-    const t = section / 4;
-    path += ` Q ${mark(t - 0.125, section * 2)} ${mark(t + 0.003, section * 2 + 1)}`;
-  }
-  return path;
-}
-
-const pencilPasses = [
-  { width: 1.05, opacity: 0.72 },
-  { width: 0.55, opacity: 0.32 },
-  { width: 0.35, opacity: 0.2 },
-] as const;
-
-const edgeDrafts = edges.map(([from, to], index) => ({
-  id: `${from}-${to}`,
-  strokes: pencilPasses.map((pass, retrace) => ({
-    ...pass,
-    d: pencilTrace(
-      vertices[from],
-      vertices[to],
-      index * 71 + retrace * 23,
-      retrace,
-    ),
-    pressure: 0.85 + pencilVariation(index * 17 + retrace) * 0.3,
-  })),
-}));
-
-export const pencilEdges = schedulePencilStrokes(
-  edgeDrafts.map((edge) => ({
-    ...edge,
-    path: edge.strokes[0]!.d,
-    ...strokeGeometry(edge.strokes[0]!.d),
-  })),
-  18.6,
-  57.7,
-  3128,
-);
-
-const planeDrafts = planes.map((plane) => {
-  const points = plane.corners.map((id) => vertices[id]);
-  const x = Math.min(...points.map(([x]) => x));
-  const y = Math.min(...points.map(([, y]) => y));
-  const width = Math.max(...points.map(([x]) => x)) - x;
-  const height = Math.max(...points.map(([, y]) => y)) - y;
-  return {
-    ...plane,
-    hatch: hatchPath([x, y, width, height], -34, 10, points),
-  };
-});
-
-export const shadedPlanes = schedulePencilStrokes(
-  planeDrafts.map((plane) => ({
-    ...plane,
-    path: plane.hatch,
-    ...strokeGeometry(plane.hatch),
-  })),
-  59.3,
-  77.5,
-  1501.5,
-);
-
-const outlinePoints = [
-  "topLeft",
-  "footLeft",
-  "footRight",
-  "topRight",
-  "shelfFrontRight",
-  "shelfFrontLeft",
-] as const satisfies readonly VertexId[];
+const marks = {
+  topLeft: [638, 436],
+  topRight: [1169, 476],
+  backRight: [1252, 436],
+  shelfLeft: [733, 207],
+  shelfRight: [1226, 204],
+  leftFoot: [678, 628],
+  rightFoot: [1163, 697],
+  cabinet: [1009, 492],
+  notebook: [747, 346],
+  screen: [987, 331],
+  stool: [840, 553],
+} as const satisfies Record<string, PencilPoint>;
 
 export const pointStrokes = schedulePencilStrokes(
-  outlinePoints.map((id) => {
-    const point = vertices[id];
-    return {
-      id: `point-${id}`,
-      point,
-      path: "",
-      from: point,
-      to: point,
-      minY: point[1],
-      length: 2,
-    };
+  Object.entries(marks).map(([id, point]) => ({
+    id: `point-${id}`,
+    path: "",
+    point,
+    from: point,
+    to: point,
+    minY: point[1],
+    length: 2,
+  })),
+  1.1,
+  17.5,
+  2470,
+);
+
+const outlines = {
+  "topLeft-topRight": "M 638 436 L 1169 476 L 1252 436 L 1221 431",
+  "bench-apron": "M 638 436 L 638 446 L 1171 489 L 1252 447 L 1252 436",
+  "left-leg-contour": "M 665 451 L 664 623 L 680 629 L 691 623 L 692 454 Z",
+  "left-support": "M 692 489 L 764 471 L 765 594",
+  "right-leg-contour": "M 1148 487 L 1150 693 L 1166 698 L 1179 689 L 1177 488",
+  "rear-right-foot": "M 1212 468 L 1215 633 L 1228 640 L 1237 633 L 1235 457",
+  "shelf-contour":
+    "M 733 208 L 1180 195 L 1226 203 L 1227 214 L 1181 205 L 733 219 Z",
+  "rack-contour": "M 771 217 L 772 423 L 1222 437 L 1222 215",
+  "cabinet-front": "M 995 480 L 995 641 L 1147 661 L 1147 488",
+  "cabinet-side": "M 1180 483 L 1235 453 L 1234 599 L 1182 643",
+  "lower-shelf": "M 694 555 L 821 566 L 856 548 L 855 562 L 821 582 L 695 567",
+  "notebook-contour":
+    "M 747 346 L 875 344 L 889 419 L 922 429 L 921 435 L 785 442 L 756 428 Z",
+  "screen-contour": "M 987 331 L 1118 333 L 1109 414 L 977 408 Z",
+  "stool-contour":
+    "M 839 544 C 839 525 931 519 934 542 C 941 565 835 574 839 544 Z",
+  "drawer-contour": "M 1009 561 L 1143 575 L 1143 648 L 1009 631 Z",
+} as const;
+
+export const pencilEdges = schedulePencilStrokes(
+  Object.entries(outlines).map(([id, path]) => ({
+    id,
+    path,
+    ...strokeGeometry(path),
+  })),
+  18,
+  57.5,
+  3200,
+);
+
+const planes: readonly (readonly [string, readonly PencilPoint[], number])[] = [
+  [
+    "rack",
+    [
+      [771, 218],
+      [1222, 211],
+      [1222, 434],
+      [774, 419],
+    ],
+    -31,
+  ],
+  [
+    "table",
+    [
+      [639, 436],
+      [773, 415],
+      [1250, 436],
+      [1169, 473],
+    ],
+    12,
+  ],
+  [
+    "cabinet",
+    [
+      [1000, 483],
+      [1146, 490],
+      [1146, 660],
+      [998, 641],
+    ],
+    -28,
+  ],
+  [
+    "drawer",
+    [
+      [1010, 560],
+      [1142, 574],
+      [1142, 649],
+      [1010, 631],
+    ],
+    10,
+  ],
+  [
+    "shelf",
+    [
+      [732, 204],
+      [1178, 192],
+      [1227, 204],
+      [1180, 219],
+      [733, 222],
+    ],
+    3,
+  ],
+];
+
+export const shadedPlanes = schedulePencilStrokes(
+  planes.map(([id, polygon, angle]) => {
+    const path = hatchPath([0, 0, 0, 0], angle, 18, polygon);
+    return { id: `plane-${id}`, polygon, path, ...strokeGeometry(path) };
   }),
-  1.4,
-  17.2,
-  1275,
+  58,
+  81.6,
+  1950,
+);
+
+const detailRegions: readonly (readonly [string, DrawingBounds, number])[] = [
+  ["plant", [747, 91, 121, 117], -32],
+  ["shelf-boxes", [822, 167, 129, 40], 20],
+  ["shelf-books", [1055, 127, 162, 78], -43],
+  ["light", [839, 210, 183, 26], 3],
+  ["left-tools", [792, 259, 97, 76], -37],
+  ["wrenches", [896, 269, 96, 74], -47],
+  ["right-tools", [1007, 266, 182, 116], -24],
+  ["laptop", [744, 342, 180, 101], -30],
+  ["display", [974, 328, 148, 111], -29],
+  ["desk-tools", [924, 432, 167, 23], 11],
+  ["vise", [1127, 397, 74, 72], -47],
+  ["left-frame", [655, 445, 58, 191], -56],
+  ["toolbox", [710, 496, 139, 67], 22],
+  ["under-shelf", [688, 553, 170, 48], 14],
+  ["stool", [802, 523, 166, 190], -34],
+  ["upper-drawers", [998, 481, 148, 96], 11],
+  ["yellow-drawer", [1003, 554, 143, 99], 29],
+  ["right-frame", [1145, 460, 98, 244], -48],
+  ["floor-contact", [608, 617, 663, 111], -19],
+];
+
+export const detailStrokes = schedulePencilStrokes(
+  detailRegions.map(([id, bounds, angle]) => {
+    const path = hatchPath(bounds, angle, 12);
+    return { id: `${id}-hatch`, bounds, path, ...strokeGeometry(path) };
+  }),
+  82,
+  100,
+  11450,
 );

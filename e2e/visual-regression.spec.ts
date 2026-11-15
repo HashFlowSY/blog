@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+
 import { expect } from "@playwright/test";
 
 import {
@@ -8,6 +10,10 @@ import {
   test,
 } from "./fixtures";
 import { visitStaticPage } from "./helpers/static-page";
+import {
+  waitForFinishedWorkbench,
+  waitForWorkbenchArtwork,
+} from "./helpers/workbench";
 import {
   VISUAL_DESKTOP_VIEWPORT,
   VISUAL_MOBILE_VIEWPORT,
@@ -89,6 +95,66 @@ async function expectStableScreenshot(page: Page, name: string): Promise<void> {
   await expect(page).toHaveScreenshot(name, VISUAL_SCREENSHOT_OPTIONS);
 }
 
+async function waitForHomeArtwork(page: Page): Promise<void> {
+  const workbench = page.getByRole("region", { name: "交互工作台" });
+  await waitForWorkbenchArtwork(await waitForFinishedWorkbench(workbench));
+}
+
+async function expectCanonicalWorkbenchArtwork(page: Page): Promise<void> {
+  // The crop covers the bench and drafting lines, excluding editable UI text.
+  const crop = { x: 618, y: 91, width: 720, height: 607 };
+  const source = await readFile("docs/design/workbench-2d/concept-1440.png");
+  const screenshot = await page.screenshot({ clip: crop, scale: "css" });
+  const differentPixels = await page.evaluate(
+    async ({ source, screenshot, crop }) => {
+      async function pngPixels(png: string, x = 0, y = 0) {
+        const image = new Image();
+        image.src = `data:image/png;base64,${png}`;
+        await image.decode();
+        const canvas = document.createElement("canvas");
+        canvas.width = crop.width;
+        canvas.height = crop.height;
+        const context = canvas.getContext("2d")!;
+        context.drawImage(
+          image,
+          x,
+          y,
+          crop.width,
+          crop.height,
+          0,
+          0,
+          crop.width,
+          crop.height,
+        );
+        return context.getImageData(0, 0, crop.width, crop.height).data;
+      }
+
+      const [expected, actual] = await Promise.all([
+        pngPixels(source, crop.x, crop.y),
+        pngPixels(screenshot),
+      ]);
+      let differences = 0;
+      for (let index = 0; index < expected.length; index += 4)
+        if (
+          expected[index] !== actual[index] ||
+          expected[index + 1] !== actual[index + 1] ||
+          expected[index + 2] !== actual[index + 2]
+        )
+          differences++;
+      return differences;
+    },
+    {
+      source: source.toString("base64"),
+      screenshot: screenshot.toString("base64"),
+      crop,
+    },
+  );
+  expect(
+    differentPixels,
+    "Rendered bench pixels must match the selected concept",
+  ).toBe(0);
+}
+
 test.use(VISUAL_USE_OPTIONS);
 
 test.describe("Focused visual regression", () => {
@@ -105,15 +171,10 @@ test.describe("Focused visual regression", () => {
       await expect(
         page.getByRole("heading", { name: /Hashflow AI 全栈工程师/ }),
       ).toBeVisible();
-      await expect(
-        page.getByRole("group", { name: "可旋转的立体工作台" }),
-      ).toBeVisible({ timeout: 15000 });
+      await waitForHomeArtwork(page);
       await stabilizePage(page);
-      // Linux Chromium can differ by one pixel at the edge of the workbench hint.
-      await expect(page).toHaveScreenshot("home-desktop.png", {
-        ...VISUAL_SCREENSHOT_OPTIONS,
-        maxDiffPixels: 1,
-      });
+      await expectCanonicalWorkbenchArtwork(page);
+      await expectStableScreenshot(page, "home-desktop.png");
     });
 
     test("captures the stable post detail", async ({ page }) => {
@@ -144,9 +205,7 @@ test.describe("Focused visual regression", () => {
     }) => {
       await visitStaticPage(page, "/");
       await expect(page.getByRole("button", { name: "菜单" })).toBeVisible();
-      await expect(
-        page.getByRole("group", { name: "可旋转的立体工作台" }),
-      ).toBeVisible({ timeout: 15000 });
+      await waitForHomeArtwork(page);
       await stabilizePage(page);
 
       const menuButton = page.getByRole("button", { name: "菜单" });

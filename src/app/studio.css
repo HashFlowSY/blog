@@ -79,6 +79,24 @@ body:has(.workbench-home, .portfolio-page) .site-header.is-scrolled {
   box-shadow: 0 4px 18px rgb(53 49 44 / 4%);
 }
 
+html:has(.workbench-home),
+body:has(.workbench-home) {
+  background: #f9f3e8;
+}
+
+body:has(.workbench-home)::before {
+  display: none;
+}
+
+body:has(.workbench-home) .site-frame {
+  border-inline: 0;
+}
+
+body:has(.workbench-home) .site-header:not(.is-scrolled, .is-menu-open) {
+  border-bottom-color: transparent;
+  background: #f9f3e8;
+}
+
 body:has(.workbench-home, .portfolio-page)
   .site-header.is-scrolled
   .brand-mark {
@@ -200,23 +218,27 @@ body:has(.workbench-home, .portfolio-page) .back-to-top {
 }
 
 .workbench-home {
-  background: var(--studio-paper);
+  position: relative;
+  background: #f9f3e8;
 }
 
 .workbench-section,
-.workbench-hero,
 .workbench-contact {
   padding-inline: clamp(30px, 4.5vw, 72px);
 }
 
 .workbench-hero {
-  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
-  gap: clamp(24px, 4vw, 56px);
-  align-items: center;
-  min-height: 0;
-  padding-block: 40px 42px;
-  border-color: var(--studio-line);
-  scroll-margin-top: 0;
+  position: relative;
+  isolation: isolate;
+  padding: 0;
+}
+
+.workbench-hero-copy {
+  position: absolute;
+  z-index: 1;
+  inset-block-start: 19%;
+  inset-inline-start: 4.3%;
+  width: 38%;
 }
 
 .portfolio-overline {
@@ -229,17 +251,18 @@ body:has(.workbench-home, .portfolio-page) .back-to-top {
 .workbench-hero h1 {
   margin: 0;
   font-family: var(--font-display);
-  font-size: clamp(64px, 5.2vw, 76px);
+  font-size: clamp(48px, 6.2vw, 92px);
   font-weight: 650;
   line-height: 1.06;
   letter-spacing: -0.075em;
+  text-transform: none;
   color: var(--studio-ink);
 }
 
 .workbench-hero h1 > span {
   display: block;
   margin-top: 10px;
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 450;
   letter-spacing: 0.01em;
   line-height: 1.6;
@@ -249,9 +272,9 @@ body:has(.workbench-home, .portfolio-page) .back-to-top {
   max-width: 30ch;
   margin: 24px 0 0;
   color: var(--studio-ink);
-  font-size: clamp(24px, 2.1vw, 32px);
+  font-size: clamp(24px, 2.23vw, 32px);
   font-weight: 550;
-  letter-spacing: -0.035em;
+  letter-spacing: -0.01em;
   line-height: 1.48;
   text-wrap: balance;
 }
@@ -263,12 +286,12 @@ body:has(.workbench-home, .portfolio-page) .back-to-top {
 .workbench-intro {
   max-width: 420px;
   margin-top: 16px;
-  font-size: 16px;
+  font-size: 17px;
   line-height: 1.65;
 }
 
 .workbench-actions {
-  gap: 10px;
+  gap: 16px;
   margin-top: 24px;
 }
 
@@ -292,8 +315,9 @@ body:has(.workbench-home, .portfolio-page) .back-to-top {
 }
 
 .workbench-button {
-  gap: 12px;
-  font-size: 14px;
+  gap: 14px;
+  padding-inline: 20px;
+  font-size: 15px;
   line-height: 1.4;
 }
 
@@ -328,6 +352,14 @@ body:has(.workbench-home, .portfolio-page) .back-to-top {
 .workbench-section {
   padding-block: 50px;
   border-color: var(--studio-line);
+}
+
+.workbench-hero + .workbench-section {
+  padding-block-start: 22px;
+}
+
+.workbench-hero + .workbench-section .workbench-section-heading {
+  margin-block-end: 15px;
 }
 
 .workbench-section-heading {
@@ -593,15 +625,28 @@ body:has(.workbench-home, .portfolio-page) .back-to-top {
 }
 
 @media (max-width: 1100px) and (min-width: 761px) {
-  .workbench-hero {
-    gap: 30px;
-    padding-inline: 30px;
+  .workbench-hero-copy {
+    inset-block-start: 11%;
   }
   .workbench-hero h1 {
     font-size: clamp(44px, 5.4vw, 64px);
   }
   .workbench-lede {
-    font-size: 25px;
+    margin-block-start: 15px;
+    font-size: clamp(18px, 2.2vw, 25px);
+  }
+  .workbench-intro {
+    margin-block-start: 10px;
+    font-size: 14px;
+  }
+  .workbench-actions {
+    gap: 6px;
+    margin-block-start: 13px;
+  }
+  .workbench-actions .workbench-button {
+    padding-inline: 10px;
+    gap: 6px;
+    font-size: 13px;
   }
   .portfolio-page-intro {
     grid-template-columns: minmax(0, 1fr) 230px;
@@ -698,10 +743,11 @@ body:has(.workbench-home, .portfolio-page) .back-to-top {
     min-height: 44px;
     margin-left: 0;
   }
-  .workbench-hero {
-    grid-template-columns: 1fr;
-    padding: 24px 22px 28px;
-    gap: 22px;
+  .workbench-hero-copy {
+    position: relative;
+    inset: auto;
+    width: auto;
+    padding: 24px 22px 8px;
   }
   .workbench-hero h1 {
     font-size: clamp(44px, 12vw, 54px);

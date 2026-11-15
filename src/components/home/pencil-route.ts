@@ -2,10 +2,14 @@ import { strokeGeometry } from "./pencil-path";
 import {
   constructionFraction,
   pencilEase,
-  pencilPasses,
   strokeFraction,
 } from "./pencil-plan";
-import { pencilEdges, pointStrokes, shadedPlanes } from "./workbench-geometry";
+import {
+  detailStrokes,
+  pencilEdges,
+  pointStrokes,
+  shadedPlanes,
+} from "./workbench-geometry";
 
 import type { PencilPoint, PencilStroke } from "./pencil-plan";
 
@@ -21,27 +25,13 @@ const wearBudget = {
 type WearStage = keyof typeof wearBudget;
 const strokes: readonly (PencilStroke & { stage: WearStage })[] = [
   ...pointStrokes.map((stroke) => ({ ...stroke, stage: "points" as const })),
-  ...pencilEdges.map((edge) => ({
-    id: edge.id,
-    path: edge.strokes[0]!.d,
-    start: edge.start,
-    end: edge.end,
-    stage: "lines" as const,
+  ...pencilEdges.map((stroke) => ({ ...stroke, stage: "lines" as const })),
+  ...shadedPlanes.map((stroke) => ({ ...stroke, stage: "planes" as const })),
+  ...detailStrokes.map((stroke, index, all) => ({
+    ...stroke,
+    // Keep a little graphite for the final stroke, then use it up on paper.
+    stage: index === all.length - 1 ? ("tip" as const) : ("details" as const),
   })),
-  ...shadedPlanes.map((plane) => ({
-    id: `plane-${plane.id}`,
-    path: plane.hatch,
-    start: plane.start,
-    end: plane.end,
-    stage: "planes" as const,
-  })),
-  ...pencilPasses
-    .flatMap((pass) => pass.strokes)
-    .map((stroke, index, all) => ({
-      ...stroke,
-      // Keep a little graphite for the final stroke, then use it up on paper.
-      stage: index === all.length - 1 ? ("tip" as const) : ("details" as const),
-    })),
 ];
 
 const measuredStrokes = strokes.map((stroke) => {
@@ -82,7 +72,7 @@ export function pencilLength(progress: number): number {
 }
 
 function barrelAngle(minY: number): number {
-  return -42 + pencilEase((210 - minY) / 160) * 58;
+  return -42 + pencilEase((230 - minY) / 160) * 48;
 }
 
 export interface PencilPose {

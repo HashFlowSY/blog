@@ -1,22 +1,5 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import { useEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-
-import type { WorkbenchModelStatus } from "./workbench-orbit";
-
-vi.mock("./workbench-orbit", () => ({
-  preloadWorkbenchScene: vi.fn().mockResolvedValue(undefined),
-  WorkbenchOrbit: ({
-    onStatus,
-  }: {
-    onStatus: (status: WorkbenchModelStatus) => void;
-  }) => {
-    useEffect(() => {
-      onStatus("ready");
-    }, [onStatus]);
-    return <div role="group" aria-label="可旋转的立体工作台" />;
-  },
-}));
 
 import { AssemblyWorkbench } from "./assembly-workbench";
 import { drawingDuration, drawingTime } from "./pencil-plan";
@@ -149,7 +132,6 @@ describe("AssemblyWorkbench", () => {
     revealCanvas();
     const lines = scene().querySelector('[data-construction-layer="lines"]');
     const planes = scene().querySelector('[data-construction-layer="planes"]');
-    const finish = scene().querySelector('[data-construction-layer="finish"]');
     expect(lines).toHaveAttribute("opacity", "0");
     expect(planes).toHaveAttribute("opacity", "0");
     advanceTo(drawingTime(55));
@@ -157,9 +139,11 @@ describe("AssemblyWorkbench", () => {
     expect(planes).toHaveAttribute("opacity", "0");
     advanceTo(drawingTime(80));
     expect(planes).toHaveAttribute("opacity", "1");
-    expect(finish).toHaveStyle({ opacity: "0" });
+    expect(scene().querySelector('[data-workbench-art="rest"]')).toBeNull();
     advanceTo(drawingDuration);
-    expect(finish).toHaveStyle({ opacity: "1" });
+    expect(
+      scene().querySelector('[data-workbench-art="rest"]'),
+    ).toBeInTheDocument();
     expect(
       screen.queryByRole("img", { name: /工作台构建/ }),
     ).not.toBeInTheDocument();
@@ -190,7 +174,7 @@ describe("AssemblyWorkbench", () => {
     fireEvent(window, new PageTransitionEvent("pageshow", { persisted: true }));
     expect(scene()).toHaveAttribute("data-progress", "0");
     expect(
-      screen.queryByRole("group", { name: "可旋转的立体工作台" }),
+      screen.queryByRole("group", { name: "二维工作台部件" }),
     ).not.toBeInTheDocument();
     revealCanvas();
     advanceTo(drawingDuration + 1200);
@@ -211,22 +195,99 @@ describe("AssemblyWorkbench", () => {
     expect(Number(scene().getAttribute("data-progress"))).toBeLessThan(18);
   });
 
-  it("shows the interactive finished artwork immediately for reduced motion", () => {
+  it("shows finished artwork for reduced motion and restores parts on a fresh visit", async () => {
     vi.stubGlobal(
       "matchMedia",
       vi.fn(() => ({ matches: true })),
     );
     render(<AssemblyWorkbench />);
+    await act(async () => {});
     advanceTo(0);
     expect(scene()).toHaveAttribute("data-complete", "true");
     expect(
-      screen.getByRole("group", { name: "可旋转的立体工作台" }),
+      screen.getByRole("group", { name: "二维工作台部件" }),
     ).toBeInTheDocument();
+    const movedParts = ["黄色抽屉", "工具箱", "台钳手柄", "圆凳"];
+    for (const name of movedParts) {
+      const button = screen.getByRole("button", { name });
+      expect(button).toHaveAttribute("aria-pressed", "false");
+      fireEvent.click(button);
+      expect(button).toHaveAttribute("aria-pressed", "true");
+    }
+    fireEvent.click(screen.getByRole("button", { name: "工作灯" }));
+    expect(screen.getByRole("button", { name: "工作灯" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
     expect(frames.size).toBe(0);
     fireEvent(window, new PageTransitionEvent("pageshow", { persisted: true }));
     expect(scene()).toHaveAttribute("data-complete", "true");
+    for (const name of movedParts) {
+      expect(screen.getByRole("button", { name })).toHaveAttribute(
+        "aria-pressed",
+        "false",
+      );
+    }
+    expect(screen.getByRole("button", { name: "工作灯" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
     expect(frames.size).toBe(0);
   });
+
+  it.each(["load", "fail"] as const)(
+    "keeps the finished artwork visible while part images %s",
+    async (result) => {
+      vi.stubGlobal(
+        "matchMedia",
+        vi.fn(() => ({ matches: true })),
+      );
+      const pending = Promise.withResolvers<void>();
+      vi.stubGlobal(
+        "Image",
+        class {
+          src = "";
+          decode() {
+            return pending.promise;
+          }
+        },
+      );
+      render(<AssemblyWorkbench />);
+      advanceTo(0);
+      expect(
+        scene().querySelector('[data-workbench-art="rest"]'),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole("group", { name: "二维工作台部件" }),
+      ).toBeNull();
+      expect(
+        screen.getByText("工作台绘制完成，正在载入部件素材"),
+      ).toBeInTheDocument();
+      await act(async () => {
+        if (result === "load") pending.resolve();
+        else pending.reject(new Error("Asset failed"));
+      });
+      expect(
+        scene().querySelector('[data-workbench-art="rest"]'),
+      ).toBeInTheDocument();
+      if (result === "load") {
+        const start = screen.getByRole("button", { name: "操作工作台" });
+        fireEvent.click(start);
+        const exit = screen.getByRole("button", { name: "退出操作" });
+        expect(exit).toHaveAttribute("aria-pressed", "true");
+        fireEvent.keyDown(exit, { key: "Escape" });
+        expect(start).toHaveFocus();
+        expect(start).toHaveAttribute("aria-pressed", "false");
+      } else {
+        expect(
+          screen.queryByRole("group", { name: "二维工作台部件" }),
+        ).toBeNull();
+        expect(
+          screen.getByText("工作台绘制完成，部件素材未能载入"),
+        ).toBeInTheDocument();
+      }
+    },
+  );
 
   it("pauses when hidden and cleans up its frame when unmounted", () => {
     const { unmount } = render(<AssemblyWorkbench />);

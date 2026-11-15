@@ -1,16 +1,24 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { preload } from "react-dom";
+
+import { assetPath } from "@/lib/site";
 
 import styles from "./assembly-workbench.module.css";
 import { drawingProgress, drawingTime } from "./pencil-plan";
+import { workbenchPartArt } from "./workbench-art";
 import { WorkbenchDrawing } from "./workbench-drawing";
-import { preloadWorkbenchScene, WorkbenchOrbit } from "./workbench-orbit";
-import { workbenchTexture } from "./workbench-textures";
+import { WorkbenchInteractive } from "./workbench-interactive";
 
-import type { WorkbenchModelStatus } from "./workbench-orbit";
 import type { KeyboardEvent } from "react";
+
+const interactionArt = new Set(
+  Object.values(workbenchPartArt).flatMap(({ sprite, cover, open }) =>
+    [sprite, cover, open].flatMap((image) =>
+      image ? [assetPath(image.src)] : [],
+    ),
+  ),
+);
 
 function prefersReducedMotion(): boolean {
   return (
@@ -76,8 +84,10 @@ function observeDrawingVisibility(scene: HTMLDivElement, start: () => void) {
 
 export function AssemblyWorkbench() {
   const [progress, setProgress] = useState(0);
-  const [modelStatus, setModelStatus] =
-    useState<WorkbenchModelStatus>("loading");
+  const [artStatus, setArtStatus] = useState<"loading" | "ready" | "failed">(
+    "loading",
+  );
+  const [visit, setVisit] = useState(0);
   const [playback, setPlayback] = useState({ playing: true });
   const [hasEnteredView, setHasEnteredView] = useState(false);
   const [touchActive, setTouchActive] = useState(false);
@@ -88,7 +98,7 @@ export function AssemblyWorkbench() {
   const progressRef = useRef(0);
   const complete = progress >= 100;
   const finishing = progress >= 82;
-  const modelReady = complete && modelStatus === "ready";
+  const interactiveReady = complete && artStatus === "ready";
   const stage = finishing
     ? "整件"
     : progress >= 58
@@ -98,17 +108,26 @@ export function AssemblyWorkbench() {
         : "点";
 
   useEffect(() => {
-    void preloadWorkbenchScene().catch(() => undefined);
-  }, []);
-
-  useEffect(() => {
-    if (!finishing) return;
-    preload(workbenchTexture, {
-      as: "image",
-      type: "image/webp",
-      crossOrigin: "anonymous",
+    let mounted = true;
+    const images = [...interactionArt].map((src) => {
+      const image = new Image();
+      image.src = src;
+      return typeof image.decode === "function"
+        ? image.decode()
+        : Promise.resolve();
     });
-  }, [finishing]);
+    void Promise.all(images).then(
+      () => {
+        if (mounted) setArtStatus("ready");
+      },
+      () => {
+        if (mounted) setArtStatus("failed");
+      },
+    );
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     const reducedMotion = prefersReducedMotion();
@@ -158,10 +177,8 @@ export function AssemblyWorkbench() {
       setProgress(next);
       setPlayback({ playing: next < 100 });
       setHasEnteredView(false);
-      if (next === 0) {
-        setModelStatus("loading");
-        setTouchActive(false);
-      }
+      setVisit((revision) => revision + 1);
+      setTouchActive(false);
       watchScene(scene);
     };
     watchScene(scene);
@@ -189,27 +206,26 @@ export function AssemblyWorkbench() {
       data-touch-active={touchActive}
       onKeyDown={exitTouchMode}
     >
-      <div className={styles["heading"]}>
-        <h2 id="assembly-title">交互工作台</h2>
+      <h2 id="assembly-title" className={styles["srOnly"]}>
+        交互工作台
+      </h2>
+      <div className={styles["controls"]}>
         {complete ? (
-          modelReady ? (
+          interactiveReady ? (
             <>
-              <p className={styles["desktopHint"]}>试试交互</p>
+              <p className={styles["desktopHint"]}>点按部件试试</p>
               <button
                 ref={touchButton}
                 className={styles["touchMode"]}
                 type="button"
                 aria-controls={sceneId}
+                aria-pressed={touchActive}
                 onClick={() => setTouchActive((active) => !active)}
               >
                 {touchActive ? "退出操作" : "操作工作台"}
               </button>
             </>
-          ) : (
-            <span className={styles["viewMode"]} aria-hidden="true">
-              {modelStatus === "failed" ? "手绘" : "…"}
-            </span>
-          )
+          ) : null
         ) : hasEnteredView ? (
           <button
             className={styles["buildButton"]}
@@ -219,7 +235,6 @@ export function AssemblyWorkbench() {
             }
           >
             {isPlaying ? "暂停构建" : "继续构建"}
-            <span aria-hidden="true">→</span>
           </button>
         ) : null}
       </div>
@@ -229,14 +244,12 @@ export function AssemblyWorkbench() {
         className={styles["scene"]}
         data-complete={complete}
         data-progress={progress}
-        data-model-ready={modelReady}
       >
         <div
-          className={styles["illustration"]}
-          role={modelReady ? undefined : "img"}
-          aria-hidden={modelReady || undefined}
+          className={styles["sheet"]}
+          role={interactiveReady ? undefined : "img"}
           aria-label={
-            modelReady
+            interactiveReady
               ? undefined
               : complete
                 ? "手绘工作台"
@@ -245,19 +258,24 @@ export function AssemblyWorkbench() {
                   : "待绘制的工作台"
           }
         >
-          <WorkbenchDrawing progress={progress} />
+          {complete ? (
+            <WorkbenchInteractive
+              key={visit}
+              enabled={interactiveReady}
+              touchActive={touchActive}
+            />
+          ) : (
+            <WorkbenchDrawing progress={progress} />
+          )}
         </div>
-        {complete && (
-          <WorkbenchOrbit onStatus={setModelStatus} touchActive={touchActive} />
-        )}
       </div>
       <span className={styles["srOnly"]} role="status">
         {complete
-          ? modelReady
-            ? "工作台绘制完成，可以旋转查看"
-            : modelStatus === "failed"
-              ? "已保留手绘工作台，当前设备无法启用三维视图"
-              : "手绘完成，正在准备三维工作台"
+          ? interactiveReady
+            ? "工作台绘制完成，可以操作部件"
+            : artStatus === "failed"
+              ? "工作台绘制完成，部件素材未能载入"
+              : "工作台绘制完成，正在载入部件素材"
           : hasEnteredView
             ? isPlaying
               ? "正在绘制工作台"
