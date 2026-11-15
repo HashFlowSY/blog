@@ -120,7 +120,7 @@ afterEach(() => {
 });
 
 describe("2D workbench controls", () => {
-  it("shows the completed artwork and mounts only the six enabled hotspots", () => {
+  it("shows the completed artwork and mounts only the seven enabled hotspots", () => {
     const view = mount({ enabled: false });
     expect(screen.queryByRole("group", { name: "二维工作台部件" })).toBeNull();
     expect(
@@ -135,6 +135,7 @@ describe("2D workbench controls", () => {
       "盆栽叶片",
       "左侧叶片",
       "右侧叶片",
+      "工作灯",
       "笔记本",
       "显示器",
       "外接键盘",

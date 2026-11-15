@@ -231,7 +231,7 @@ export function AssemblyWorkbench() {
       <span className={styles["srOnly"]} role="status">
         {complete
           ? interactiveReady
-            ? "工作台绘制完成，可以操作电脑和盆栽"
+            ? "工作台绘制完成，可以操作电脑、盆栽和工作灯"
             : artStatus === "failed"
               ? "工作台绘制完成，部件素材未能载入"
               : "工作台绘制完成，正在载入部件素材"

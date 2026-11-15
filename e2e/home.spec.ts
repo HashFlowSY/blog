@@ -127,7 +127,7 @@ test.describe("Home page", () => {
     }
   });
 
-  test("exposes only the computers and leaves and keeps the other artwork static", async ({
+  test("exposes only the computers, leaves, and light and keeps the other artwork static", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
@@ -136,7 +136,7 @@ test.describe("Home page", () => {
     const workbench = page.getByRole("region", { name: "交互工作台" });
     await drawTo(page, workbench, 100);
     const scene = await waitForFinishedWorkbench(workbench);
-    await expect(workbench.getByRole("button")).toHaveCount(6);
+    await expect(workbench.getByRole("button")).toHaveCount(7);
     for (const name of [
       "笔记本",
       "显示器",
@@ -144,6 +144,7 @@ test.describe("Home page", () => {
       "盆栽叶片",
       "左侧叶片",
       "右侧叶片",
+      "工作灯",
     ]) {
       await expect(
         workbench.getByRole("button", { name, exact: true }),
@@ -158,7 +159,6 @@ test.describe("Home page", () => {
       if (!transform)
         throw new Error("Finished drawing has no coordinate transform");
       return [
-        [938, 223], // work light
         [808, 286], // hanging tool
         [1072, 447], // mouse
         [771, 524], // toolbox
@@ -177,6 +177,38 @@ test.describe("Home page", () => {
     await page.mouse.up();
     await page.mouse.move(0, 0);
     await page.clock.runFor(100);
+    expect((await scene.screenshot()).equals(resting)).toBe(true);
+  });
+
+  test("turns the work light off by mouse and back on by keyboard", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await installDrawingClock(page);
+    await goToHome(page);
+    const workbench = page.getByRole("region", { name: "交互工作台" });
+    await drawTo(page, workbench, 100);
+    const scene = await waitForFinishedWorkbench(workbench);
+    await waitForWorkbenchArtwork(scene);
+    const lamp = workbench.getByRole("button", { name: "工作灯" });
+    const diffuser = scene.locator('[data-workbench-part="lamp-diffuser"]');
+
+    await expect(lamp).toHaveAttribute("aria-pressed", "true");
+    await expect(diffuser).toHaveCount(0);
+    const resting = await scene.screenshot();
+
+    await lamp.click();
+    await expect(lamp).toHaveAttribute("aria-pressed", "false");
+    await page.clock.runFor(600);
+    await expect(diffuser).toBeVisible();
+    await lamp.blur();
+    expect((await scene.screenshot()).equals(resting)).toBe(false);
+
+    await lamp.press("Space");
+    await expect(lamp).toHaveAttribute("aria-pressed", "true");
+    await page.clock.runFor(600);
+    await expect(diffuser).toHaveCount(0);
+    await lamp.blur();
     expect((await scene.screenshot()).equals(resting)).toBe(true);
   });
 
@@ -273,7 +305,7 @@ test.describe("Home page", () => {
     await scene.scrollIntoViewIfNeeded();
     await drawTo(page, workbench, 100);
     await page.setViewportSize({ width: 320, height: 844 });
-    await expect(workbench.getByRole("button")).toHaveCount(6);
+    await expect(workbench.getByRole("button")).toHaveCount(7);
 
     const keyboard = workbench.getByRole("button", {
       name: "外接键盘",
@@ -283,6 +315,7 @@ test.describe("Home page", () => {
       name: "右侧叶片",
       exact: true,
     });
+    const lamp = workbench.getByRole("button", { name: "工作灯" });
     const screen = workbench.locator('[data-blueprint-device="display"]');
 
     async function center(target: typeof keyboard) {
@@ -357,6 +390,11 @@ test.describe("Home page", () => {
     await expect(screen).toHaveAttribute("data-phase", "typing");
     await page.clock.fastForward(5000);
     await expect(screen).toHaveCount(0);
+
+    await tap(lamp);
+    await expect(lamp).toHaveAttribute("aria-pressed", "false");
+    await tap(lamp);
+    await expect(lamp).toHaveAttribute("aria-pressed", "true");
 
     await page.setViewportSize({ width: 667, height: 375 });
     await leaf.evaluate((element) => {

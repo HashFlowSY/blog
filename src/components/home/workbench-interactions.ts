@@ -11,6 +11,8 @@ const keyPulse = 199;
 const drawingDuration = 2750;
 
 export interface WorkbenchPose {
+  lampOn: boolean;
+  light: number;
   swings: ReadonlyMap<WorkbenchLeaf, number>;
   screen:
     | {
@@ -48,6 +50,8 @@ export function createWorkbenchInteractions({
     WorkbenchLeaf,
     { angle: number; speed: number; entered: number }
   >();
+  let lampOn = true;
+  let light = 1;
   let screen: WorkbenchPose["screen"];
   let typing:
     | { device: WorkbenchDevice; start: number; sequence: number[] }
@@ -98,6 +102,13 @@ export function createWorkbenchInteractions({
   }
 
   function activate(part: WorkbenchPart, now: number) {
+    if (part === "lamp") {
+      selected = undefined;
+      lampOn = !lampOn;
+      publish(lampOn ? "工作灯已开启" : "工作灯已关闭");
+      return;
+    }
+
     if (isWorkbenchLeaf(part)) {
       selected = undefined;
       sweep(part, 1, now);
@@ -169,9 +180,14 @@ export function createWorkbenchInteractions({
 
   function tick(now: number, dt: number) {
     const instant = reducedMotion();
+    const targetLight = Number(lampOn);
+    light =
+      instant || Math.abs(light - targetLight) < 0.004
+        ? targetLight
+        : targetLight + (light - targetLight) * Math.exp(-15 * dt);
     tickSwings(dt, instant);
     const typingMoving = tickTyping(now, instant);
-    return typingMoving || springs.size > 0;
+    return light !== targetLight || typingMoving || springs.size > 0;
   }
 
   return {
@@ -180,6 +196,8 @@ export function createWorkbenchInteractions({
     tick,
     get pose(): WorkbenchPose {
       return {
+        lampOn,
+        light,
         screen,
         swings: new Map(
           [...springs].map(([part, spring]) => [part, spring.angle]),

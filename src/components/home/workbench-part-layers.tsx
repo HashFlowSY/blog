@@ -13,10 +13,12 @@ function Sprite({
   image,
   part,
   opacity,
+  brightness,
 }: {
   image: WorkbenchArtImage;
-  part?: WorkbenchLeaf;
+  part?: WorkbenchLeaf | "lamp-diffuser";
   opacity?: number;
+  brightness?: number;
 }) {
   const [x, y, width, height] = image.box;
   return (
@@ -28,6 +30,11 @@ function Sprite({
       height={height}
       opacity={opacity}
       data-workbench-part={part}
+      style={
+        brightness === undefined
+          ? undefined
+          : { filter: `brightness(${brightness})` }
+      }
     />
   );
 }
@@ -181,6 +188,13 @@ export function WorkbenchPartLayers({ pose }: { pose: WorkbenchPose }) {
           </g>
         );
       })}
+      {pose.light < 1 && (
+        <Sprite
+          image={workbenchPartArt.lamp.sprite}
+          brightness={0.58 + 0.42 * pose.light}
+          part="lamp-diffuser"
+        />
+      )}
       {pose.screen && <ScreenAnimation screen={pose.screen} />}
     </>
   );

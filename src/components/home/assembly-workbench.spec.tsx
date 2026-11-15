@@ -212,7 +212,7 @@ describe("AssemblyWorkbench", () => {
     expect(
       screen.getByRole("group", { name: "二维工作台部件" }),
     ).toBeInTheDocument();
-    expect(screen.getAllByRole("button")).toHaveLength(6);
+    expect(screen.getAllByRole("button")).toHaveLength(7);
     const laptop = screen.getByRole("button", { name: "笔记本" });
     fireEvent.click(laptop);
     expect(screen.getByText("图纸已就绪")).toBeInTheDocument();
@@ -260,7 +260,7 @@ describe("AssemblyWorkbench", () => {
         scene().querySelector('[data-workbench-art="rest"]'),
       ).toBeInTheDocument();
       if (result === "load") {
-        expect(screen.getAllByRole("button")).toHaveLength(6);
+        expect(screen.getAllByRole("button")).toHaveLength(7);
       } else {
         expect(
           screen.queryByRole("group", { name: "二维工作台部件" }),

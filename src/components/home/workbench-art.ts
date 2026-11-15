@@ -37,6 +37,7 @@ interface WorkbenchLeafArt extends WorkbenchHotspot {
 export const workbenchPartArt: Readonly<
   Record<WorkbenchLeaf, WorkbenchLeafArt> &
     Record<Exclude<WorkbenchPart, WorkbenchLeaf>, WorkbenchHotspot> &
+    Record<"lamp", { readonly sprite: WorkbenchArtImage }> &
     Record<`${WorkbenchDevice}-screen`, { readonly cover: WorkbenchArtImage }>
 > = {
   "leaf-0": {
@@ -75,6 +76,13 @@ export const workbenchPartArt: Readonly<
       box: [800, 107, 70, 60],
     },
   },
+  lamp: {
+    hit: [855, 211, 166, 24],
+    sprite: {
+      src: `${workbenchArtRoot}/lamp-diffuser-sprite.webp`,
+      box: [856, 214, 164, 24],
+    },
+  },
   laptop: { hit: [744, 341, 181, 102] },
   display: { hit: [975, 329, 148, 104] },
   "display-key-0": { hit: [968, 439, 84, 13] },
@@ -97,6 +105,7 @@ export const workbenchInteractionArt = [
     const { cover, sprite } = workbenchPartArt[part];
     return [cover, sprite];
   }),
+  workbenchPartArt.lamp.sprite,
   workbenchPartArt["laptop-screen"].cover,
   workbenchPartArt["display-screen"].cover,
 ];

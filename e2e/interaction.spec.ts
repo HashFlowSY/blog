@@ -20,7 +20,7 @@ test.describe("Continuous browsing interactions", () => {
     const parts = workbench.getByRole("group", { name: "二维工作台部件" });
     await expect(parts).toBeVisible();
     const buttons = parts.getByRole("button");
-    await expect(buttons).toHaveCount(6);
+    await expect(buttons).toHaveCount(7);
     for (const button of await buttons.all()) {
       const target = await button.boundingBox();
       if (!target) throw new Error("A workbench part has no touch area");

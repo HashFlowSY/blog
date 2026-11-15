@@ -16,6 +16,7 @@ const controls = [
   { part: "leaf-0", label: "盆栽叶片" },
   { part: "leaf-1", label: "左侧叶片" },
   { part: "leaf-2", label: "右侧叶片" },
+  { part: "lamp", label: "工作灯" },
   { part: "laptop", label: "笔记本" },
   { part: "display", label: "显示器" },
   { part: "display-key-0", label: "外接键盘" },
@@ -156,6 +157,7 @@ export function WorkbenchInteractive({ enabled }: { enabled: boolean }) {
                 type="button"
                 className={styles["hotspot"]}
                 aria-label={label}
+                aria-pressed={part === "lamp" ? pose.lampOn : undefined}
                 style={{
                   left: `${(x / workbenchSheet.width) * 100}%`,
                   top: `${((y - workbenchSheet.top) / workbenchSheet.sceneHeight) * 100}%`,
