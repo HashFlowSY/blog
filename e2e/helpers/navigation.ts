@@ -1,6 +1,6 @@
-import { routeForPost, routeForProject } from "../fixtures";
+import { expect, type Page } from "@playwright/test";
 
-import type { Page } from "@playwright/test";
+import { routeForPost, routeForProject } from "../fixtures";
 
 function relativeRoute(pathname: string): string {
   if (!pathname.startsWith("/")) {
@@ -12,7 +12,7 @@ function relativeRoute(pathname: string): string {
 
 async function goToRoute(page: Page, pathname: string): Promise<void> {
   await page.goto(relativeRoute(pathname));
-  await page.waitForLoadState("networkidle");
+  await expect(page.locator("body")).toHaveAttribute("data-route", /\S+/);
 }
 
 async function goToHome(page: Page) {

@@ -51,7 +51,7 @@ jobs:
     runs-on: ubuntu-latest
     # Keep this image version and digest synchronized with @playwright/test and visual baselines.
     container:
-      image: mcr.microsoft.com/playwright:v1.59.1-noble@sha256:eac9b0a5312cdab40ee8c2429df5bf19bffdccf8f3bf3c42268e173f97541645
+      image: mcr.microsoft.com/playwright:v1.65.1-noble@sha256:1507cbfc550a63a6b7396791ca4f00df17beb56342d2447b3f106c306f525579
       options: --init --ipc=host
     steps:
       - uses: actions/checkout@v6
