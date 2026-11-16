@@ -87,16 +87,16 @@ describe("strict content contracts", () => {
     });
 
     it("rejects unknown Post frontmatter fields", () => {
-      const filePath = "content/posts/zh-CN/with-cover.md";
+      const filePath = "content/posts/zh-CN/unknown-key.md";
       const result = validatePostContracts([
         {
           filePath,
-          frontmatter: { draft: true, cover: "/assets/cover.png" },
+          frontmatter: { draft: true, audience: "everyone" },
           body: "",
         },
       ]);
 
-      expect(hasError(result, filePath, "cover")).toBe(true);
+      expect(hasError(result, filePath, "audience")).toBe(true);
     });
   });
 
@@ -231,19 +231,13 @@ describe("strict content contracts", () => {
       expect(hasError(result, wrongTypeFile, "tags")).toBe(true);
     });
 
-    it("rejects invalid slugs, post covers, and other unknown keys", () => {
+    it("rejects invalid slugs and unknown keys", () => {
       const invalidSlugFile = "content/posts/zh-CN/invalid-slug.md";
-      const coverFile = "content/posts/zh-CN/cover.md";
       const unknownKeyFile = "content/posts/zh-CN/unknown-key.md";
       const result = validatePostContracts([
         {
           filePath: invalidSlugFile,
           frontmatter: { ...publishedPost, slug: "Strict Post" },
-          body: "# Post body",
-        },
-        {
-          filePath: coverFile,
-          frontmatter: { ...publishedPost, cover: "/assets/cover.png" },
           body: "# Post body",
         },
         {
@@ -254,7 +248,6 @@ describe("strict content contracts", () => {
       ]);
 
       expect(hasError(result, invalidSlugFile, "slug")).toBe(true);
-      expect(hasError(result, coverFile, "cover")).toBe(true);
       expect(hasError(result, unknownKeyFile, "audience")).toBe(true);
     });
 
@@ -654,17 +647,17 @@ describe("strict content contracts", () => {
       expect(result.entries).toHaveLength(0);
     });
 
-    it("rejects public template state, invalid types, and duplicate slugs", () => {
+    it("rejects unknown keys, invalid types, and duplicate slugs", () => {
       const publicDir = createPublicDirectory();
-      const templateFile = "content/projects/zh-CN/template.md";
+      const unknownKeyFile = "content/projects/zh-CN/unknown-key.md";
       const wrongTypeFile = "content/projects/zh-CN/wrong-type.md";
       const firstDuplicateFile = "content/projects/zh-CN/first.md";
       const secondDuplicateFile = "content/projects/zh-CN/second.md";
       const result = validateProjectCaseContracts(
         [
           {
-            filePath: templateFile,
-            frontmatter: { ...publishedProject(), template: false },
+            filePath: unknownKeyFile,
+            frontmatter: { ...publishedProject(), category: "tooling" },
             body: "# Project body",
           },
           {
@@ -686,7 +679,7 @@ describe("strict content contracts", () => {
         { publicDir },
       );
 
-      expect(hasError(result, templateFile, "template")).toBe(true);
+      expect(hasError(result, unknownKeyFile, "category")).toBe(true);
       expect(hasError(result, wrongTypeFile, "featured")).toBe(true);
       expect(hasError(result, firstDuplicateFile, "slug")).toBe(true);
       expect(hasError(result, secondDuplicateFile, "slug")).toBe(true);

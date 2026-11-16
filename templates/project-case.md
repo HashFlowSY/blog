@@ -8,7 +8,7 @@ draft: true
 
 ## 发布前 frontmatter
 
-将下列占位符替换为当前项目的真实信息。发布时需要显式设置 `draft: false`；不要添加 `template` 字段。
+将下列占位符替换为当前项目的真实信息。发布时需要显式设置 `draft: false`。
 
 ```yaml
 title: "<项目名称>"
