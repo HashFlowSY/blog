@@ -9,10 +9,15 @@ import type {
 const keyInterval = 205;
 const keyPulse = 199;
 const drawingDuration = 2750;
+const lampFadeSeconds = {
+  on: { source: 0.1, surface: 0.22 },
+  off: { source: 0.08, surface: 0.17 },
+};
 
 export interface WorkbenchPose {
   lampOn: boolean;
   light: number;
+  sourceLight: number;
   swings: ReadonlyMap<WorkbenchLeaf, number>;
   screen:
     | {
@@ -52,6 +57,7 @@ export function createWorkbenchInteractions({
   >();
   let lampOn = true;
   let light = 1;
+  let sourceLight = 1;
   let screen: WorkbenchPose["screen"];
   let typing:
     | { device: WorkbenchDevice; start: number; sequence: number[] }
@@ -178,16 +184,26 @@ export function createWorkbenchInteractions({
     }
   }
 
+  function tickLamp(dt: number, instant: boolean) {
+    const target = Number(lampOn);
+    if (instant) {
+      light = target;
+      sourceLight = target;
+    } else {
+      const duration = lampOn ? lampFadeSeconds.on : lampFadeSeconds.off;
+      const step = lampOn ? dt : -dt;
+      light = unit(light + step / duration.surface);
+      sourceLight = unit(sourceLight + step / duration.source);
+    }
+    return light !== target || sourceLight !== target;
+  }
+
   function tick(now: number, dt: number) {
     const instant = reducedMotion();
-    const targetLight = Number(lampOn);
-    light =
-      instant || Math.abs(light - targetLight) < 0.004
-        ? targetLight
-        : targetLight + (light - targetLight) * Math.exp(-15 * dt);
+    const lampMoving = tickLamp(dt, instant);
     tickSwings(dt, instant);
     const typingMoving = tickTyping(now, instant);
-    return light !== targetLight || typingMoving || springs.size > 0;
+    return lampMoving || typingMoving || springs.size > 0;
   }
 
   return {
@@ -198,6 +214,7 @@ export function createWorkbenchInteractions({
       return {
         lampOn,
         light,
+        sourceLight,
         screen,
         swings: new Map(
           [...springs].map(([part, spring]) => [part, spring.angle]),

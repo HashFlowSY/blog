@@ -5,6 +5,8 @@ import { drawingAreas } from "../src/components/home/workbench-geometry";
 import { SITE_COPY, STABLE_PROJECT, test } from "./fixtures";
 import { goToHome, waitForRouteEntry } from "./helpers/navigation";
 import {
+  artworkLuma,
+  captureArtworkArea,
   drawTo,
   expectPencilAtStroke,
   installDrawingClock,
@@ -416,7 +418,7 @@ test.describe("Home page", () => {
     expect((await scene.screenshot()).equals(resting)).toBe(true);
   });
 
-  test("turns the work light off by mouse and back on by keyboard", async ({
+  test("fades the workbench light in place by mouse and keyboard", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
@@ -426,25 +428,111 @@ test.describe("Home page", () => {
     await drawTo(page, workbench, 100);
     const scene = await waitForFinishedWorkbench(workbench);
     const lamp = workbench.getByRole("button", { name: "工作灯" });
-    const diffuser = scene.locator('[data-workbench-part="lamp-diffuser"]');
+    const lampStatus = workbench
+      .getByRole("status")
+      .filter({ hasText: /^工作灯/ });
+    const diffuser = [887, 224, 976, 230] as const;
+    const pegboard = [900, 245, 975, 265] as const;
+    const tabletop = [931, 446, 955, 452] as const;
+    const controlRegions = [
+      { name: "display drawing", area: [1026, 365, 1070, 385] },
+      { name: "drawer", area: [1030, 590, 1100, 620] },
+      { name: "paper outside the workbench", area: [667, 265, 696, 285] },
+    ] as const;
+
+    async function luma(area: Parameters<typeof captureArtworkArea>[1]) {
+      return artworkLuma(page, await captureArtworkArea(scene, area));
+    }
+
+    async function sampleLamp() {
+      return {
+        diffuser: await luma(diffuser),
+        pegboard: await luma(pegboard),
+        tabletop: await luma(tabletop),
+      };
+    }
 
     await expect(lamp).toHaveAttribute("aria-pressed", "true");
-    await expect(diffuser).toHaveCount(0);
+    await page.mouse.move(0, 0);
     const resting = await scene.screenshot();
+    const lit = await sampleLamp();
+    const controlSamples = await Promise.all(
+      controlRegions.map(async (region) => ({
+        ...region,
+        on: await captureArtworkArea(scene, region.area),
+      })),
+    );
+
+    async function expectUnlitRegionsUnchanged() {
+      for (const { name, area, on } of controlSamples) {
+        const frame = await captureArtworkArea(scene, area);
+        expect(frame.equals(on), `${name} should keep its colors`).toBe(true);
+      }
+    }
 
     await lamp.click();
     await expect(lamp).toHaveAttribute("aria-pressed", "false");
-    await page.clock.runFor(600);
-    await expect(diffuser).toBeVisible();
+    await expect(lampStatus).toHaveText("工作灯已关闭");
+    await page.clock.runFor(85);
+    const dimming = await sampleLamp();
+    await page.clock.runFor(265);
     await lamp.blur();
-    expect((await scene.screenshot()).equals(resting)).toBe(false);
+    await page.mouse.move(0, 0);
+    const dark = await sampleLamp();
+    expect(
+      lit.diffuser - dark.diffuser,
+      "diffuser should dim",
+    ).toBeGreaterThanOrEqual(25);
+    expect(
+      lit.pegboard - dark.pegboard,
+      "pegboard should dim",
+    ).toBeGreaterThanOrEqual(12);
+    expect(
+      lit.tabletop - dark.tabletop,
+      "tabletop should dim",
+    ).toBeGreaterThanOrEqual(7);
+    await expectUnlitRegionsUnchanged();
 
     await lamp.press("Space");
     await expect(lamp).toHaveAttribute("aria-pressed", "true");
-    await page.clock.runFor(600);
-    await expect(diffuser).toHaveCount(0);
+    await expect(lampStatus).toHaveText("工作灯已开启");
+    await page.clock.runFor(90);
+    const brightening = await sampleLamp();
+    await expectUnlitRegionsUnchanged();
+    await page.clock.runFor(260);
     await lamp.blur();
     expect((await scene.screenshot()).equals(resting)).toBe(true);
+
+    for (const [direction, frame, start, end] of [
+      ["off", dimming, lit, dark],
+      ["on", brightening, dark, lit],
+    ] as const) {
+      const progress = (area: keyof typeof frame) =>
+        (frame[area] - start[area]) / (end[area] - start[area]);
+      const board = progress("pegboard");
+      const table = progress("tabletop");
+      for (const [name, fraction] of [
+        ["pegboard", board],
+        ["tabletop", table],
+      ] as const) {
+        expect(
+          fraction,
+          `${name} starts fading when turning ${direction}`,
+        ).toBeGreaterThan(0.15);
+        expect(
+          fraction,
+          `${name} is still fading when turning ${direction}`,
+        ).toBeLessThan(0.85);
+      }
+      expect(
+        Math.abs(board - table),
+        `both surfaces fade together when turning ${direction}`,
+      ).toBeLessThan(0.25);
+      expect(
+        progress("diffuser") - Math.max(board, table),
+        `diffuser responds sooner when turning ${direction}`,
+      ).toBeGreaterThan(0.15);
+    }
   });
 
   test("sways the plant on hover and keyboard activation, then restores the drawing", async ({

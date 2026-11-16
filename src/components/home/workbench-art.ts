@@ -108,6 +108,17 @@ export const workbenchPartArt: Readonly<
   },
 };
 
+// Trace the receiving surfaces and the devices that cover them in the artwork.
+export const workbenchLampLight = {
+  pegboard: "M 786 221 L 1192 210 L 1200 433 L 789 415 Z",
+  worktop: "M 638 436 L 746 413 L 1200 433 L 1252 436 L 1169 476 Z",
+  occluders: [
+    "M 745 344 L 876 342 L 891 418 L 923 428 L 922 438 L 785 444 L 754 429 Z",
+    "M 985 329 L 1120 332 L 1111 415 L 1056 414 L 1054 426 L 1075 430 L 1074 438 L 1016 437 L 1009 433 L 1010 428 L 1033 425 L 1034 414 L 974 410 Z",
+    "M 973 437 L 1056 440 L 1042 452 L 961 449 Z",
+  ],
+} as const;
+
 export const workbenchInteractionArt = [
   ...workbenchLeaves.flatMap((part) => {
     const { cover, sprite } = workbenchPartArt[part];

@@ -3,7 +3,11 @@ import { useId } from "react";
 import { assetPath } from "@/lib/site";
 
 import { pencilEase } from "./pencil-plan";
-import { workbenchPartArt } from "./workbench-art";
+import {
+  workbenchLampLight,
+  workbenchPartArt,
+  workbenchSheet,
+} from "./workbench-art";
 
 import type { WorkbenchArtImage } from "./workbench-art";
 import type { WorkbenchPose } from "./workbench-interactions";
@@ -16,7 +20,7 @@ function Sprite({
   brightness,
 }: {
   image: WorkbenchArtImage;
-  part?: WorkbenchLeaf | "lamp-diffuser";
+  part?: WorkbenchLeaf;
   opacity?: number;
   brightness?: number;
 }) {
@@ -166,10 +170,104 @@ function KeyFeedback({
   );
 }
 
+function WorkbenchLampLighting({
+  light,
+  sourceLight,
+}: Pick<WorkbenchPose, "light" | "sourceLight">) {
+  const id = useId();
+  const pegboardId = `${id}-pegboard`;
+  const worktopId = `${id}-worktop`;
+  const fixtureId = `${id}-fixture`;
+  const surfacesId = `${id}-surfaces`;
+  const shade = "#615647";
+  const fixtureShade = "#696e70";
+  const { pegboard, worktop, occluders } = workbenchLampLight;
+  const source = pencilEase(sourceLight);
+
+  return (
+    <>
+      <defs>
+        <radialGradient
+          id={pegboardId}
+          gradientUnits="userSpaceOnUse"
+          gradientTransform="translate(940 254) scale(176 162)"
+          cx="0"
+          cy="0"
+          r="1"
+        >
+          <stop stopColor={shade} stopOpacity="0.22" />
+          <stop offset="0.4" stopColor={shade} stopOpacity="0.16" />
+          <stop offset="0.75" stopColor={shade} stopOpacity="0.05" />
+          <stop offset="1" stopColor={shade} stopOpacity="0" />
+        </radialGradient>
+        <radialGradient
+          id={fixtureId}
+          gradientUnits="userSpaceOnUse"
+          gradientTransform="translate(938 233) scale(104 23)"
+          cx="0"
+          cy="0"
+          r="1"
+        >
+          <stop stopColor={fixtureShade} stopOpacity="0.14" />
+          <stop offset="0.5" stopColor={fixtureShade} stopOpacity="0.07" />
+          <stop offset="1" stopColor={fixtureShade} stopOpacity="0" />
+        </radialGradient>
+        <radialGradient
+          id={worktopId}
+          gradientUnits="userSpaceOnUse"
+          gradientTransform="translate(945 444) scale(168 24)"
+          cx="0"
+          cy="0"
+          r="1"
+        >
+          <stop stopColor={shade} stopOpacity="0.09" />
+          <stop offset="0.48" stopColor={shade} stopOpacity="0.06" />
+          <stop offset="1" stopColor={shade} stopOpacity="0" />
+        </radialGradient>
+        <mask
+          id={surfacesId}
+          maskUnits="userSpaceOnUse"
+          x="638"
+          y="209"
+          width="615"
+          height="268"
+        >
+          <rect
+            width={workbenchSheet.width}
+            height={workbenchSheet.height}
+            fill="white"
+          />
+          {occluders.map((path) => (
+            <path key={path} d={path} fill="black" />
+          ))}
+        </mask>
+      </defs>
+      <g mask={`url(#${surfacesId})`}>
+        <g opacity={1 - pencilEase(light)}>
+          <path d={pegboard} fill={`url(#${pegboardId})`} />
+          <path d={worktop} fill={`url(#${worktopId})`} />
+        </g>
+        {/* Lifting this shade reveals the narrow warm halo already in the artwork. */}
+        <path d={pegboard} fill={`url(#${fixtureId})`} opacity={1 - source} />
+      </g>
+      <Sprite
+        image={workbenchPartArt.lamp.sprite}
+        brightness={0.58 + 0.42 * source}
+      />
+    </>
+  );
+}
+
 export function WorkbenchPartLayers({ pose }: { pose: WorkbenchPose }) {
   const moved = [...pose.swings].filter(([, angle]) => angle !== 0);
   return (
     <>
+      {(pose.light < 1 || pose.sourceLight < 1) && (
+        <WorkbenchLampLighting
+          light={pose.light}
+          sourceLight={pose.sourceLight}
+        />
+      )}
       {moved.map(([part]) => (
         <Sprite key={part} image={workbenchPartArt[part].cover} />
       ))}
@@ -187,13 +285,6 @@ export function WorkbenchPartLayers({ pose }: { pose: WorkbenchPose }) {
           </g>
         );
       })}
-      {pose.light < 1 && (
-        <Sprite
-          image={workbenchPartArt.lamp.sprite}
-          brightness={0.58 + 0.42 * pose.light}
-          part="lamp-diffuser"
-        />
-      )}
       {pose.screen && <ScreenAnimation screen={pose.screen} />}
     </>
   );

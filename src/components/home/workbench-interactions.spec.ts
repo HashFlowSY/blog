@@ -42,30 +42,32 @@ function workbench(reduceMotion = false) {
 }
 
 describe("2D workbench actions", () => {
-  it("dims the lit lamp and can reverse the fade before it settles", () => {
+  it("settles the light source faster and reverses from the current brightness", () => {
     const view = workbench();
-    expect(view.pose).toMatchObject({ lampOn: true, light: 1 });
+    expect(view.pose).toMatchObject({ lampOn: true, light: 1, sourceLight: 1 });
 
     expect(view.activate("lamp")).toBe(true);
     expect(view.pose.lampOn).toBe(false);
     expect(view.message).toBe("工作灯已关闭");
     view.advance(64);
-    const dimmed = view.pose.light;
-    expect(dimmed).toBeGreaterThan(0);
-    expect(dimmed).toBeLessThan(1);
+    const { light, sourceLight } = view.pose;
+    expect(light).toBeGreaterThan(0);
+    expect(light).toBeLessThan(1);
+    expect(sourceLight).toBeLessThan(light);
 
     expect(view.activate("lamp")).toBe(true);
     expect(view.pose.lampOn).toBe(true);
-    expect(view.pose.light).toBeCloseTo(dimmed);
+    expect(view.pose).toMatchObject({ light, sourceLight });
     expect(view.message).toBe("工作灯已开启");
     view.advance(64);
-    expect(view.pose.light).toBeGreaterThan(dimmed);
-    expect(view.advance(550)).toBe(false);
-    expect(view.pose.light).toBe(1);
+    expect(view.pose.light).toBeGreaterThan(light);
+    expect(view.pose.sourceLight).toBeGreaterThan(sourceLight);
+    expect(view.advance(220)).toBe(false);
+    expect(view.pose).toMatchObject({ light: 1, sourceLight: 1 });
 
     view.activate("lamp");
-    expect(view.advance(550)).toBe(false);
-    expect(view.pose.light).toBe(0);
+    expect(view.advance(180)).toBe(false);
+    expect(view.pose).toMatchObject({ light: 0, sourceLight: 0 });
   });
 
   it("plays nine distinct keys before drawing and runs only one device at a time", () => {
@@ -125,9 +127,13 @@ describe("2D workbench actions", () => {
     expect(view.pose.swings.size).toBe(0);
     expect(view.message).toBe("树叶保持静止");
     expect(view.activate("lamp")).toBe(false);
-    expect(view.pose).toMatchObject({ lampOn: false, light: 0 });
+    expect(view.pose).toMatchObject({
+      lampOn: false,
+      light: 0,
+      sourceLight: 0,
+    });
     expect(view.activate("lamp")).toBe(false);
-    expect(view.pose).toMatchObject({ lampOn: true, light: 1 });
+    expect(view.pose).toMatchObject({ lampOn: true, light: 1, sourceLight: 1 });
     expect(view.advance(64)).toBe(false);
   });
 });

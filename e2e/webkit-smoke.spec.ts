@@ -8,6 +8,8 @@ import {
   goToRoute,
 } from "./helpers/navigation";
 import {
+  artworkLuma,
+  captureArtworkArea,
   drawTo,
   expectPencilAtStroke,
   installDrawingClock,
@@ -76,6 +78,35 @@ test.describe("WebKit smoke", () => {
     await drawTo(page, workbench, 100);
     await expect(laptop).toBeVisible();
     await expect(screen).toHaveCount(0);
+  });
+
+  test("dims the narrow workbench immediately with reduced motion", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 375, height: 844 });
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await installDrawingClock(page);
+    await goToHome(page);
+    const workbench = page.getByRole("region", { name: "交互工作台" });
+    const scene = await waitForFinishedWorkbench(workbench);
+    const lamp = workbench.getByRole("button", { name: "工作灯" });
+    await expect(lamp).toHaveAttribute("aria-pressed", "true");
+    await scene.scrollIntoViewIfNeeded();
+
+    const litPegboard = [890, 245, 982, 265] as const;
+    const resting = await captureArtworkArea(scene, litPegboard);
+    await lamp.click();
+    await expect(lamp).toHaveAttribute("aria-pressed", "false");
+    const dark = await captureArtworkArea(scene, litPegboard);
+    expect(
+      (await artworkLuma(page, resting)) - (await artworkLuma(page, dark)),
+    ).toBeGreaterThanOrEqual(12);
+
+    await lamp.click();
+    await expect(lamp).toHaveAttribute("aria-pressed", "true");
+    expect((await captureArtworkArea(scene, litPegboard)).equals(resting)).toBe(
+      true,
+    );
   });
 
   test("renders the home page and primary navigation", async ({ page }) => {

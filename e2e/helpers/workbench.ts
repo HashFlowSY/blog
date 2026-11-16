@@ -33,6 +33,53 @@ export async function waitForFinishedWorkbench(workbench: Locator) {
   return scene;
 }
 
+type ArtworkArea = readonly [
+  left: number,
+  top: number,
+  right: number,
+  bottom: number,
+];
+
+export async function captureArtworkArea(scene: Locator, area: ArtworkArea) {
+  const clip = await scene.locator("svg").evaluate((element, area) => {
+    const matrix = (element as SVGSVGElement).getScreenCTM();
+    if (!matrix)
+      throw new Error("Finished drawing has no coordinate transform");
+    const [left, top, right, bottom] = area;
+    const start = new DOMPoint(left, top).matrixTransform(matrix);
+    const end = new DOMPoint(right, bottom).matrixTransform(matrix);
+    const x = Math.ceil(start.x);
+    const y = Math.ceil(start.y);
+    return {
+      x,
+      y,
+      width: Math.floor(end.x) - x,
+      height: Math.floor(end.y) - y,
+    };
+  }, area);
+  return scene.page().screenshot({ clip, scale: "css" });
+}
+
+export async function artworkLuma(page: Page, screenshot: Buffer) {
+  return page.evaluate(async (png) => {
+    const image = new Image();
+    image.src = `data:image/png;base64,${png}`;
+    await image.decode();
+    const canvas = document.createElement("canvas");
+    canvas.width = image.naturalWidth;
+    canvas.height = image.naturalHeight;
+    const context = canvas.getContext("2d")!;
+    context.drawImage(image, 0, 0);
+    const { data } = context.getImageData(0, 0, canvas.width, canvas.height);
+    let total = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      total +=
+        0.2126 * data[i]! + 0.7152 * data[i + 1]! + 0.0722 * data[i + 2]!;
+    }
+    return total / (canvas.width * canvas.height);
+  }, screenshot.toString("base64"));
+}
+
 export async function paintedPencilLength(page: Page, workbench: Locator) {
   await page.evaluate(async () => {
     window.scrollTo({ top: 0, behavior: "instant" });
