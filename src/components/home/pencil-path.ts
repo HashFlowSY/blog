@@ -1,6 +1,6 @@
 import type { PencilPoint } from "./pencil-plan";
 
-export interface StrokeGeometry {
+interface StrokeGeometry {
   from: PencilPoint;
   to: PencilPoint;
   length: number;
@@ -74,7 +74,7 @@ export function strokeGeometry(path: string): StrokeGeometry {
   return { from, to: current, length, minY };
 }
 
-export interface StrokeDraft extends StrokeGeometry {
+interface StrokeDraft extends StrokeGeometry {
   id: string;
   path: string;
 }

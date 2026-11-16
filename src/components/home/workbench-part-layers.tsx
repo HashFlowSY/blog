@@ -78,7 +78,6 @@ function ScreenAnimation({
   return (
     <g
       data-blueprint-device={screen.device}
-      data-progress={screen.progress}
       data-phase={
         screen.keyIndex === undefined && screen.progress > 0
           ? "drawing"

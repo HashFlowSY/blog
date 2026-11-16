@@ -27,19 +27,10 @@ export async function drawTo(page: Page, workbench: Locator, progress: number) {
 }
 
 export async function waitForFinishedWorkbench(workbench: Locator) {
-  const scene = workbench.locator('[data-complete="true"]');
-  await expect(scene).toBeVisible({ timeout: 15000 });
-  return scene;
-}
-
-export async function waitForWorkbenchArtwork(scene: Locator) {
+  const scene = workbench.locator('[data-drawing-state="complete"]');
   const artwork = scene.locator('[data-workbench-art="rest"]');
-  await expect(artwork).toBeVisible();
-  await artwork.evaluate(async (element) => {
-    const image = new Image();
-    image.src = element.getAttribute("href")!;
-    await image.decode();
-  });
+  await expect(artwork).toBeVisible({ timeout: 15000 });
+  return scene;
 }
 
 export async function paintedPencilLength(page: Page, workbench: Locator) {

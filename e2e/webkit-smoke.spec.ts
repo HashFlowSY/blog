@@ -14,7 +14,6 @@ import {
   movePencilToDrawing,
   paintedPencilLength,
   waitForFinishedWorkbench,
-  waitForWorkbenchArtwork,
   workbenchScene,
 } from "./helpers/workbench";
 
@@ -49,7 +48,7 @@ test.describe("WebKit smoke", () => {
     await movePencilToDrawing(page, workbench);
     await expectPencilAtStroke(workbench);
     await drawTo(page, workbench, 100);
-    await waitForWorkbenchArtwork(await waitForFinishedWorkbench(workbench));
+    await waitForFinishedWorkbench(workbench);
     await expect(workbench.getByRole("slider")).toHaveCount(0);
   });
 

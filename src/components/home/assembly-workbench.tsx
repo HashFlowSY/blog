@@ -1,24 +1,57 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { preload } from "react-dom";
 
 import { assetPath } from "@/lib/site";
 
 import styles from "./assembly-workbench.module.css";
 import { drawingProgress } from "./pencil-plan";
-import { workbenchInteractionArt } from "./workbench-art";
-import { WorkbenchDrawing } from "./workbench-drawing";
+import { workbenchDrawingArt, workbenchInteractionArt } from "./workbench-art";
 import { WorkbenchInteractive } from "./workbench-interactive";
+
+import type {
+  WorkbenchArtworkLayer,
+  WorkbenchArtworkResult,
+} from "./workbench-drawing";
 
 type DrawingState =
   | { phase: "waiting"; progress: 0 }
   | { phase: "drawing"; progress: number }
   | { phase: "complete"; progress: 100 };
 
-function prefersReducedMotion(): boolean {
-  return (
-    window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false
-  );
+type WorkbenchMotion = "pending" | "animated" | "still";
+
+const reducedMotionQuery = "(prefers-reduced-motion: reduce)";
+
+const animatedImagePreload = {
+  as: "image",
+  type: "image/webp",
+  media: "(prefers-reduced-motion: no-preference)",
+} as const;
+
+function subscribeToMotionPreference(onChange: () => void) {
+  const preference = window.matchMedia?.(reducedMotionQuery);
+  preference?.addEventListener?.("change", onChange);
+  return () => preference?.removeEventListener?.("change", onChange);
+}
+
+function getMotionPreference(): WorkbenchMotion {
+  return window.matchMedia?.(reducedMotionQuery).matches ? "still" : "animated";
+}
+
+function decodeImage(src: string): Promise<void> {
+  const image = new Image();
+  if (typeof image.decode === "function") {
+    image.src = src;
+    return image.decode();
+  }
+
+  return new Promise((resolve, reject) => {
+    image.onload = () => resolve();
+    image.onerror = () => reject(new Error(`Unable to load ${src}`));
+    image.src = src;
+  });
 }
 
 function observeDrawingVisibility(scene: HTMLDivElement, start: () => void) {
@@ -78,43 +111,71 @@ function observeDrawingVisibility(scene: HTMLDivElement, start: () => void) {
 }
 
 export function AssemblyWorkbench() {
-  const [{ phase, progress }, setDrawing] = useState<DrawingState>({
+  const motion = useSyncExternalStore(
+    subscribeToMotionPreference,
+    getMotionPreference,
+    (): WorkbenchMotion => "pending",
+  );
+  const [drawing, setDrawing] = useState<DrawingState>({
     phase: "waiting",
     progress: 0,
   });
-  const [artStatus, setArtStatus] = useState<"loading" | "ready" | "failed">(
-    "loading",
-  );
+  const [restStatus, setRestStatus] = useState<WorkbenchArtworkResult>();
+  const [paperStatus, setPaperStatus] = useState<WorkbenchArtworkResult>();
+  const [partsStatus, setPartsStatus] = useState<
+    "loading" | "ready" | "failed"
+  >("loading");
   const [visit, setVisit] = useState(0);
   const sceneRef = useRef<HTMLDivElement>(null);
+  const showStill = motion === "still" || paperStatus === "failed";
+  const canAnimate = motion === "animated" && !showStill;
+  const artworkReady =
+    restStatus === "ready" && (showStill || paperStatus === "ready");
+  const phase =
+    restStatus === "failed"
+      ? "failed"
+      : !artworkReady
+        ? "waiting"
+        : showStill
+          ? "complete"
+          : drawing.phase;
   const complete = phase === "complete";
-  const interactiveReady = complete && artStatus === "ready";
+  const progress = complete ? 100 : phase === "drawing" ? drawing.progress : 0;
+  const interactiveReady = complete && partsStatus === "ready";
+
+  preload(workbenchDrawingArt.rest, { as: "image", type: "image/webp" });
+  preload(workbenchDrawingArt.paper, animatedImagePreload);
+  preload(workbenchDrawingArt.pencil, animatedImagePreload);
+
+  function handleArtworkResult(
+    layer: WorkbenchArtworkLayer,
+    result: WorkbenchArtworkResult,
+  ) {
+    if (layer === "rest") setRestStatus(result);
+    else setPaperStatus(result);
+  }
 
   useEffect(() => {
+    if (!artworkReady) return;
     let mounted = true;
-    const images = workbenchInteractionArt.map(({ src }) => {
-      const image = new Image();
-      image.src = assetPath(src);
-      return typeof image.decode === "function"
-        ? image.decode()
-        : Promise.resolve();
-    });
-    void Promise.all(images).then(
+    void Promise.all(
+      workbenchInteractionArt.map(({ src }) => decodeImage(assetPath(src))),
+    ).then(
       () => {
-        if (mounted) setArtStatus("ready");
+        if (mounted) setPartsStatus("ready");
       },
       () => {
-        if (mounted) setArtStatus("failed");
+        if (mounted) setPartsStatus("failed");
       },
     );
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [artworkReady]);
 
   useEffect(() => {
     const element = sceneRef.current;
-    if (!element) return;
+    if (!element || !artworkReady) return;
     let frameId: number | undefined;
     let stopWatching: (() => void) | undefined;
 
@@ -131,11 +192,6 @@ export function AssemblyWorkbench() {
 
     function startDrawing() {
       stopWatching = undefined;
-      if (prefersReducedMotion()) {
-        finishDrawing();
-        return;
-      }
-
       const startedAt = performance.now();
       setDrawing({ phase: "drawing", progress: 0 });
 
@@ -166,19 +222,14 @@ export function AssemblyWorkbench() {
       if (!event.persisted) return;
       stopPlayback();
       setVisit((revision) => revision + 1);
-      if (prefersReducedMotion()) {
-        finishDrawing();
-      } else {
+      if (canAnimate) {
         setDrawing({ phase: "waiting", progress: 0 });
         stopWatching = observeDrawingVisibility(element, startDrawing);
       }
     };
 
-    if (prefersReducedMotion()) {
-      frameId = window.requestAnimationFrame(finishDrawing);
-    } else {
+    if (canAnimate)
       stopWatching = observeDrawingVisibility(element, startDrawing);
-    }
     document.addEventListener("visibilitychange", finishWhenHidden);
     window.addEventListener("pageshow", restartWhenRestored);
     return () => {
@@ -186,7 +237,7 @@ export function AssemblyWorkbench() {
       document.removeEventListener("visibilitychange", finishWhenHidden);
       window.removeEventListener("pageshow", restartWhenRestored);
     };
-  }, []);
+  }, [artworkReady, canAnimate]);
 
   return (
     <section className={styles["workbench"]} aria-labelledby="assembly-title">
@@ -196,15 +247,14 @@ export function AssemblyWorkbench() {
       <div
         ref={sceneRef}
         className={styles["scene"]}
-        data-complete={complete}
         data-drawing-state={phase}
         data-progress={progress}
       >
         <div
           className={styles["sheet"]}
-          role={interactiveReady ? undefined : "img"}
+          role={interactiveReady || phase === "failed" ? undefined : "img"}
           aria-label={
-            interactiveReady
+            interactiveReady || phase === "failed"
               ? undefined
               : complete
                 ? "手绘工作台"
@@ -213,23 +263,30 @@ export function AssemblyWorkbench() {
                   : "待绘制的工作台"
           }
         >
-          {complete ? (
-            <WorkbenchInteractive key={visit} enabled={interactiveReady} />
-          ) : (
-            <WorkbenchDrawing progress={progress} />
+          {motion !== "pending" && phase !== "failed" && (
+            <WorkbenchInteractive
+              key={visit}
+              enabled={interactiveReady}
+              progress={progress}
+              hidden={phase === "waiting"}
+              loadPaper={motion === "animated"}
+              onArtworkResult={handleArtworkResult}
+            />
           )}
         </div>
       </div>
       <span className={styles["srOnly"]} role="status">
-        {complete
-          ? interactiveReady
-            ? "工作台绘制完成，可以操作电脑、盆栽和工作灯"
-            : artStatus === "failed"
-              ? "工作台绘制完成，部件素材未能载入"
-              : "工作台绘制完成，正在载入部件素材"
-          : phase === "drawing"
-            ? "正在绘制工作台"
-            : "等待绘制"}
+        {phase === "failed"
+          ? "工作台画稿未能载入"
+          : complete
+            ? interactiveReady
+              ? "工作台绘制完成，可以操作电脑、盆栽和工作灯"
+              : partsStatus === "failed"
+                ? "工作台绘制完成，部件素材未能载入"
+                : "工作台绘制完成，正在载入部件素材"
+            : phase === "drawing"
+              ? "正在绘制工作台"
+              : "等待绘制"}
       </span>
     </section>
   );

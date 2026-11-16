@@ -1,10 +1,8 @@
 import { useLayoutEffect, useRef } from "react";
-import { preload } from "react-dom";
-
-import { assetPath } from "@/lib/site";
 
 import styles from "./assembly-workbench.module.css";
 import { pencilLength, pencilPosition } from "./pencil-route";
+import { workbenchDrawingArt } from "./workbench-art";
 
 import type { PencilPoint } from "./pencil-plan";
 
@@ -15,14 +13,13 @@ export function WorkbenchPencil({ progress }: { progress: number }) {
   const paths = useRef(
     new Map<string, { path: SVGPathElement; length: number }>(),
   );
-  const source = assetPath("/assets/drawing-pencil.webp");
+  const source = workbenchDrawingArt.pencil;
   const length = pencilLength(progress);
   // Crop the shaft without scaling the artwork or moving the contact point.
   // Once the shaft is gone, consume the tail and finally the wood/graphite tip.
   const capWidth = Math.min(9, Math.max(0, length - 28));
   const bodyEnd = length - capWidth;
   const bodyWidth = 13.006 + bodyEnd;
-  preload(source, { as: "image", type: "image/webp" });
 
   useLayoutEffect(() => {
     const element = cursor.current;

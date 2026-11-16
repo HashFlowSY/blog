@@ -23,7 +23,7 @@ export function escapeXml(str: string): string {
     .replace(/'/g, "&apos;");
 }
 
-export function toRfc822(dateStr: string): string {
+function toRfc822(dateStr: string): string {
   const date = new Date(dateStr);
   return date.toUTCString();
 }

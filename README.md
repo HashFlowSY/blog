@@ -8,7 +8,7 @@
 
 ## 现在可以看什么
 
-- **工作台**。首页用铅笔标出定位点，再从上往下逐区画完工作台，约 4.8 秒收笔。随后可直接点按电脑、盆栽或工作灯，也可以用键盘操作。
+- **工作台**。素材就绪且工作台进入视口后，铅笔先标出定位点，再从上往下逐区绘制，约 4.8 秒收笔。随后可直接点按电脑、盆栽或工作灯，也可以用键盘操作。
 - **两篇文章**：[用 Codex 定制桌面宠物：流程与踩坑](https://hashflowsy.github.io/blog/posts/2026-05-02/) 和 [AI 服务中转站：常见术语与风险清单](https://hashflowsy.github.io/blog/posts/2026-04-30/)。文章列表支持主题筛选和关键词搜索，详情提供目录、阅读进度、预计时长与推荐文章。
 - **一个项目案例**：[Personal Blog](https://hashflowsy.github.io/blog/projects/personal-blog/) 记录了本站的实现与验证。后续案例待整理[可公开的项目事实和证据](.scratch/site-experience/issues/01-add-real-project-evidence.md)。
 

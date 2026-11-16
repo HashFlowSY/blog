@@ -52,7 +52,9 @@ function mount({ enabled = true, reducedMotion = false } = {}) {
   vi.spyOn(window, "cancelAnimationFrame").mockImplementation((id) => {
     frames.delete(id);
   });
-  const view = render(<WorkbenchInteractive enabled={enabled} />);
+  const view = render(
+    <WorkbenchInteractive enabled={enabled} progress={100} />,
+  );
   onTestFinished(() => {
     lifetime.abort();
     view.unmount();
@@ -126,7 +128,7 @@ describe("2D workbench controls", () => {
     expect(
       view.sheet.querySelector('[data-workbench-art="rest"]'),
     ).not.toBeNull();
-    view.view.rerender(<WorkbenchInteractive enabled />);
+    view.view.rerender(<WorkbenchInteractive enabled progress={100} />);
     expect(
       screen
         .getAllByRole("button")

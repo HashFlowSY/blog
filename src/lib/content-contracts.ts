@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import { decodeCanonicalRootRelativePathname } from "./url-path";
 
-export const CONTENT_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const CONTENT_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 const DATE_ONLY_SLUG_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const GRANDFATHERED_PUBLISHED_POST_SLUGS = new Set([
@@ -13,7 +13,7 @@ const GRANDFATHERED_PUBLISHED_POST_SLUGS = new Set([
   "2026-05-02",
 ]);
 
-export interface ContentContractInput {
+interface ContentContractInput {
   filePath: string;
   frontmatter: unknown;
   body: string;
@@ -31,7 +31,7 @@ export interface ValidatedContentEntry<TFrontmatter> {
   body: string;
 }
 
-export type ContentContractResult<TFrontmatter> =
+type ContentContractResult<TFrontmatter> =
   | {
       success: true;
       entry: ValidatedContentEntry<TFrontmatter>;
@@ -43,12 +43,12 @@ export type ContentContractResult<TFrontmatter> =
       errors: ContentValidationError[];
     };
 
-export interface ContentContractBatchResult<TFrontmatter> {
+interface ContentContractBatchResult<TFrontmatter> {
   entries: ValidatedContentEntry<TFrontmatter>[];
   errors: ContentValidationError[];
 }
 
-export interface ProjectContractOptions {
+interface ProjectContractOptions {
   publicDir: string;
 }
 
@@ -170,19 +170,17 @@ const projectFields = {
 const postStateSchemas = createContentStateSchemas(postFields);
 const projectStateSchemas = createContentStateSchemas(projectFields);
 
-export type DraftPostFrontmatter = z.infer<typeof postStateSchemas.draft>;
+type DraftPostFrontmatter = z.infer<typeof postStateSchemas.draft>;
 export type PublishedPostFrontmatter = z.infer<
   typeof postStateSchemas.published
 >;
-export type PostFrontmatter = DraftPostFrontmatter | PublishedPostFrontmatter;
+type PostFrontmatter = DraftPostFrontmatter | PublishedPostFrontmatter;
 
-export type DraftProjectCaseFrontmatter = z.infer<
-  typeof projectStateSchemas.draft
->;
+type DraftProjectCaseFrontmatter = z.infer<typeof projectStateSchemas.draft>;
 export type PublishedProjectCaseFrontmatter = z.infer<
   typeof projectStateSchemas.published
 >;
-export type ProjectCaseFrontmatter =
+type ProjectCaseFrontmatter =
   | DraftProjectCaseFrontmatter
   | PublishedProjectCaseFrontmatter;
 
@@ -533,7 +531,7 @@ function projectCoverErrors(
   return [];
 }
 
-export function validatePostContract(
+function validatePostContract(
   input: ContentContractInput,
 ): ContentContractResult<PostFrontmatter> {
   const result = validateContentState(input, postStateSchemas);
@@ -547,7 +545,7 @@ export function validatePostContract(
   return appendErrors(result, errors);
 }
 
-export function validateProjectCaseContract(
+function validateProjectCaseContract(
   input: ContentContractInput,
   options: ProjectContractOptions = DEFAULT_PROJECT_CONTRACT_OPTIONS,
 ): ContentContractResult<ProjectCaseFrontmatter> {

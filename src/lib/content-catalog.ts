@@ -50,7 +50,7 @@ export function postCardMeta({
   };
 }
 
-export type NonEmptyTags = readonly [string, ...string[]];
+type NonEmptyTags = readonly [string, ...string[]];
 
 export interface ProjectCase {
   slug: string;
@@ -71,7 +71,7 @@ export interface ProjectCase {
 
 export type ProjectCaseMeta = Omit<ProjectCase, "document">;
 
-export interface ContentCatalog {
+interface ContentCatalog {
   readonly posts: readonly Post[];
   readonly projectCases: readonly ProjectCase[];
   readonly postSlugs: readonly string[];
@@ -86,13 +86,13 @@ export interface ContentCatalogOptions {
   rootDir?: string;
 }
 
-export type ContentCatalogCacheMode = "development" | "production";
+type ContentCatalogCacheMode = "development" | "production";
 
-export interface ContentCatalogReaderOptions extends ContentCatalogOptions {
+interface ContentCatalogReaderOptions extends ContentCatalogOptions {
   cacheMode?: ContentCatalogCacheMode;
 }
 
-export interface ContentCatalogReader {
+interface ContentCatalogReader {
   getCatalog(): Promise<ContentCatalog>;
 }
 

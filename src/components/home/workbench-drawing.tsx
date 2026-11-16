@@ -1,20 +1,18 @@
 import { useId } from "react";
-import { preload } from "react-dom";
-
-import { assetPath } from "@/lib/site";
 
 import styles from "./assembly-workbench.module.css";
 import { pencilEase, positioningEnd, strokeFraction } from "./pencil-plan";
-import { workbenchArtRoot, workbenchSheet } from "./workbench-art";
+import { workbenchDrawingArt, workbenchSheet } from "./workbench-art";
 import { drawingAreas, pointStrokes } from "./workbench-geometry";
 import { WorkbenchPencil } from "./workbench-pencil";
 
 import type { PencilStroke } from "./pencil-plan";
 import type { ReactNode } from "react";
 
-const finishedArtwork = assetPath(`${workbenchArtRoot}/workbench-rest.webp`);
-const drawingPaper = assetPath(`${workbenchArtRoot}/workbench-paper.webp`);
 const { width, height, top, sceneHeight } = workbenchSheet;
+
+export type WorkbenchArtworkLayer = "rest" | "paper";
+export type WorkbenchArtworkResult = "ready" | "failed";
 
 function RevealStroke({
   stroke,
@@ -43,9 +41,18 @@ function RevealStroke({
 
 export function WorkbenchDrawing({
   progress,
+  hidden = false,
+  loadPaper = true,
+  onArtworkResult,
   children,
 }: {
   progress: number;
+  hidden?: boolean;
+  loadPaper?: boolean;
+  onArtworkResult?: (
+    layer: WorkbenchArtworkLayer,
+    result: WorkbenchArtworkResult,
+  ) => void;
   children?: ReactNode;
 }) {
   const id = useId();
@@ -54,8 +61,6 @@ export function WorkbenchDrawing({
   const unfinished = drawingAreas.filter((area) => progress < area.end);
   // Draw shared edges within a single fill so no paper seam can show through.
   const paperPath = unfinished.map(({ points }) => `M${points}Z`).join("");
-  preload(finishedArtwork, { as: "image", type: "image/webp" });
-  preload(drawingPaper, { as: "image", type: "image/webp" });
 
   return (
     <svg
@@ -65,12 +70,15 @@ export function WorkbenchDrawing({
       height={sceneHeight}
       aria-hidden="true"
       focusable="false"
+      style={hidden ? { visibility: "hidden" } : undefined}
     >
       <image
-        href={finishedArtwork}
+        href={workbenchDrawingArt.rest}
         width={width}
         height={height}
         data-workbench-art={complete ? "rest" : undefined}
+        onLoad={() => onArtworkResult?.("rest", "ready")}
+        onError={() => onArtworkResult?.("rest", "failed")}
       />
       {complete ? (
         children
@@ -108,10 +116,17 @@ export function WorkbenchDrawing({
               ))}
             </mask>
           </defs>
-          <g mask={`url(#${paperMask})`}>
-            <rect width={width} height={height} fill="var(--studio-paper)" />
-            <image href={drawingPaper} width={width} height={height} />
-          </g>
+          {loadPaper && (
+            <g mask={`url(#${paperMask})`}>
+              <image
+                href={workbenchDrawingArt.paper}
+                width={width}
+                height={height}
+                onLoad={() => onArtworkResult?.("paper", "ready")}
+                onError={() => onArtworkResult?.("paper", "failed")}
+              />
+            </g>
+          )}
           <g
             data-construction-layer="points"
             opacity={1 - pencilEase((progress - positioningEnd) / 6)}
@@ -132,7 +147,7 @@ export function WorkbenchDrawing({
               );
             })}
           </g>
-          <WorkbenchPencil progress={progress} />
+          {!hidden && <WorkbenchPencil progress={progress} />}
         </>
       )}
     </svg>

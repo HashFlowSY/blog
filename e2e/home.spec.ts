@@ -3,7 +3,7 @@ import { expect } from "@playwright/test";
 import { drawingAreas } from "../src/components/home/workbench-geometry";
 
 import { SITE_COPY, STABLE_PROJECT, test } from "./fixtures";
-import { goToHome } from "./helpers/navigation";
+import { goToHome, waitForRouteEntry } from "./helpers/navigation";
 import {
   drawTo,
   expectPencilAtStroke,
@@ -11,11 +11,168 @@ import {
   movePencilToDrawing,
   paintedPencilLength,
   waitForFinishedWorkbench,
-  waitForWorkbenchArtwork,
   workbenchScene,
 } from "./helpers/workbench";
 
+import type { Page } from "@playwright/test";
+
+async function holdRequest(page: Page, url: string | RegExp) {
+  const { promise, resolve } = Promise.withResolvers<void>();
+  await page.route(url, async (route) => {
+    await promise;
+    await route.continue();
+  });
+  return resolve;
+}
+
+async function expectUniformWorkbenchBackground(page: Page) {
+  // At 1440 × 900 the paper mask starts at x = 594.
+  const swatch = { y: 140, width: 4, height: 4 };
+  const outside = await page.screenshot({
+    clip: { x: 590, ...swatch },
+    scale: "css",
+  });
+  const inside = await page.screenshot({
+    clip: { x: 600, ...swatch },
+    scale: "css",
+  });
+  expect(inside.equals(outside), "Both sides of the paper edge match").toBe(
+    true,
+  );
+}
+
 test.describe("Home page", () => {
+  for (const [first, second] of [
+    ["rest", "paper"],
+    ["paper", "rest"],
+  ] as const) {
+    test(`keeps a uniform first paint when workbench ${first} loads first`, async ({
+      browserName,
+      page,
+    }) => {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await installDrawingClock(page);
+      const firstUrl = `**/workbench-${first}.webp`;
+      const artworkRequests: string[] = [];
+      page.on("request", (request) => {
+        const pathname = new URL(request.url()).pathname;
+        const asset = /\/(workbench-(?:paper|rest)\.webp)$/.exec(pathname)?.[1];
+        if (asset) artworkRequests.push(asset);
+      });
+      const releaseScripts = await holdRequest(page, /\/_next\/.*\.js$/);
+      const releaseFirst = await holdRequest(page, firstUrl);
+      const releaseSecond = await holdRequest(
+        page,
+        `**/workbench-${second}.webp`,
+      );
+      const releaseLamp = await holdRequest(
+        page,
+        "**/lamp-diffuser-sprite.webp",
+      );
+      try {
+        await page.goto("./", { waitUntil: "domcontentloaded" });
+        const workbench = page.getByRole("region", { name: "交互工作台" });
+        const scene = workbenchScene(workbench);
+        // WebKit's screenshot can wait on the requests held by this test.
+        const expectWaitingArtwork =
+          browserName === "webkit"
+            ? () => expect(scene.locator("svg").first()).toBeHidden()
+            : () => expectUniformWorkbenchBackground(page);
+        await expect(scene).toBeVisible();
+        const waitingLayout = await scene.boundingBox();
+        await expectWaitingArtwork();
+
+        const firstResponse = page.waitForResponse(firstUrl);
+        releaseFirst();
+        await (await firstResponse).finished();
+
+        // A completed preload must still be reused after delayed hydration.
+        releaseScripts();
+        await waitForRouteEntry(page);
+        await page.clock.fastForward(5000);
+        await expect(scene).toHaveAttribute("data-drawing-state", "waiting");
+        await expect(scene).toHaveAttribute("data-progress", "0");
+        await expectWaitingArtwork();
+
+        releaseSecond();
+        await expect(scene).toHaveAttribute("data-drawing-state", "drawing");
+        await expect(scene).toHaveAttribute("data-progress", "0");
+        expect(await scene.boundingBox()).toEqual(waitingLayout);
+        await drawTo(page, workbench, 100);
+        await waitForFinishedWorkbench(workbench);
+        await expect(workbench.getByRole("button")).toHaveCount(0);
+
+        releaseLamp();
+        await expect(workbench.getByRole("button")).toHaveCount(7);
+        expect(artworkRequests.sort()).toEqual([
+          "workbench-paper.webp",
+          "workbench-rest.webp",
+        ]);
+      } finally {
+        releaseScripts();
+        releaseFirst();
+        releaseSecond();
+        releaseLamp();
+      }
+    });
+  }
+
+  for (const reason of ["reduced motion", "missing paper"] as const) {
+    test(`shows the finished workbench without drawing for ${reason}`, async ({
+      page,
+    }) => {
+      const animationAssetRequests: string[] = [];
+      if (reason === "reduced motion") {
+        await page.emulateMedia({ reducedMotion: "reduce" });
+        page.on("request", (request) => {
+          const pathname = new URL(request.url()).pathname;
+          if (/\/(?:workbench-paper|drawing-pencil)\.webp$/.test(pathname)) {
+            animationAssetRequests.push(pathname);
+          }
+        });
+      } else {
+        await page.route("**/workbench-paper.webp", (route) => route.abort());
+      }
+      await installDrawingClock(page);
+      const restUrl = "**/workbench-rest.webp";
+      const releaseRest = await holdRequest(page, restUrl);
+      try {
+        await page.goto("./", { waitUntil: "domcontentloaded" });
+        await waitForRouteEntry(page);
+        const workbench = page.getByRole("region", { name: "交互工作台" });
+        const scene = workbenchScene(workbench);
+        await page.clock.runFor(32);
+        await expect(scene).toHaveAttribute("data-drawing-state", "waiting");
+        await expect(workbench.getByRole("button")).toHaveCount(0);
+
+        releaseRest();
+        await waitForFinishedWorkbench(workbench);
+        await expect(workbench.getByRole("button")).toHaveCount(7);
+        if (reason === "reduced motion") {
+          expect(animationAssetRequests).toEqual([]);
+        }
+      } finally {
+        releaseRest();
+      }
+    });
+  }
+
+  test("keeps an unavailable workbench blank and non-interactive", async ({
+    page,
+  }) => {
+    await page.route("**/workbench-rest.webp", (route) => route.abort());
+    await goToHome(page);
+    const workbench = page.getByRole("region", { name: "交互工作台" });
+    const scene = workbenchScene(workbench);
+    await expect(scene).toHaveAttribute("data-drawing-state", "failed");
+    await expect(scene).toBeVisible();
+    await expect(scene.locator("svg")).toHaveCount(0);
+    await expect(workbench.getByRole("button")).toHaveCount(0);
+    await expect(workbench.getByRole("status")).toHaveText(
+      "工作台画稿未能载入",
+    );
+  });
+
   test("redraws on entry, return, back and refresh without playback controls", async ({
     page,
   }) => {
@@ -191,7 +348,7 @@ test.describe("Home page", () => {
     });
 
     await drawTo(page, workbench, 100);
-    await waitForWorkbenchArtwork(await waitForFinishedWorkbench(workbench));
+    await waitForFinishedWorkbench(workbench);
 
     expect(toolsDrawn.equals(toolsPaper)).toBe(false);
     expect(
@@ -231,7 +388,6 @@ test.describe("Home page", () => {
       ).toHaveCount(1);
     }
 
-    await waitForWorkbenchArtwork(scene);
     await page.mouse.move(0, 0);
     const resting = await scene.screenshot();
     const points = await scene.locator("svg").evaluate((element) => {
@@ -269,7 +425,6 @@ test.describe("Home page", () => {
     const workbench = page.getByRole("region", { name: "交互工作台" });
     await drawTo(page, workbench, 100);
     const scene = await waitForFinishedWorkbench(workbench);
-    await waitForWorkbenchArtwork(scene);
     const lamp = workbench.getByRole("button", { name: "工作灯" });
     const diffuser = scene.locator('[data-workbench-part="lamp-diffuser"]');
 

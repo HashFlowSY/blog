@@ -8,7 +8,7 @@ import { WorkbenchPartLayers } from "./workbench-part-layers";
 import { isWorkbenchLeaf } from "./workbench-parts";
 
 import type { WorkbenchPart } from "./workbench-parts";
-import type { PointerEvent } from "react";
+import type { ComponentProps, PointerEvent } from "react";
 
 type ButtonEvent = PointerEvent<HTMLButtonElement>;
 
@@ -35,7 +35,17 @@ function exceedsTapDistance(event: PointerEvent, tap: Tap) {
   return Math.hypot(event.clientX - tap.x, event.clientY - tap.y) > threshold;
 }
 
-export function WorkbenchInteractive({ enabled }: { enabled: boolean }) {
+type WorkbenchInteractiveProps = Omit<
+  ComponentProps<typeof WorkbenchDrawing>,
+  "children"
+> & {
+  enabled: boolean;
+};
+
+export function WorkbenchInteractive({
+  enabled,
+  ...drawing
+}: WorkbenchInteractiveProps) {
   const [message, setMessage] = useState("");
   const [engine] = useState(() =>
     createWorkbenchInteractions({
@@ -134,7 +144,7 @@ export function WorkbenchInteractive({ enabled }: { enabled: boolean }) {
       onLostPointerCapture={endContact}
       onPointerLeave={endContact}
     >
-      <WorkbenchDrawing progress={100}>
+      <WorkbenchDrawing {...drawing}>
         <WorkbenchPartLayers pose={pose} />
       </WorkbenchDrawing>
       {enabled && (
@@ -197,9 +207,11 @@ export function WorkbenchInteractive({ enabled }: { enabled: boolean }) {
           })}
         </div>
       )}
-      <span className={styles["srOnly"]} role="status">
-        {message}
-      </span>
+      {enabled && (
+        <span className={styles["srOnly"]} role="status">
+          {message}
+        </span>
+      )}
     </div>
   );
 }

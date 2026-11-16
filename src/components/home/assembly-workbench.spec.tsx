@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AssemblyWorkbench } from "./assembly-workbench";
 import { drawingDuration, drawingTime } from "./pencil-plan";
+import { workbenchDrawingArt } from "./workbench-art";
 import { WorkbenchDrawing } from "./workbench-drawing";
 import { drawingAreas, pointStrokes } from "./workbench-geometry";
 
@@ -43,7 +44,18 @@ describe("AssemblyWorkbench", () => {
     IntersectionObserverEntry,
     "isIntersecting" | "intersectionRatio"
   >;
-  let visibilityChanged: (entries: VisibilityEntry[]) => void;
+  type VisibilityCallback = (entries: VisibilityEntry[]) => void;
+  let visibilityChanged: VisibilityCallback | undefined;
+
+  function stubImageDecoding(decode: () => Promise<void>) {
+    vi.stubGlobal(
+      "Image",
+      class {
+        src = "";
+        decode = decode;
+      },
+    );
+  }
 
   beforeEach(() => {
     document.documentElement.style.setProperty(
@@ -53,6 +65,8 @@ describe("AssemblyWorkbench", () => {
     time = 0;
     nextId = 0;
     frames = new Map();
+    visibilityChanged = undefined;
+    stubImageDecoding(() => Promise.resolve());
     vi.spyOn(performance, "now").mockImplementation(() => time);
     vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
       frames.set(++nextId, callback);
@@ -70,7 +84,7 @@ describe("AssemblyWorkbench", () => {
     vi.stubGlobal(
       "IntersectionObserver",
       class {
-        constructor(callback: typeof visibilityChanged) {
+        constructor(callback: VisibilityCallback) {
           visibilityChanged = callback;
         }
         observe() {}
@@ -105,12 +119,40 @@ describe("AssemblyWorkbench", () => {
       .querySelector("[data-drawing-state]")!;
   }
 
-  function revealCanvas(intersectionRatio = 1) {
-    act(() => visibilityChanged([{ isIntersecting: true, intersectionRatio }]));
+  function artwork(src: string) {
+    return scene().querySelector(`image[href="${src}"]`);
   }
 
-  it("waits for a visible canvas and draws from the start on each mount", () => {
-    const first = render(<AssemblyWorkbench />);
+  async function renderReadyWorkbench() {
+    const view = render(<AssemblyWorkbench />);
+    await act(async () => {
+      fireEvent.load(artwork(workbenchDrawingArt.rest)!);
+      const paper = artwork(workbenchDrawingArt.paper);
+      if (paper) fireEvent.load(paper);
+    });
+    return view;
+  }
+
+  function revealCanvas(intersectionRatio = 1) {
+    const onVisibilityChanged = visibilityChanged;
+    if (!onVisibilityChanged)
+      throw new Error("The scene is not being observed");
+    act(() =>
+      onVisibilityChanged([{ isIntersecting: true, intersectionRatio }]),
+    );
+  }
+
+  async function restoreFromHistoryCache() {
+    await act(async () => {
+      fireEvent(
+        window,
+        new PageTransitionEvent("pageshow", { persisted: true }),
+      );
+    });
+  }
+
+  it("waits for a visible canvas and draws from the start on each mount", async () => {
+    const first = await renderReadyWorkbench();
     revealCanvas(0.39);
     advanceTo(1200);
     expect(scene()).toHaveAttribute("data-progress", "0");
@@ -121,16 +163,45 @@ describe("AssemblyWorkbench", () => {
     expect(Number(scene().getAttribute("data-progress"))).toBeGreaterThan(0);
     first.unmount();
     expect(frames.size).toBe(0);
-    render(<AssemblyWorkbench />);
+    await renderReadyWorkbench();
     expect(scene()).toHaveAttribute("data-progress", "0");
     revealCanvas();
     advanceTo(3600);
     expect(Number(scene().getAttribute("data-progress"))).toBeGreaterThan(0);
   });
 
-  it("releases each completed area before enabling the finished workbench", () => {
-    render(<AssemblyWorkbench />);
+  it("waits for part image events when decoding is unavailable", async () => {
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => ({ matches: true })),
+    );
+    const requested: LoadableImage[] = [];
+    class LoadableImage {
+      onload: (() => void) | null = null;
+
+      constructor() {
+        requested.push(this);
+      }
+    }
+    vi.stubGlobal("Image", LoadableImage);
+    await renderReadyWorkbench();
+    expect(scene()).toHaveAttribute("data-drawing-state", "complete");
+    expect(
+      scene().querySelector('[data-workbench-art="rest"]'),
+    ).toBeInTheDocument();
+    expect(screen.queryAllByRole("button")).toHaveLength(0);
+    await act(async () => {
+      for (const image of requested) image.onload?.();
+    });
+    expect(screen.getAllByRole("button")).toHaveLength(7);
+  });
+
+  it("releases each completed area before enabling the finished workbench", async () => {
+    await renderReadyWorkbench();
+    const rest = artwork(workbenchDrawingArt.rest);
+    expect(rest).toBeInTheDocument();
     revealCanvas();
+    expect(artwork(workbenchDrawingArt.rest)).toBe(rest);
     const first = drawingAreas[0]!;
     const second = drawingAreas[1]!;
     const firstArea = `[data-drawing-area="${first.id}"]`;
@@ -147,9 +218,7 @@ describe("AssemblyWorkbench", () => {
     ).toBeInTheDocument();
     expect(screen.queryAllByRole("button")).toHaveLength(0);
     advanceTo(drawingDuration);
-    expect(
-      scene().querySelector('[data-workbench-art="rest"]'),
-    ).toBeInTheDocument();
+    expect(scene().querySelector('[data-workbench-art="rest"]')).toBe(rest);
     expect(
       screen.queryByRole("img", { name: "正在绘制的工作台" }),
     ).not.toBeInTheDocument();
@@ -157,9 +226,9 @@ describe("AssemblyWorkbench", () => {
     expect(frames.size).toBe(0);
   });
 
-  it("waits for the document to become visible before starting", () => {
+  it("waits for the document to become visible before starting", async () => {
     const hidden = vi.spyOn(document, "hidden", "get").mockReturnValue(true);
-    render(<AssemblyWorkbench />);
+    await renderReadyWorkbench();
     revealCanvas();
     expect(scene()).toHaveAttribute("data-drawing-state", "waiting");
     expect(frames.size).toBe(0);
@@ -167,19 +236,19 @@ describe("AssemblyWorkbench", () => {
     fireEvent(document, new Event("visibilitychange"));
     expect(scene()).toHaveAttribute("data-drawing-state", "drawing");
     advanceTo(drawingDuration);
-    expect(scene()).toHaveAttribute("data-complete", "true");
+    expect(scene()).toHaveAttribute("data-drawing-state", "complete");
   });
 
-  it("restarts after history-cache restoration, while ordinary pageshow leaves it unchanged", () => {
-    render(<AssemblyWorkbench />);
+  it("restarts after history-cache restoration, while ordinary pageshow leaves it unchanged", async () => {
+    await renderReadyWorkbench();
     revealCanvas();
     advanceTo(drawingDuration);
     fireEvent(
       window,
       new PageTransitionEvent("pageshow", { persisted: false }),
     );
-    expect(scene()).toHaveAttribute("data-complete", "true");
-    fireEvent(window, new PageTransitionEvent("pageshow", { persisted: true }));
+    expect(scene()).toHaveAttribute("data-drawing-state", "complete");
+    await restoreFromHistoryCache();
     expect(scene()).toHaveAttribute("data-progress", "0");
     expect(
       screen.queryByRole("group", { name: "二维工作台部件" }),
@@ -190,12 +259,12 @@ describe("AssemblyWorkbench", () => {
     expect(Number(scene().getAttribute("data-progress"))).toBeLessThan(18);
   });
 
-  it("starts a fresh timeline when history restores an unfinished playing drawing", () => {
-    render(<AssemblyWorkbench />);
+  it("starts a fresh timeline when history restores an unfinished playing drawing", async () => {
+    await renderReadyWorkbench();
     revealCanvas();
     advanceTo(1200);
     time = 100000;
-    fireEvent(window, new PageTransitionEvent("pageshow", { persisted: true }));
+    await restoreFromHistoryCache();
     expect(scene()).toHaveAttribute("data-progress", "0");
     expect(frames.size).toBe(0);
     revealCanvas();
@@ -209,10 +278,8 @@ describe("AssemblyWorkbench", () => {
       "matchMedia",
       vi.fn(() => ({ matches: true })),
     );
-    render(<AssemblyWorkbench />);
-    await act(async () => {});
-    advanceTo(0);
-    expect(scene()).toHaveAttribute("data-complete", "true");
+    await renderReadyWorkbench();
+    expect(scene()).toHaveAttribute("data-drawing-state", "complete");
     expect(
       screen.getByRole("group", { name: "二维工作台部件" }),
     ).toBeInTheDocument();
@@ -221,8 +288,8 @@ describe("AssemblyWorkbench", () => {
     fireEvent.click(laptop);
     expect(screen.getByText("图纸已就绪")).toBeInTheDocument();
     expect(frames.size).toBe(0);
-    fireEvent(window, new PageTransitionEvent("pageshow", { persisted: true }));
-    expect(scene()).toHaveAttribute("data-complete", "true");
+    await restoreFromHistoryCache();
+    expect(scene()).toHaveAttribute("data-drawing-state", "complete");
     expect(screen.queryByText("图纸已就绪")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "笔记本" })).not.toBe(laptop);
     expect(frames.size).toBe(0);
@@ -236,17 +303,8 @@ describe("AssemblyWorkbench", () => {
         vi.fn(() => ({ matches: true })),
       );
       const pending = Promise.withResolvers<void>();
-      vi.stubGlobal(
-        "Image",
-        class {
-          src = "";
-          decode() {
-            return pending.promise;
-          }
-        },
-      );
-      render(<AssemblyWorkbench />);
-      advanceTo(0);
+      stubImageDecoding(() => pending.promise);
+      await renderReadyWorkbench();
       expect(
         scene().querySelector('[data-workbench-art="rest"]'),
       ).toBeInTheDocument();
@@ -276,8 +334,8 @@ describe("AssemblyWorkbench", () => {
     },
   );
 
-  it("finishes an in-progress drawing when the document is hidden", () => {
-    render(<AssemblyWorkbench />);
+  it("finishes an in-progress drawing when the document is hidden", async () => {
+    await renderReadyWorkbench();
     revealCanvas();
     advanceTo(drawingTime(40));
     expect(frames.size).toBe(1);

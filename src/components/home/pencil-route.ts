@@ -57,7 +57,7 @@ function barrelAngle(minY: number): number {
   return -42 + pencilEase((230 - minY) / 160) * 48;
 }
 
-export interface PencilPose {
+interface PencilPose {
   x: number;
   y: number;
   angle: number;

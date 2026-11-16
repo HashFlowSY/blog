@@ -1,3 +1,5 @@
+import { assetPath } from "@/lib/site";
+
 import { workbenchLeaves } from "./workbench-parts";
 
 import type {
@@ -6,7 +8,13 @@ import type {
   WorkbenchPart,
 } from "./workbench-parts";
 
-export const workbenchArtRoot = "/assets/workbench-2d";
+const workbenchArtRoot = "/assets/workbench-2d";
+export const workbenchDrawingArt = {
+  rest: assetPath(`${workbenchArtRoot}/workbench-rest.webp`),
+  paper: assetPath(`${workbenchArtRoot}/workbench-paper.webp`),
+  pencil: assetPath("/assets/drawing-pencil.webp"),
+} as const;
+
 export const workbenchSheet = {
   width: 1440,
   height: 900,

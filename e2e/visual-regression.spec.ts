@@ -10,10 +10,7 @@ import {
   test,
 } from "./fixtures";
 import { visitStaticPage } from "./helpers/static-page";
-import {
-  waitForFinishedWorkbench,
-  waitForWorkbenchArtwork,
-} from "./helpers/workbench";
+import { waitForFinishedWorkbench } from "./helpers/workbench";
 import {
   VISUAL_DESKTOP_VIEWPORT,
   VISUAL_MOBILE_VIEWPORT,
@@ -97,7 +94,7 @@ async function expectStableScreenshot(page: Page, name: string): Promise<void> {
 
 async function waitForHomeArtwork(page: Page): Promise<void> {
   const workbench = page.getByRole("region", { name: "交互工作台" });
-  await waitForWorkbenchArtwork(await waitForFinishedWorkbench(workbench));
+  await waitForFinishedWorkbench(workbench);
 }
 
 async function expectCanonicalWorkbenchArtwork(page: Page): Promise<void> {
