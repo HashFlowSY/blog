@@ -243,8 +243,7 @@ button {
     background 120ms steps(2, end),
     border-color 120ms steps(2, end);
 }
-.site-header.is-scrolled .nav-link,
-.site-header.is-scrolled .nav-contact {
+.site-header.is-scrolled .nav-link {
   min-height: 38px;
 }
 .nav-link:hover,
@@ -253,32 +252,6 @@ button {
   border-color: var(--accent);
   color: var(--accent);
   background: color-mix(in oklch, var(--accent) 11%, transparent);
-  outline: none;
-}
-.nav-contact {
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 13px;
-  border: 1px solid currentColor;
-  border-radius: 2px;
-  color: var(--accent);
-  font-family: var(--font-mono);
-  font-size: 12px;
-  line-height: 1.2;
-  text-decoration: none;
-  text-transform: uppercase;
-  transition:
-    color 120ms steps(2, end),
-    background 120ms steps(2, end),
-    border-color 120ms steps(2, end);
-}
-.nav-contact:hover,
-.nav-contact:focus-visible {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--bg);
   outline: none;
 }
 .menu-toggle {
@@ -452,7 +425,6 @@ h3 {
       visibility 0s linear 220ms;
   }
   .site-header.is-menu-open .site-nav {
-    /* Four links plus the contact action occupy three fixed-height rows. */
     max-height: 180px;
     padding-top: 10px;
     border-top-width: 1px;
@@ -552,17 +524,9 @@ body:has(.workbench-home) .nav-link {
 
 body:has(.workbench-home) .nav-link:hover,
 body:has(.workbench-home) .nav-link:focus-visible,
-body:has(.workbench-home) .nav-link[aria-current="page"],
-body:has(.workbench-home) .nav-contact:hover,
-body:has(.workbench-home) .nav-contact:focus-visible {
+body:has(.workbench-home) .nav-link[aria-current="page"] {
   border-color: #e0c600;
   background: #fffce3;
-  color: #202326;
-}
-
-body:has(.workbench-home) .nav-contact {
-  border-color: #202326;
-  background: transparent;
   color: #202326;
 }
 
@@ -1068,19 +1032,6 @@ body:has(.portfolio-page) .nav-link:focus-visible,
 body:has(.portfolio-page) .nav-link[aria-current="page"] {
   border-color: #202326;
   background: #f4d900;
-  color: #202326;
-}
-
-body:has(.portfolio-page) .nav-contact {
-  border-color: #202326;
-  background: transparent;
-  color: #202326;
-}
-
-body:has(.portfolio-page) .nav-contact:hover,
-body:has(.portfolio-page) .nav-contact:focus-visible {
-  border-color: #e0c600;
-  background: #fffce3;
   color: #202326;
 }
 

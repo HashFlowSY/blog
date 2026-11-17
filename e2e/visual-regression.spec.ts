@@ -221,7 +221,7 @@ test.describe("Focused visual regression", () => {
         "The open mobile navigation must not clip its final row",
       ).toBeLessThanOrEqual(navigationDimensions.clientHeight);
       await expect(
-        mobileNavigation.getByRole("link", { name: "联系我", exact: true }),
+        mobileNavigation.getByRole("link", { name: "关于", exact: true }),
       ).toBeVisible();
       await clearTransientState(page);
 

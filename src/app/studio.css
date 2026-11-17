@@ -177,26 +177,6 @@ body:has(.workbench-home, .portfolio-page) .nav-link:focus-visible {
   color: var(--studio-ink);
 }
 
-body:has(.workbench-home, .portfolio-page) .nav-contact {
-  min-height: 38px;
-  margin-left: 18px;
-  padding: 9px 17px;
-  border: 1px solid var(--studio-ink);
-  border-radius: 0;
-  background: transparent;
-  color: var(--studio-ink);
-  font-family: var(--font-display);
-  font-size: 11px;
-  line-height: 1.6;
-}
-
-body:has(.workbench-home, .portfolio-page) .nav-contact:hover,
-body:has(.workbench-home, .portfolio-page) .nav-contact:focus-visible {
-  background: var(--studio-ink);
-  border-color: var(--studio-ink);
-  color: var(--studio-paper);
-}
-
 body:has(.workbench-home, .portfolio-page) .site-footer {
   min-height: 90px;
   padding: 24px clamp(22px, 4.5vw, 72px);
@@ -738,10 +718,6 @@ body:has(.workbench-home, .portfolio-page) .back-to-top {
     .site-header.is-scrolled
     .nav-link {
     min-height: 44px;
-  }
-  body:has(.workbench-home, .portfolio-page) .nav-contact {
-    min-height: 44px;
-    margin-left: 0;
   }
   .workbench-hero-copy {
     position: relative;

@@ -33,10 +33,6 @@ describe("Header", () => {
       "href",
       "/about/",
     );
-    expect(screen.getByRole("link", { name: "联系我" })).toHaveAttribute(
-      "href",
-      "/about/#contact",
-    );
   });
 
   it("marks the active route with aria-current", () => {

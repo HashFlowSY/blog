@@ -141,13 +141,6 @@ export function Header({ siteName, siteRole }: HeaderProps) {
             </Link>
           );
         })}
-        <Link
-          className="nav-contact"
-          href="/about/#contact"
-          onClick={closeMenu}
-        >
-          联系我
-        </Link>
       </nav>
     </header>
   );
