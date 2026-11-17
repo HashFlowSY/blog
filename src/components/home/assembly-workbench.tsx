@@ -6,8 +6,9 @@ import { preload } from "react-dom";
 import { assetPath } from "@/lib/site";
 
 import styles from "./assembly-workbench.module.css";
-import { drawingProgress } from "./pencil-plan";
+import { drawingProgress, drawingStageAt, drawingTime } from "./pencil-plan";
 import { workbenchDrawingArt, workbenchInteractionArt } from "./workbench-art";
+import { WorkbenchWaitingPaper } from "./workbench-drawing";
 import { WorkbenchInteractive } from "./workbench-interactive";
 
 import type {
@@ -249,6 +250,11 @@ export function AssemblyWorkbench() {
         className={styles["scene"]}
         data-drawing-state={phase}
         data-progress={progress}
+        data-drawing-stage={
+          phase === "drawing"
+            ? drawingStageAt(drawingTime(progress))
+            : undefined
+        }
       >
         <div
           className={styles["sheet"]}
@@ -263,6 +269,7 @@ export function AssemblyWorkbench() {
                   : "待绘制的工作台"
           }
         >
+          {phase === "waiting" && <WorkbenchWaitingPaper />}
           {motion !== "pending" && phase !== "failed" && (
             <WorkbenchInteractive
               key={visit}

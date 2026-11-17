@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 
 import styles from "./assembly-workbench.module.css";
 import { pencilLength, pencilPosition } from "./pencil-route";
@@ -7,6 +7,7 @@ import { workbenchDrawingArt } from "./workbench-art";
 import type { PencilPoint } from "./pencil-plan";
 
 export function WorkbenchPencil({ progress }: { progress: number }) {
+  const [artFailed, setArtFailed] = useState(false);
   const cursor = useRef<SVGGElement>(null);
   const barrel = useRef<SVGGElement>(null);
   const contact = useRef<SVGEllipseElement>(null);
@@ -35,8 +36,6 @@ export function WorkbenchPencil({ progress }: { progress: number }) {
           "path",
         );
         path.setAttribute("d", stroke.path);
-        // JSDOM has no SVG geometry. The real geometry is checked in E2E.
-        if (typeof path.getTotalLength !== "function") return [0, 0];
         metric = { path, length: path.getTotalLength() };
         paths.current.set(stroke.id, metric);
       }
@@ -54,6 +53,8 @@ export function WorkbenchPencil({ progress }: { progress: number }) {
     barrel.current?.setAttribute("transform", `rotate(${pose.angle})`);
     contact.current?.setAttribute("opacity", String((1 - pose.lift) * 0.16));
   }, [progress]);
+
+  if (artFailed) return null;
 
   return (
     <g
@@ -83,7 +84,12 @@ export function WorkbenchPencil({ progress }: { progress: number }) {
           style={{ overflow: "hidden" }}
           data-pencil-body="true"
         >
-          <image href={source} width="250" height="83.333" />
+          <image
+            href={source}
+            width="250"
+            height="83.333"
+            onError={() => setArtFailed(true)}
+          />
         </svg>
         <svg
           x={bodyEnd}

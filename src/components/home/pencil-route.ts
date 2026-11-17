@@ -1,56 +1,71 @@
+import { strokeGeometry } from "./pencil-path";
 import {
   constructionFraction,
+  drawingProgress,
   pencilEase,
   strokeFraction,
 } from "./pencil-plan";
-import { drawingAreas, pointStrokes } from "./workbench-geometry";
+import { drawingMarks } from "./workbench-geometry";
 
 import type { PencilPoint, PencilStroke } from "./pencil-plan";
 
 // The renderer and cursor read these same stroke windows. Only one stroke is
 // active at a time; the gaps are real pen lifts rather than trailing motion.
-const areaStrokes = drawingAreas.flatMap((area) => area.strokes);
-const pointWear = 0.06 / pointStrokes.length;
-const lastStroke = areaStrokes.at(-1);
-const strokeCost = areaStrokes
-  .slice(0, -1)
-  .reduce((total, stroke) => total + Math.sqrt(stroke.length), 0);
-const strokes: readonly (PencilStroke & {
-  minY: number;
-  length: number;
-  wear: number;
-})[] = [
-  ...pointStrokes.map((stroke) => ({ ...stroke, wear: pointWear })),
-  ...areaStrokes.map((stroke) => ({
-    ...stroke,
-    // Reserve a visible graphite tip for the final stroke.
-    wear:
-      stroke === lastStroke
-        ? 0.06
-        : (0.88 * Math.sqrt(stroke.length)) / strokeCost,
-  })),
-];
+const strokes = drawingMarks
+  .flatMap<
+    PencilStroke & {
+      length: number;
+      minY: number;
+    }
+  >((mark) => {
+    if (mark.kind === "tone" || mark.pen === false) return [];
+    const window = {
+      id: mark.id,
+      start: drawingProgress(mark.fromMs),
+      end: drawingProgress(mark.toMs),
+    };
+    return [
+      mark.kind === "point"
+        ? {
+            ...window,
+            path: "",
+            point: mark.point,
+            length: 2,
+            minY: mark.point[1],
+          }
+        : { ...window, path: mark.path, ...strokeGeometry(mark.path) },
+    ];
+  })
+  .sort((a, b) => a.start - b.start);
+
+const lastStroke = strokes.at(-1)!;
+const liftWear = 0.06;
+const strokeCost = strokes.reduce(
+  (total, stroke) => total + Math.sqrt(stroke.length),
+  0,
+);
 
 let usedMaterial = 0;
 export const pencilRoute = strokes.map((stroke) => {
   const wearBefore = usedMaterial;
-  usedMaterial += stroke.wear;
-  return { ...stroke, wearBefore };
+  const wear = ((1 - liftWear) * Math.sqrt(stroke.length)) / strokeCost;
+  usedMaterial += wear;
+  return { ...stroke, wear, wearBefore };
 });
 
-export const fullPencilLength = 224;
-export const wornPencilLength = 0;
+const fullPencilLength = 224;
 
-// Contact consumes material. Lifts retain the current length.
+function finalLift(progress: number) {
+  return pencilEase((progress - lastStroke.end) / (100 - lastStroke.end));
+}
+
+// Contact consumes material. Only the finishing lift takes the remaining tip.
 export function pencilLength(progress: number): number {
   const next = pencilRoute.find((stroke) => progress < stroke.end);
   const used = next
     ? next.wearBefore + next.wear * strokeFraction(progress, next)
-    : 1;
-  return (
-    fullPencilLength -
-    (fullPencilLength - wornPencilLength) * constructionFraction(used)
-  );
+    : 1 - liftWear * (1 - finalLift(progress));
+  return fullPencilLength * (1 - constructionFraction(used));
 }
 
 function barrelAngle(minY: number): number {
@@ -77,7 +92,20 @@ export function pencilPosition(
   if (progress <= 0 || progress >= 100) return;
   const nextIndex = pencilRoute.findIndex((stroke) => progress < stroke.end);
   const next = pencilRoute[nextIndex];
-  if (!next) return;
+  if (!next) {
+    const [x, y] = lastStroke.point ?? sample(lastStroke, 1);
+    const lift = finalLift(progress);
+    return {
+      x: x + 6 * lift,
+      y: y - 18 * lift,
+      angle: barrelAngle(lastStroke.minY) + lift * 3,
+      lift,
+      opacity: 1 - lift,
+      stroke: lastStroke.id,
+      phase: "lifting",
+      fraction: 1,
+    };
+  }
   let point: PencilPoint;
   let lift = 0;
   let opacity = 1;

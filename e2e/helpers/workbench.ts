@@ -14,16 +14,16 @@ export function workbenchScene(workbench: Locator) {
   return workbench.locator("[data-drawing-state]");
 }
 
-export async function drawTo(page: Page, workbench: Locator, progress: number) {
+export async function drawToTime(page: Page, workbench: Locator, time: number) {
   const scene = workbenchScene(workbench);
   await expect(scene).toHaveAttribute("data-drawing-state", "drawing");
   const current = Number(await scene.getAttribute("data-progress"));
-  await page.clock.fastForward(
-    Math.max(0, drawingTime(progress) - drawingTime(current)) + 16,
-  );
+  await page.clock.fastForward(Math.max(0, time - drawingTime(current)) + 16);
   await expect
-    .poll(async () => Number(await scene.getAttribute("data-progress")))
-    .toBeGreaterThanOrEqual(progress);
+    .poll(async () =>
+      drawingTime(Number(await scene.getAttribute("data-progress"))),
+    )
+    .toBeGreaterThanOrEqual(time);
 }
 
 export async function waitForFinishedWorkbench(workbench: Locator) {
@@ -40,24 +40,36 @@ type ArtworkArea = readonly [
   bottom: number,
 ];
 
+const hidePencil =
+  '[data-construction-layer="pencil"] { visibility: hidden !important; }';
+
+export function captureWorkbenchArtwork(scene: Locator) {
+  return scene.screenshot({
+    animations: "disabled",
+    scale: "css",
+    style: hidePencil,
+  });
+}
+
 export async function captureArtworkArea(scene: Locator, area: ArtworkArea) {
-  const clip = await scene.locator("svg").evaluate((element, area) => {
-    const matrix = (element as SVGSVGElement).getScreenCTM();
-    if (!matrix)
-      throw new Error("Finished drawing has no coordinate transform");
-    const [left, top, right, bottom] = area;
-    const start = new DOMPoint(left, top).matrixTransform(matrix);
-    const end = new DOMPoint(right, bottom).matrixTransform(matrix);
-    const x = Math.ceil(start.x);
-    const y = Math.ceil(start.y);
-    return {
-      x,
-      y,
-      width: Math.floor(end.x) - x,
-      height: Math.floor(end.y) - y,
-    };
-  }, area);
-  return scene.page().screenshot({ clip, scale: "css" });
+  const clip = await scene
+    .locator("[data-workbench-drawing]")
+    .evaluate((element, area) => {
+      const matrix = (element as SVGSVGElement).getScreenCTM();
+      if (!matrix) throw new Error("The drawing has no coordinate transform");
+      const [left, top, right, bottom] = area;
+      const start = new DOMPoint(left, top).matrixTransform(matrix);
+      const end = new DOMPoint(right, bottom).matrixTransform(matrix);
+      const x = Math.ceil(start.x);
+      const y = Math.ceil(start.y);
+      return {
+        x,
+        y,
+        width: Math.floor(end.x) - x,
+        height: Math.floor(end.y) - y,
+      };
+    }, area);
+  return scene.page().screenshot({ clip, scale: "css", style: hidePencil });
 }
 
 export async function artworkLuma(page: Page, screenshot: Buffer) {
@@ -107,16 +119,9 @@ export async function paintedPencilLength(page: Page, workbench: Locator) {
   const png = (await page.screenshot({ scale: "css" })).toString("base64");
   // Compare the same frame without the pencil so the drawer's yellow pixels
   // cannot be mistaken for a long barrel. Do not limit the search by its model length.
-  const hide = await page.addStyleTag({
-    content:
-      '[data-construction-layer="pencil"] { visibility: hidden !important; }',
-  });
-  let background: string;
-  try {
-    background = (await page.screenshot({ scale: "css" })).toString("base64");
-  } finally {
-    await hide.evaluate((element) => element.parentNode?.removeChild(element));
-  }
+  const background = (
+    await page.screenshot({ scale: "css", style: hidePencil })
+  ).toString("base64");
   return page.evaluate(
     async ({ png, background, frame }) => {
       const image = new Image();
@@ -183,14 +188,16 @@ export async function paintedPencilLength(page: Page, workbench: Locator) {
 
 export async function movePencilToDrawing(page: Page, workbench: Locator) {
   const pen = workbench.locator('[data-construction-layer="pencil"]');
-  for (
-    let step = 0;
-    step < 20 && (await pen.getAttribute("data-phase")) !== "drawing";
-    step++
-  ) {
+  for (let step = 0; step < 20; step++) {
+    if (
+      (await pen.getAttribute("data-phase")) === "drawing" &&
+      Number(await pen.getAttribute("data-fraction")) > 0
+    )
+      return;
     await page.clock.runFor(16);
   }
   await expect(pen).toHaveAttribute("data-phase", "drawing");
+  expect(Number(await pen.getAttribute("data-fraction"))).toBeGreaterThan(0);
 }
 
 export async function expectPencilAtStroke(workbench: Locator) {
@@ -201,15 +208,26 @@ export async function expectPencilAtStroke(workbench: Locator) {
     const pen = element.querySelector<SVGGElement>(
       '[data-construction-layer="pencil"]',
     )!;
-    const path = element.querySelector<SVGPathElement>(
-      `[data-pencil-path="${pen.dataset["stroke"]}"]`,
-    )!;
+    const id = pen.dataset["stroke"];
     const matrix = pen.transform.baseVal.consolidate()!.matrix;
-    const offset =
-      path.getAttribute("stroke-dashoffset") ??
-      element
-        .querySelector(`use[href="#${path.id}"]`)
-        ?.getAttribute("stroke-dashoffset");
+    const point = element.querySelector<SVGCircleElement>(
+      `[data-pencil-point="${id}"]`,
+    );
+    if (point) {
+      return {
+        distance: Math.hypot(
+          matrix.e - point.cx.baseVal.value,
+          matrix.f - point.cy.baseVal.value,
+        ),
+        fractionDifference: 0,
+      };
+    }
+    const path = element.querySelector<SVGPathElement>(
+      `[data-pencil-path="${id}"]`,
+    )!;
+    const offset = path.getAttribute("stroke-dashoffset");
+    if (offset === null)
+      throw new Error(`Stroke ${id} has no drawing progress`);
     const fraction = 1 - Number(offset);
     const head = path.getPointAtLength(path.getTotalLength() * fraction);
     return {
@@ -219,4 +237,21 @@ export async function expectPencilAtStroke(workbench: Locator) {
   });
   expect(alignment.distance).toBeLessThan(0.05);
   expect(alignment.fractionDifference).toBeLessThan(0.00001);
+}
+
+export async function expectFirstWorkbenchPoint(
+  page: Page,
+  workbench: Locator,
+) {
+  const marks = workbench.locator("[data-pencil-point]");
+  const first = workbench.locator('[data-pencil-point="point-rightFoot"]');
+  await expect(workbenchScene(workbench)).toHaveAttribute(
+    "data-drawing-stage",
+    "point",
+  );
+  await expect(marks).toHaveCount(0);
+  await movePencilToDrawing(page, workbench);
+  await expect(first).toBeVisible();
+  await expect(marks).toHaveCount(1);
+  await expectPencilAtStroke(workbench);
 }

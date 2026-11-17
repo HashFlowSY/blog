@@ -1,5 +1,11 @@
 import { expect } from "@playwright/test";
 
+import {
+  artworkSettledAt,
+  drawingDuration,
+  drawingStages,
+} from "../src/components/home/pencil-plan";
+
 import { SITE_COPY, STABLE_POST, STABLE_PROJECT, test } from "./fixtures";
 import {
   goToHome,
@@ -10,7 +16,9 @@ import {
 import {
   artworkLuma,
   captureArtworkArea,
-  drawTo,
+  captureWorkbenchArtwork,
+  drawToTime,
+  expectFirstWorkbenchPoint,
   expectPencilAtStroke,
   installDrawingClock,
   movePencilToDrawing,
@@ -26,31 +34,22 @@ test.describe("WebKit smoke", () => {
     await installDrawingClock(page);
     await goToHome(page);
     const workbench = page.getByRole("region", { name: "交互工作台" });
-    const revealed = workbench.locator(
-      '[data-construction-layer="points"] circle[visibility="visible"]',
-    );
-    await expect(workbenchScene(workbench)).toHaveAttribute(
-      "data-drawing-state",
-      "drawing",
-    );
-    await expect(revealed).toHaveCount(0);
-    await page.clock.runFor(32);
-    await expect(revealed).toHaveCount(0);
-    await drawTo(page, workbench, 2);
-    await expect(
-      workbench.locator('[data-pencil-point="point-topLeft"]'),
-    ).toBeVisible();
+    await expectFirstWorkbenchPoint(page, workbench);
     const early = await paintedPencilLength(page, workbench);
-    await drawTo(page, workbench, 88);
+    await drawToTime(page, workbench, drawingStages.shadow.start);
+    await movePencilToDrawing(page, workbench);
+    await expectPencilAtStroke(workbench);
+    await drawToTime(page, workbench, drawingStages.finish.start);
     const late = await paintedPencilLength(page, workbench);
     expect(early.pixels).toBeGreaterThan(30);
     expect(late.pixels).toBeGreaterThan(30);
-    expect(late.extent).toBeLessThan(early.extent * 0.35);
-    await drawTo(page, workbench, 95);
-    await movePencilToDrawing(page, workbench);
-    await expectPencilAtStroke(workbench);
-    await drawTo(page, workbench, 100);
+    expect(late.extent).toBeLessThan(early.extent);
+    const scene = workbenchScene(workbench);
+    await drawToTime(page, workbench, artworkSettledAt);
+    const settled = await captureWorkbenchArtwork(scene);
+    await drawToTime(page, workbench, drawingDuration);
     await waitForFinishedWorkbench(workbench);
+    expect((await captureWorkbenchArtwork(scene)).equals(settled)).toBe(true);
     await expect(workbench.getByRole("slider")).toHaveCount(0);
   });
 
@@ -60,7 +59,7 @@ test.describe("WebKit smoke", () => {
     await installDrawingClock(page);
     await goToHome(page);
     const workbench = page.getByRole("region", { name: "交互工作台" });
-    await drawTo(page, workbench, 100);
+    await drawToTime(page, workbench, drawingDuration);
     await waitForFinishedWorkbench(workbench);
     const laptop = workbench.getByRole("button", {
       name: "笔记本",
@@ -75,7 +74,7 @@ test.describe("WebKit smoke", () => {
       "0",
     );
     await expect(laptop).toHaveCount(0);
-    await drawTo(page, workbench, 100);
+    await drawToTime(page, workbench, drawingDuration);
     await expect(laptop).toBeVisible();
     await expect(screen).toHaveCount(0);
   });

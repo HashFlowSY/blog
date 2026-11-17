@@ -1,8 +1,6 @@
 import type { PencilPoint } from "./pencil-plan";
 
 interface StrokeGeometry {
-  from: PencilPoint;
-  to: PencilPoint;
   length: number;
   minY: number;
 }
@@ -71,55 +69,5 @@ export function strokeGeometry(path: string): StrokeGeometry {
       }
     }
   }
-  return { from, to: current, length, minY };
-}
-
-interface StrokeDraft extends StrokeGeometry {
-  id: string;
-  path: string;
-}
-
-// Give travel its own budget. A distant object must not inherit the tiny
-// leftover percentage of the preceding object, however small that object is.
-export function schedulePencilStrokes<T extends StrokeDraft>(
-  strokes: readonly T[],
-  start: number,
-  end: number,
-  duration: number,
-): (T & { start: number; end: number })[] {
-  const flights = strokes.map((stroke, index) => {
-    const previous = strokes[index - 1];
-    return previous
-      ? Math.min(
-          240,
-          38 +
-            Math.hypot(
-              stroke.from[0] - previous.to[0],
-              stroke.from[1] - previous.to[1],
-            ) *
-              0.22,
-        )
-      : 0;
-  });
-  const flightTotal = flights.reduce((sum, flight) => sum + flight, 0);
-  const flightScale = flightTotal
-    ? Math.min(1, (duration * 0.45) / flightTotal)
-    : 1;
-  const ink = strokes.map((stroke) => 42 + Math.sqrt(stroke.length) * 2.2);
-  const inkTotal = ink.reduce((sum, value) => sum + value, 0);
-  const inkScale = (duration - flightTotal * flightScale) / inkTotal;
-  let cursor = 0;
-  return strokes.map((stroke, index) => {
-    cursor += flights[index]! * flightScale;
-    const began = cursor;
-    cursor += ink[index]! * inkScale;
-    return {
-      ...stroke,
-      start: start + (began / duration) * (end - start),
-      end:
-        index === strokes.length - 1
-          ? end
-          : start + (cursor / duration) * (end - start),
-    };
-  });
+  return { length, minY };
 }

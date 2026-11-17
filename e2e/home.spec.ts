@@ -1,13 +1,21 @@
 import { expect } from "@playwright/test";
 
-import { drawingAreas } from "../src/components/home/workbench-geometry";
+import {
+  artworkSettledAt,
+  drawingDuration,
+  drawingStages,
+  drawingTime,
+} from "../src/components/home/pencil-plan";
+import { pencilRoute } from "../src/components/home/pencil-route";
 
 import { SITE_COPY, STABLE_PROJECT, test } from "./fixtures";
 import { goToHome, waitForRouteEntry } from "./helpers/navigation";
 import {
   artworkLuma,
   captureArtworkArea,
-  drawTo,
+  captureWorkbenchArtwork,
+  drawToTime,
+  expectFirstWorkbenchPoint,
   expectPencilAtStroke,
   installDrawingClock,
   movePencilToDrawing,
@@ -16,7 +24,7 @@ import {
   workbenchScene,
 } from "./helpers/workbench";
 
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 
 async function holdRequest(page: Page, url: string | RegExp) {
   const { promise, resolve } = Promise.withResolvers<void>();
@@ -27,20 +35,22 @@ async function holdRequest(page: Page, url: string | RegExp) {
   return resolve;
 }
 
-async function expectUniformWorkbenchBackground(page: Page) {
-  // At 1440 × 900 the paper mask starts at x = 594.
-  const swatch = { y: 140, width: 4, height: 4 };
-  const outside = await page.screenshot({
-    clip: { x: 590, ...swatch },
-    scale: "css",
-  });
-  const inside = await page.screenshot({
-    clip: { x: 600, ...swatch },
-    scale: "css",
-  });
-  expect(inside.equals(outside), "Both sides of the paper edge match").toBe(
-    true,
-  );
+function drawnMarkProgress(workbench: Locator) {
+  return workbench
+    .locator('[data-mark-kind="point"], [data-mark-kind="stroke"]')
+    .evaluateAll((marks) =>
+      Object.fromEntries(
+        marks.map(
+          (mark) =>
+            [
+              mark.getAttribute("data-drawing-mark")!,
+              mark instanceof SVGCircleElement
+                ? mark.r.baseVal.value
+                : 1 - Number(mark.getAttribute("stroke-dashoffset")),
+            ] as const,
+        ),
+      ),
+    );
 }
 
 test.describe("Home page", () => {
@@ -48,8 +58,7 @@ test.describe("Home page", () => {
     ["rest", "paper"],
     ["paper", "rest"],
   ] as const) {
-    test(`keeps a uniform first paint when workbench ${first} loads first`, async ({
-      browserName,
+    test(`keeps the paper stable when workbench ${first} loads first`, async ({
       page,
     }) => {
       await page.setViewportSize({ width: 1440, height: 900 });
@@ -75,14 +84,11 @@ test.describe("Home page", () => {
         await page.goto("./", { waitUntil: "domcontentloaded" });
         const workbench = page.getByRole("region", { name: "交互工作台" });
         const scene = workbenchScene(workbench);
-        // WebKit's screenshot can wait on the requests held by this test.
-        const expectWaitingArtwork =
-          browserName === "webkit"
-            ? () => expect(scene.locator("svg").first()).toBeHidden()
-            : () => expectUniformWorkbenchBackground(page);
+        const waitingPaper = scene.locator("[data-workbench-waiting]");
         await expect(scene).toBeVisible();
+        await expect(waitingPaper).toBeVisible();
         const waitingLayout = await scene.boundingBox();
-        await expectWaitingArtwork();
+        const firstPaint = await scene.screenshot({ scale: "css" });
 
         const firstResponse = page.waitForResponse(firstUrl);
         releaseFirst();
@@ -94,13 +100,17 @@ test.describe("Home page", () => {
         await page.clock.fastForward(5000);
         await expect(scene).toHaveAttribute("data-drawing-state", "waiting");
         await expect(scene).toHaveAttribute("data-progress", "0");
-        await expectWaitingArtwork();
+        await expect(waitingPaper).toBeVisible();
+        expect(
+          (await scene.screenshot({ scale: "css" })).equals(firstPaint),
+        ).toBe(true);
 
         releaseSecond();
         await expect(scene).toHaveAttribute("data-drawing-state", "drawing");
         await expect(scene).toHaveAttribute("data-progress", "0");
+        await expect(waitingPaper).toHaveCount(0);
         expect(await scene.boundingBox()).toEqual(waitingLayout);
-        await drawTo(page, workbench, 100);
+        await drawToTime(page, workbench, drawingDuration);
         await waitForFinishedWorkbench(workbench);
         await expect(workbench.getByRole("button")).toHaveCount(0);
 
@@ -159,7 +169,7 @@ test.describe("Home page", () => {
     });
   }
 
-  test("keeps an unavailable workbench blank and non-interactive", async ({
+  test("announces unavailable artwork and leaves the workbench inactive", async ({
     page,
   }) => {
     await page.route("**/workbench-rest.webp", (route) => route.abort());
@@ -168,11 +178,29 @@ test.describe("Home page", () => {
     const scene = workbenchScene(workbench);
     await expect(scene).toHaveAttribute("data-drawing-state", "failed");
     await expect(scene).toBeVisible();
-    await expect(scene.locator("svg")).toHaveCount(0);
+    await expect(scene.locator("[data-workbench-drawing]")).toHaveCount(0);
     await expect(workbench.getByRole("button")).toHaveCount(0);
     await expect(workbench.getByRole("status")).toHaveText(
       "工作台画稿未能载入",
     );
+  });
+
+  test("continues drawing when the pencil sprite is unavailable", async ({
+    page,
+  }) => {
+    await page.route("**/drawing-pencil.webp", (route) => route.abort());
+    await installDrawingClock(page);
+    await goToHome(page);
+    const workbench = page.getByRole("region", { name: "交互工作台" });
+    await drawToTime(page, workbench, drawingStages.line.end);
+    await expect(
+      workbench.locator('[data-construction-layer="pencil"]'),
+    ).toHaveCount(0);
+    await expect(
+      workbench.locator('[data-pencil-path="guide-worktop"]'),
+    ).toBeVisible();
+    await drawToTime(page, workbench, drawingDuration);
+    await waitForFinishedWorkbench(workbench);
   });
 
   test("redraws on entry, return, back and refresh without playback controls", async ({
@@ -184,7 +212,7 @@ test.describe("Home page", () => {
     const scene = workbenchScene(workbench);
     async function expectFreshDrawing() {
       await expect(scene).toHaveAttribute("data-progress", "0");
-      await drawTo(page, workbench, 2);
+      await expectFirstWorkbenchPoint(page, workbench);
       await expect(workbench.getByRole("button")).toHaveCount(0);
       expect(
         Number(
@@ -199,7 +227,7 @@ test.describe("Home page", () => {
     await expect(workbench).not.toContainText(
       /100%|回到起点|重看细节|先落点|从点开始/,
     );
-    await drawTo(page, workbench, 100);
+    await drawToTime(page, workbench, drawingDuration);
     await page
       .getByRole("navigation", { name: "主导航" })
       .getByRole("link", { name: /关于/ })
@@ -209,10 +237,10 @@ test.describe("Home page", () => {
     ).toBeVisible();
     await page.getByRole("link", { name: "回到首页", exact: true }).click();
     await expectFreshDrawing();
-    await drawTo(page, workbench, 100);
+    await drawToTime(page, workbench, drawingDuration);
     await page.reload();
     await expectFreshDrawing();
-    await drawTo(page, workbench, 100);
+    await drawToTime(page, workbench, drawingDuration);
     await page
       .getByRole("navigation", { name: "主导航" })
       .getByRole("link", { name: /关于/ })
@@ -230,24 +258,7 @@ test.describe("Home page", () => {
     await installDrawingClock(page);
     await goToHome(page);
     const workbench = page.getByRole("region", { name: "交互工作台" });
-    const marks = workbench.locator(
-      '[data-construction-layer="points"] circle[visibility="visible"]',
-    );
-    await expect(workbenchScene(workbench)).toHaveAttribute(
-      "data-drawing-state",
-      "drawing",
-    );
-    await expect(marks).toHaveCount(0);
-    // The first point starts around 42 ms into the shortened animation.
-    await page.clock.runFor(32);
-    await expect(marks).toHaveCount(0);
-    await drawTo(page, workbench, 2);
-    await expect(
-      workbench.locator('[data-pencil-point="point-topLeft"]'),
-    ).toBeVisible();
-    expect(await marks.count()).toBeLessThan(
-      await workbench.locator("[data-pencil-point]").count(),
-    );
+    await expectFirstWorkbenchPoint(page, workbench);
   });
 
   test("visibly consumes the pencil and exhausts the last tip at completion", async ({
@@ -257,114 +268,221 @@ test.describe("Home page", () => {
     await goToHome(page);
     const workbench = page.getByRole("region", { name: "交互工作台" });
     const pen = workbench.locator('[data-construction-layer="pencil"]');
-    await drawTo(page, workbench, 2);
+    await expectFirstWorkbenchPoint(page, workbench);
     const early = await paintedPencilLength(page, workbench);
-    await drawTo(page, workbench, 88);
+    await drawToTime(page, workbench, drawingStages.finish.start);
     const late = await paintedPencilLength(page, workbench);
     expect(early.pixels).toBeGreaterThan(30);
     expect(late.pixels).toBeGreaterThan(30);
-    expect(late.extent).toBeLessThan(early.extent * 0.35);
-    await drawTo(page, workbench, 99);
-    await expect(pen).toBeVisible();
-    await expect(pen).toHaveAttribute("opacity", "1");
+    expect(late.extent).toBeLessThan(early.extent);
     expect(
       Number(await pen.getAttribute("data-pencil-length")),
     ).toBeGreaterThan(0);
-    await drawTo(page, workbench, 100);
+    await drawToTime(page, workbench, drawingDuration);
     await expect(pen).toHaveCount(0);
     await waitForFinishedWorkbench(workbench);
   });
 
-  test("keeps the pencil on the actual leading line, shading and detail", async ({
+  test("keeps the pencil on the visible construction, ink, and shading strokes", async ({
     page,
   }) => {
     await installDrawingClock(page);
     await goToHome(page);
     const workbench = page.getByRole("region", { name: "交互工作台" });
-    for (const progress of [50, 65, 95]) {
-      await drawTo(page, workbench, progress);
+    for (const stage of ["line", "ink", "shadow"] as const) {
+      await drawToTime(page, workbench, drawingStages[stage].start);
       await movePencilToDrawing(page, workbench);
+      await expect(workbenchScene(workbench)).toHaveAttribute(
+        "data-drawing-stage",
+        stage,
+      );
       await expectPencilAtStroke(workbench);
     }
   });
 
-  test("finishes hanging tools and the notebook screen before moving on", async ({
-    page,
-  }) => {
+  test("adds strokes only where the pencil makes contact", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await installDrawingClock(page);
     await goToHome(page);
     const workbench = page.getByRole("region", { name: "交互工作台" });
     const scene = workbenchScene(workbench);
-    await page.addStyleTag({
-      content:
-        '[data-construction-layer="pencil"] { visibility: hidden !important; }',
-    });
-    const [toolsClip, notebookClip] = await scene
-      .locator('svg[focusable="false"]')
-      .evaluate((element) => {
-        const transform = (element as SVGSVGElement).getScreenCTM();
-        if (!transform) throw new Error("Drawing has no coordinate transform");
-        const clip = (
-          left: number,
-          top: number,
-          right: number,
-          bottom: number,
-        ) => {
-          const topLeft = new DOMPoint(left, top).matrixTransform(transform);
-          const bottomRight = new DOMPoint(right, bottom).matrixTransform(
-            transform,
-          );
-          const x = Math.ceil(topLeft.x);
-          const y = Math.ceil(topLeft.y);
-          return {
-            x,
-            y,
-            width: Math.floor(bottomRight.x) - x,
-            height: Math.floor(bottomRight.y) - y,
-          };
-        };
-        return [clip(1150, 327, 1191, 361), clip(770, 356, 868, 412)] as const;
+    const pen = workbench.locator('[data-construction-layer="pencil"]');
+    const shelfArea = [730, 190, 1220, 228] as const;
+    const samples = [
+      { id: "guide-right-leg", area: [1155, 536, 1176, 662] },
+      { id: "guide-worktop", area: [800, 435, 1060, 480] },
+    ] as const;
+
+    for (const { id, area } of samples) {
+      const stroke = pencilRoute.find((item) => item.id === id)!;
+      const start = drawingTime(stroke.start);
+      const end = drawingTime(stroke.end);
+      await drawToTime(page, workbench, start + (end - start) / 4);
+      await expect(pen).toHaveAttribute("data-stroke", id);
+      await expectPencilAtStroke(workbench);
+      const before = await drawnMarkProgress(workbench);
+      const nearby = await captureArtworkArea(scene, area);
+      const farAway = await captureArtworkArea(scene, shelfArea);
+
+      await drawToTime(page, workbench, (start + end) / 2);
+      await expect(pen).toHaveAttribute("data-stroke", id);
+      await expectPencilAtStroke(workbench);
+      const after = await drawnMarkProgress(workbench);
+      const growing = Object.keys(after).filter(
+        (mark) => after[mark]! > (before[mark] ?? 0),
+      );
+      expect(growing).toEqual([id]);
+      expect((await captureArtworkArea(scene, area)).equals(nearby)).toBe(
+        false,
+      );
+      expect((await captureArtworkArea(scene, shelfArea)).equals(farAway)).toBe(
+        true,
+      );
+    }
+
+    const worktop = pencilRoute.find(
+      (stroke) => stroke.id === "guide-worktop",
+    )!;
+    const post = pencilRoute.find((stroke) => stroke.id === "guide-left-post")!;
+    const liftStart = drawingTime(worktop.end);
+    const drawingWithoutPencil = () =>
+      scene.locator("[data-workbench-drawing]").evaluate((svg) => {
+        const drawing = svg.cloneNode(true) as SVGSVGElement;
+        drawing.querySelector('[data-construction-layer="pencil"]')?.remove();
+        return drawing.outerHTML;
       });
-
-    const pegboard = drawingAreas.find((area) => area.id === "pegboard")!;
-    await drawTo(page, workbench, 2);
-    const toolsPaper = await page.screenshot({ clip: toolsClip, scale: "css" });
-    const notebookPaper = await page.screenshot({
-      clip: notebookClip,
-      scale: "css",
-    });
-    await drawTo(page, workbench, pegboard.end);
-    const toolsDrawn = await page.screenshot({ clip: toolsClip, scale: "css" });
-    expect(
-      (await page.screenshot({ clip: notebookClip, scale: "css" })).equals(
-        notebookPaper,
-      ),
-    ).toBe(true);
-
-    await drawTo(page, workbench, 70);
-    await expect(scene).toHaveAttribute("data-drawing-state", "drawing");
-    const notebookDrawn = await page.screenshot({
-      clip: notebookClip,
-      scale: "css",
-    });
-
-    await drawTo(page, workbench, 100);
-    await waitForFinishedWorkbench(workbench);
-
-    expect(toolsDrawn.equals(toolsPaper)).toBe(false);
-    expect(
-      toolsDrawn.equals(
-        await page.screenshot({ clip: toolsClip, scale: "css" }),
-      ),
-    ).toBe(true);
-    expect(notebookDrawn.equals(notebookPaper)).toBe(false);
-    expect(
-      notebookDrawn.equals(
-        await page.screenshot({ clip: notebookClip, scale: "css" }),
-      ),
-    ).toBe(true);
+    await drawToTime(page, workbench, liftStart);
+    await expect(pen).toHaveAttribute("data-phase", "lifting");
+    const lifted = await drawingWithoutPencil();
+    const initialPose = await pen.getAttribute("transform");
+    await drawToTime(
+      page,
+      workbench,
+      (liftStart + drawingTime(post.start)) / 2,
+    );
+    await expect(pen).toHaveAttribute("data-phase", "lifting");
+    expect(await pen.getAttribute("transform")).not.toBe(initialPose);
+    expect(await drawingWithoutPencil()).toBe(lifted);
   });
+
+  for (const viewport of [
+    { width: 1440, height: 900 },
+    { width: 390, height: 844 },
+  ]) {
+    test(`builds the whole workbench before adding details at ${viewport.width}px`, async ({
+      page,
+    }) => {
+      await page.setViewportSize(viewport);
+      await installDrawingClock(page);
+      await goToHome(page);
+      const workbench = page.getByRole("region", { name: "交互工作台" });
+      const scene = workbenchScene(workbench);
+      await scene.scrollIntoViewIfNeeded();
+      await expect(scene).toHaveAttribute("data-drawing-stage", "point");
+
+      const regions = [
+        [730, 190, 1220, 228], // upper shelf
+        [635, 427, 945, 475], // front edge of the worktop
+        [1149, 494, 1181, 689], // lower right support
+      ] as const;
+      const paper: Buffer[] = [];
+      for (const area of regions)
+        paper.push(await captureArtworkArea(scene, area));
+
+      await drawToTime(page, workbench, drawingStages.line.end);
+      for (const [index, area] of regions.entries()) {
+        const structure = await captureArtworkArea(scene, area);
+        expect(structure.equals(paper[index]!)).toBe(false);
+      }
+      for (const id of ["guide-shelf", "guide-worktop", "guide-right-leg"])
+        await expect(
+          workbench.locator(`[data-pencil-path="${id}"]`),
+        ).toBeVisible();
+      await expect(
+        workbench.locator(
+          '[data-mark-stage="rough"], [data-mark-stage="finish"]',
+        ),
+      ).toHaveCount(0);
+
+      await drawToTime(page, workbench, drawingStages.plane.end);
+      await expect(
+        workbench.locator('[data-mark-stage="plane"]').first(),
+      ).toBeVisible();
+
+      await drawToTime(page, workbench, drawingStages.rough.end);
+      for (const id of [
+        "rough-notebook",
+        "rough-display",
+        "rough-stool",
+        "rough-tools",
+      ])
+        await expect(
+          workbench.locator(`[data-pencil-path="${id}"]`),
+        ).toBeVisible();
+      await expect(
+        workbench.locator(
+          '[data-mark-stage="shadow"], [data-mark-stage="finish"]',
+        ),
+      ).toHaveCount(0);
+
+      await drawToTime(page, workbench, drawingStages.shadow.end - 48);
+      await expect(
+        workbench.locator('[data-mark-stage="ink"]').first(),
+      ).toBeVisible();
+      await expect(
+        workbench
+          .locator('[data-mark-stage="shadow"][data-mark-kind="stroke"]')
+          .first(),
+      ).toBeVisible();
+      await expect(workbench.locator('[data-mark-stage="finish"]')).toHaveCount(
+        0,
+      );
+      await expect(workbench.getByRole("button")).toHaveCount(0);
+
+      const finishing = [
+        { id: "finish-notebook-study", area: [774, 362, 853, 416] },
+        { id: "finish-display-study", area: [1027, 347, 1068, 394] },
+        { id: "finish-yellow-pencil", area: [1025, 579, 1125, 628] },
+      ] as const;
+      const beforeFinish: Buffer[] = [];
+      for (const { area } of finishing)
+        beforeFinish.push(await captureArtworkArea(scene, area));
+
+      const pen = workbench.locator('[data-construction-layer="pencil"]');
+      for (const [index, { id, area }] of finishing.entries()) {
+        const stroke = pencilRoute.find((item) => item.id === id)!;
+        await drawToTime(
+          page,
+          workbench,
+          drawingTime((stroke.start + stroke.end) / 2),
+        );
+        await expect(pen).toHaveAttribute("data-stroke", id);
+        await expectPencilAtStroke(workbench);
+        expect(
+          (await captureArtworkArea(scene, area)).equals(beforeFinish[index]!),
+        ).toBe(false);
+        for (const [later, sample] of finishing.entries()) {
+          if (later <= index) continue;
+          expect(
+            (await captureArtworkArea(scene, sample.area)).equals(
+              beforeFinish[later]!,
+            ),
+          ).toBe(true);
+        }
+      }
+
+      await drawToTime(page, workbench, artworkSettledAt - 96);
+      await expect(
+        workbench.locator('[data-drawing-mark="finish-yellow-drawer"]'),
+      ).toBeVisible();
+      await drawToTime(page, workbench, artworkSettledAt);
+      await expect(scene).toHaveAttribute("data-drawing-stage", "finish");
+      const settled = await captureWorkbenchArtwork(scene);
+      await drawToTime(page, workbench, drawingDuration);
+      await waitForFinishedWorkbench(workbench);
+      expect((await captureWorkbenchArtwork(scene)).equals(settled)).toBe(true);
+    });
+  }
 
   test("exposes only the computers, leaves, and light and keeps the other artwork static", async ({
     page,
@@ -373,7 +491,7 @@ test.describe("Home page", () => {
     await installDrawingClock(page);
     await goToHome(page);
     const workbench = page.getByRole("region", { name: "交互工作台" });
-    await drawTo(page, workbench, 100);
+    await drawToTime(page, workbench, drawingDuration);
     const scene = await waitForFinishedWorkbench(workbench);
     await expect(workbench.getByRole("button")).toHaveCount(7);
     for (const name of [
@@ -425,7 +543,7 @@ test.describe("Home page", () => {
     await installDrawingClock(page);
     await goToHome(page);
     const workbench = page.getByRole("region", { name: "交互工作台" });
-    await drawTo(page, workbench, 100);
+    await drawToTime(page, workbench, drawingDuration);
     const scene = await waitForFinishedWorkbench(workbench);
     const lamp = workbench.getByRole("button", { name: "工作灯" });
     const lampStatus = workbench
@@ -542,7 +660,7 @@ test.describe("Home page", () => {
     await installDrawingClock(page);
     await goToHome(page);
     const workbench = page.getByRole("region", { name: "交互工作台" });
-    await drawTo(page, workbench, 100);
+    await drawToTime(page, workbench, drawingDuration);
     const scene = await waitForFinishedWorkbench(workbench);
     const leaf = workbench.getByRole("button", {
       name: "盆栽叶片",
@@ -670,7 +788,7 @@ test.describe("Home page", () => {
     await installDrawingClock(page);
     await goToHome(page);
     const workbench = page.getByRole("region", { name: "交互工作台" });
-    await drawTo(page, workbench, 100);
+    await drawToTime(page, workbench, drawingDuration);
     await waitForFinishedWorkbench(workbench);
 
     for (const [name, device, typing] of [
@@ -722,7 +840,7 @@ test.describe("Home page", () => {
     await expect(scene).toHaveAttribute("data-drawing-state", "waiting");
     await expect(workbench.getByRole("button")).toHaveCount(0);
     await scene.scrollIntoViewIfNeeded();
-    await drawTo(page, workbench, 100);
+    await drawToTime(page, workbench, drawingDuration);
     await page.setViewportSize({ width: 320, height: 844 });
     await expect(workbench.getByRole("button")).toHaveCount(7);
 

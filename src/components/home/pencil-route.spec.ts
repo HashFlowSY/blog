@@ -1,22 +1,39 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  fullPencilLength,
-  pencilLength,
-  pencilPosition,
-  pencilRoute,
-  wornPencilLength,
-} from "./pencil-route";
-import { drawingAreas } from "./workbench-geometry";
+import { pencilLength, pencilPosition, pencilRoute } from "./pencil-route";
+import { drawingMarks } from "./workbench-geometry";
 
-import type { PencilPoint, PencilStroke } from "./pencil-plan";
+import type { DrawingStage, PencilPoint, PencilStroke } from "./pencil-plan";
 
 const sample = (_stroke: PencilStroke, fraction: number): PencilPoint => [
   500 + fraction * 100,
   400 + fraction * 200,
 ];
 
+function firstStrokeIn(stage: DrawingStage) {
+  const mark = drawingMarks.find(
+    (mark) =>
+      mark.stage === stage && mark.kind === "stroke" && mark.pen !== false,
+  )!;
+  return pencilRoute.find((stroke) => stroke.id === mark.id)!;
+}
+
 describe("pencil route", () => {
+  it("assigns each construction and rough-sketch mark to a pencil contact", () => {
+    const contacts = new Set(pencilRoute.map(({ id }) => id));
+    for (const mark of drawingMarks) {
+      if (
+        mark.kind !== "tone" &&
+        (mark.stage === "point" ||
+          mark.stage === "line" ||
+          mark.stage === "plane" ||
+          mark.stage === "rough")
+      ) {
+        expect(contacts, mark.id).toContain(mark.id);
+      }
+    }
+  });
+
   it("reserves a lift between strokes and never asks one pencil to draw twice at once", () => {
     for (let index = 1; index < pencilRoute.length; index++) {
       expect(pencilRoute[index]!.start).toBeGreaterThan(
@@ -28,25 +45,22 @@ describe("pencil route", () => {
     );
   });
 
-  it.each([
-    "notebook-contour",
-    "screen-contour",
-    "stool-contour",
-    "laptop-hatch",
-    "shelf-hatch",
-  ])("places the tip on the actual leading stroke of %s", (id) => {
-    const stroke = pencilRoute.find((stroke) => stroke.id === id)!;
-    const pose = pencilPosition(
-      stroke.start + (stroke.end - stroke.start) * 0.6,
-      sample,
-    )!;
-    expect(pose.phase).toBe("drawing");
-    expect(pose.stroke).toBe(id);
-    expect(pose.fraction).toBeCloseTo(0.648);
-    expect(pose.x).toBeCloseTo(564.8);
-    expect(pose.y).toBeCloseTo(529.6);
-    expect(pose.lift).toBe(0);
-  });
+  it.each(["line", "plane", "rough", "ink", "shadow"] as const)(
+    "places the tip on the active %s path",
+    (stage) => {
+      const stroke = firstStrokeIn(stage);
+      const pose = pencilPosition(
+        stroke.start + (stroke.end - stroke.start) * 0.6,
+        sample,
+      )!;
+      expect(pose.phase).toBe("drawing");
+      expect(pose.stroke).toBe(stroke.id);
+      expect(pose.fraction).toBeCloseTo(0.648);
+      expect(pose.x).toBeCloseTo(564.8);
+      expect(pose.y).toBeCloseTo(529.6);
+      expect(pose.lift).toBe(0);
+    },
+  );
 
   it("lands on each positioning point", () => {
     const stroke = pencilRoute[0]!;
@@ -55,11 +69,8 @@ describe("pencil route", () => {
   });
 
   it("travels above the paper and joins both stroke endpoints continuously", () => {
-    const index = pencilRoute.findIndex(
-      (stroke) => stroke.id === "laptop-hatch",
-    );
-    const previous = pencilRoute[index - 1]!;
-    const next = pencilRoute[index]!;
+    const next = firstStrokeIn("shadow");
+    const previous = pencilRoute[pencilRoute.indexOf(next) - 1]!;
     const lifted = pencilPosition((previous.end + next.start) / 2, sample)!;
     expect(lifted.phase).toBe("lifting");
     expect(lifted.lift).toBeCloseTo(1);
@@ -74,13 +85,18 @@ describe("pencil route", () => {
     }
   });
 
-  it("removes the cursor exactly when the last stroke finishes", () => {
+  it("lifts and removes the cursor after the last stroke", () => {
     const last = pencilRoute.at(-1)!;
-    expect(last.end).toBe(100);
+    expect(last.end).toBeLessThan(100);
     const finalStroke = pencilPosition((last.start + last.end) / 2, sample)!;
     expect(finalStroke.phase).toBe("drawing");
     expect(finalStroke.lift).toBe(0);
     expect(finalStroke.opacity).toBe(1);
+    const lifting = pencilPosition((last.end + 100) / 2, sample)!;
+    expect(lifting.phase).toBe("lifting");
+    expect(lifting.stroke).toBe(last.id);
+    expect(lifting.y).toBeLessThan(sample(last, 1)[1]);
+    expect(lifting.opacity).toBeLessThan(1);
     expect(pencilPosition(0, sample)).toBeUndefined();
     expect(pencilPosition(100, sample)).toBeUndefined();
   });
@@ -93,11 +109,8 @@ describe("pencil route", () => {
   });
 
   it("lifts before travelling and lands after slowing down", () => {
-    const index = pencilRoute.findIndex(
-      (stroke) => stroke.id === "laptop-hatch",
-    );
-    const previous = pencilRoute[index - 1]!;
-    const next = pencilRoute[index]!;
+    const next = firstStrokeIn("shadow");
+    const previous = pencilRoute[pencilRoute.indexOf(next) - 1]!;
     const duration = next.start - previous.end;
     const takeoff = pencilPosition(previous.end + duration * 0.1, sample)!;
     const landing = pencilPosition(previous.end + duration * 0.9, sample)!;
@@ -114,25 +127,25 @@ describe("pencil route", () => {
 });
 
 describe("pencil material", () => {
-  it("consumes graphite in each drawing area", () => {
-    for (const { strokes, end } of drawingAreas) {
-      expect(pencilLength(end)).toBeLessThan(pencilLength(strokes[0]!.start));
+  it("consumes graphite while in contact with the paper", () => {
+    for (const { start, end } of pencilRoute) {
+      expect(pencilLength(end)).toBeLessThan(pencilLength(start));
     }
   });
 
-  it("uses material monotonically and exhausts it exactly when the last stroke ends", () => {
-    expect(pencilLength(0)).toBe(fullPencilLength);
-    expect(pencilLength(100)).toBe(wornPencilLength);
-    expect(wornPencilLength).toBe(0);
+  it("uses material monotonically and exhausts it when the lift ends", () => {
+    const initial = pencilLength(0);
+    expect(initial).toBeGreaterThan(0);
+    expect(pencilLength(100)).toBe(0);
     const last = pencilRoute.at(-1)!;
     expect(pencilLength(last.start)).toBeGreaterThan(10);
     expect(pencilLength(99.9)).toBeGreaterThan(0);
     expect(pencilLength(99.9)).toBeLessThan(pencilLength(last.start));
-    let previous = fullPencilLength;
+    let previous = initial;
     for (let progress = 0; progress <= 100; progress += 0.1) {
       const length = pencilLength(progress);
       expect(length).toBeLessThanOrEqual(previous);
-      expect(length).toBeGreaterThanOrEqual(wornPencilLength);
+      expect(length).toBeGreaterThanOrEqual(0);
       previous = length;
     }
   });
