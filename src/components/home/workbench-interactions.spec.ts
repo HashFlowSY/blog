@@ -108,9 +108,13 @@ describe("2D workbench actions", () => {
     view.activate("display");
     view.sweep("leaf-0", -1);
     view.advance(64);
-    expect(view.pose.swings.get("leaf-0")).toBeLessThan(-0.03);
-    expect(view.pose.swings.get("leaf-1")).toBeGreaterThan(0);
-    expect(view.pose.swings.has("leaf-2")).toBe(false);
+    const { swings } = view.pose;
+    const target = swings.get("leaf-0")!;
+    const neighbor = swings.get("leaf-1")!;
+    expect(target).toBeLessThan(0);
+    expect(neighbor).toBeGreaterThan(0);
+    expect(neighbor).toBeLessThan(-target);
+    expect(swings.has("leaf-2")).toBe(false);
     expect(view.pose.screen?.device).toBe("display");
     view.advance(1600);
     expect(view.pose.swings.size).toBe(0);

@@ -1,7 +1,5 @@
 import { assetPath } from "@/lib/site";
 
-import { workbenchLeaves } from "./workbench-parts";
-
 import type {
   WorkbenchDevice,
   WorkbenchLeaf,
@@ -23,7 +21,6 @@ export const workbenchSheet = {
 } as const;
 
 type WorkbenchArtBox = readonly [number, number, number, number];
-type WorkbenchArtPoint = readonly [number, number];
 
 export interface WorkbenchArtImage {
   readonly src: string;
@@ -32,58 +29,48 @@ export interface WorkbenchArtImage {
 
 interface WorkbenchHotspot {
   readonly hit: WorkbenchArtBox;
-  readonly anchor?: WorkbenchArtPoint;
 }
 
-interface WorkbenchLeafArt extends WorkbenchHotspot {
-  readonly anchor: WorkbenchArtPoint;
-  readonly sprite: WorkbenchArtImage;
-  readonly cover: WorkbenchArtImage;
-}
+const plantBox: WorkbenchArtBox = [750, 90, 119, 75];
+export const workbenchPlantArt = {
+  background: {
+    src: `${workbenchArtRoot}/plant-background.webp`,
+    box: plantBox,
+  },
+  foliage: { src: `${workbenchArtRoot}/plant-foliage.webp`, box: plantBox },
+} as const;
+
+// Trace complete leaf-bearing twigs. The only cuts through ink are at stem joints.
+export const workbenchPlantTwigs = {
+  "leaf-0": {
+    pivot: [796.5, 114],
+    outline:
+      "M766 90H817V97L810 101L810 109L802 113L799 116H795L793 112L789 110L785 109L778 107.5L770 103L766 101Z",
+  },
+  "leaf-1": {
+    pivot: [798, 161],
+    outline:
+      "M751 144H779L784 145L785 149L788 151L789 155L796 158L801 160L800 164H796L793 160L787 157L783 163L774 165H752Z",
+  },
+  "leaf-2": {
+    pivot: [822, 153],
+    outline:
+      "M822 152L826 146L831 143L837 139L840 134L846 130H853L862 136L868 142L869 148L864 149L850 145L845 144L838 145L847 152L851 161H846L838 158L831 151H827L824 155L821 154Z",
+  },
+} as const satisfies Record<
+  WorkbenchLeaf,
+  { readonly pivot: readonly [number, number]; readonly outline: string }
+>;
 
 // Measurements share the 1440 × 900 coordinate system of the selected artwork.
 export const workbenchPartArt: Readonly<
-  Record<WorkbenchLeaf, WorkbenchLeafArt> &
-    Record<Exclude<WorkbenchPart, WorkbenchLeaf>, WorkbenchHotspot> &
+  Record<WorkbenchPart, WorkbenchHotspot> &
     Record<"lamp", { readonly sprite: WorkbenchArtImage }> &
     Record<`${WorkbenchDevice}-screen`, { readonly cover: WorkbenchArtImage }>
 > = {
-  "leaf-0": {
-    hit: [758, 93, 65, 45],
-    anchor: [799, 142],
-    sprite: {
-      src: `${workbenchArtRoot}/leaf-0-sprite.webp`,
-      box: [755, 90, 72, 53],
-    },
-    cover: {
-      src: `${workbenchArtRoot}/leaf-0-cover.webp`,
-      box: [755, 90, 72, 53],
-    },
-  },
-  "leaf-1": {
-    hit: [752, 127, 52, 36],
-    anchor: [804, 166],
-    sprite: {
-      src: `${workbenchArtRoot}/leaf-1-sprite.webp`,
-      box: [750, 123, 60, 44],
-    },
-    cover: {
-      src: `${workbenchArtRoot}/leaf-1-cover.webp`,
-      box: [750, 123, 60, 44],
-    },
-  },
-  "leaf-2": {
-    hit: [812, 111, 55, 52],
-    anchor: [808, 165],
-    sprite: {
-      src: `${workbenchArtRoot}/leaf-2-sprite.webp`,
-      box: [800, 107, 70, 60],
-    },
-    cover: {
-      src: `${workbenchArtRoot}/leaf-2-cover.webp`,
-      box: [800, 107, 70, 60],
-    },
-  },
+  "leaf-0": { hit: [758, 93, 65, 45] },
+  "leaf-1": { hit: [752, 127, 52, 36] },
+  "leaf-2": { hit: [812, 111, 55, 52] },
   lamp: {
     hit: [855, 211, 166, 24],
     sprite: {
@@ -120,10 +107,8 @@ export const workbenchLampLight = {
 } as const;
 
 export const workbenchInteractionArt = [
-  ...workbenchLeaves.flatMap((part) => {
-    const { cover, sprite } = workbenchPartArt[part];
-    return [cover, sprite];
-  }),
+  workbenchPlantArt.background,
+  workbenchPlantArt.foliage,
   workbenchPartArt.lamp.sprite,
   workbenchPartArt["laptop-screen"].cover,
   workbenchPartArt["display-screen"].cover,

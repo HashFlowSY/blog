@@ -6,21 +6,20 @@ import { pencilEase } from "./pencil-plan";
 import {
   workbenchLampLight,
   workbenchPartArt,
+  workbenchPlantArt,
   workbenchSheet,
 } from "./workbench-art";
+import { WorkbenchPlantFoliage } from "./workbench-plant-foliage";
 
 import type { WorkbenchArtImage } from "./workbench-art";
 import type { WorkbenchPose } from "./workbench-interactions";
-import type { WorkbenchLeaf } from "./workbench-parts";
 
 function Sprite({
   image,
-  part,
   opacity,
   brightness,
 }: {
   image: WorkbenchArtImage;
-  part?: WorkbenchLeaf;
   opacity?: number;
   brightness?: number;
 }) {
@@ -33,7 +32,6 @@ function Sprite({
       width={width}
       height={height}
       opacity={opacity}
-      data-workbench-part={part}
       style={
         brightness === undefined
           ? undefined
@@ -259,7 +257,8 @@ function WorkbenchLampLighting({
 }
 
 export function WorkbenchPartLayers({ pose }: { pose: WorkbenchPose }) {
-  const moved = [...pose.swings].filter(([, angle]) => angle !== 0);
+  const { swings } = pose;
+  const { background, foliage } = workbenchPlantArt;
   return (
     <>
       {(pose.light < 1 || pose.sourceLight < 1) && (
@@ -268,23 +267,15 @@ export function WorkbenchPartLayers({ pose }: { pose: WorkbenchPose }) {
           sourceLight={pose.sourceLight}
         />
       )}
-      {moved.map(([part]) => (
-        <Sprite key={part} image={workbenchPartArt[part].cover} />
-      ))}
-      {moved.map(([part, angle]) => {
-        const {
-          anchor: [x, y],
-          sprite,
-        } = workbenchPartArt[part];
-        return (
-          <g
-            key={part}
-            transform={`rotate(${(angle * 180) / Math.PI} ${x} ${y})`}
-          >
-            <Sprite image={sprite} part={part} />
-          </g>
-        );
-      })}
+      {swings.size > 0 && (
+        <g data-workbench-plant="background">
+          <Sprite image={background} />
+        </g>
+      )}
+      <WorkbenchPlantFoliage
+        swings={swings}
+        artwork={<Sprite image={foliage} />}
+      />
       {pose.screen && <ScreenAnimation screen={pose.screen} />}
     </>
   );

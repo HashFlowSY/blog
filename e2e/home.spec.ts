@@ -535,9 +535,10 @@ test.describe("Home page", () => {
     }
   });
 
-  test("sways the plant on hover and keyboard activation, then restores the drawing", async ({
+  test("rotates the targeted leaves around fixed stems and holds the background guide", async ({
     page,
   }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
     await installDrawingClock(page);
     await goToHome(page);
     const workbench = page.getByRole("region", { name: "交互工作台" });
@@ -547,23 +548,118 @@ test.describe("Home page", () => {
       name: "盆栽叶片",
       exact: true,
     });
-    const movingLeaves = scene.locator('[data-workbench-part^="leaf-"]');
+    const foliage = scene.locator('[data-workbench-plant="foliage"]');
+    const movingLeaf = foliage.locator('[data-workbench-leaf="leaf-0"]');
+    const movingNeighbor = foliage.locator('[data-workbench-leaf="leaf-1"]');
+    const background = scene.locator('[data-workbench-plant="background"]');
+    const backgroundImage = background.locator("image");
+    const backgroundGuide = [807, 90, 808, 95] as const;
+    const pot = [785, 174, 829, 179] as const;
+    const restingGuide = await captureArtworkArea(scene, backgroundGuide);
+    const restingPot = await captureArtworkArea(scene, pot);
+    const restingHotspot = await leaf.boundingBox();
+
+    async function captureLeafFrame() {
+      return {
+        target: await captureArtworkArea(scene, [778, 95, 808, 121]),
+        neighbor: await captureArtworkArea(scene, [754, 135, 790, 158]),
+        farLeaves: await captureArtworkArea(scene, [839, 134, 861, 148]),
+        stems: await captureArtworkArea(scene, [804, 160, 817, 165]),
+      };
+    }
+
+    async function readLeafRotation(layer: typeof movingLeaf) {
+      return layer.evaluate((element) => {
+        const group = element as SVGGElement;
+        const matrix = group
+          .ownerSVGElement!.getScreenCTM()!
+          .inverse()
+          .multiply(group.getScreenCTM()!);
+        const { a, b, c, d, e, f } = matrix;
+        // Recover the point that the branch's artwork transform leaves fixed.
+        const pivotDeterminant = (1 - a) * (1 - d) - b * c;
+        return {
+          xScale: Math.hypot(a, b),
+          yScale: Math.hypot(c, d),
+          skew: a * c + b * d,
+          angle: Math.atan2(b, a),
+          pivotX: ((1 - d) * e + c * f) / pivotDeterminant,
+          pivotY: (b * e + (1 - a) * f) / pivotDeterminant,
+        };
+      });
+    }
 
     await leaf.hover();
-    await page.clock.runFor(96);
-    await expect(scene.locator('[data-workbench-part="leaf-0"]')).toHaveCount(
-      1,
+    await page.clock.runFor(48);
+    await expect(backgroundImage).toHaveCount(1);
+    await expect(movingLeaf).toBeVisible();
+    expect(await leaf.boundingBox()).toEqual(restingHotspot);
+
+    // Compare two active frames, after the clean background has been mounted.
+    const early = await captureLeafFrame();
+    await page.clock.runFor(80);
+    const peak = await captureLeafFrame();
+    const forward = await readLeafRotation(movingLeaf);
+    const neighbor = await readLeafRotation(movingNeighbor);
+    expect(peak.farLeaves.equals(early.farLeaves)).toBe(true);
+    expect(peak.stems.equals(early.stems)).toBe(true);
+    expect(peak.target.equals(early.target)).toBe(false);
+    expect(peak.neighbor.equals(early.neighbor)).toBe(false);
+    expect(forward.xScale).toBeCloseTo(1, 5);
+    expect(forward.yScale).toBeCloseTo(1, 5);
+    expect(forward.skew).toBeCloseTo(0, 5);
+    expect(forward.angle).toBeGreaterThan(0);
+    expect(neighbor.angle).toBeLessThan(0);
+    expect(Math.abs(neighbor.angle)).toBeLessThan(forward.angle);
+
+    const alpha = await backgroundImage.evaluate(async (element) => {
+      const layer = element as SVGImageElement;
+      const image = new Image();
+      image.src = layer.href.baseVal.replace(
+        "plant-background.webp",
+        "plant-foliage.webp",
+      );
+      await image.decode();
+      const canvas = document.createElement("canvas");
+      canvas.width = image.naturalWidth;
+      canvas.height = image.naturalHeight;
+      const context = canvas.getContext("2d")!;
+      context.drawImage(image, 0, 0);
+      const x = 807 - layer.x.baseVal.value;
+      const top = layer.y.baseVal.value;
+      const columnAlpha = (start: number, end: number) =>
+        Array.from(
+          context.getImageData(x, start - top, 1, end - start).data,
+        ).filter((_, index) => index % 4 === 3);
+      return {
+        guide: [...columnAlpha(92, 95), ...columnAlpha(109, 115)],
+        leaf: columnAlpha(97, 104),
+      };
+    });
+    // The guide's gaps stay transparent without opening a slit in the leaf.
+    expect(alpha.guide).toEqual(Array<number>(9).fill(0));
+    expect(alpha.leaf).toEqual(Array<number>(7).fill(255));
+    expect((await captureArtworkArea(scene, pot)).equals(restingPot)).toBe(
+      true,
     );
-    await expect(scene.locator('[data-workbench-part="leaf-1"]')).toHaveCount(
-      1,
-    );
+    expect(
+      (await captureArtworkArea(scene, backgroundGuide)).equals(restingGuide),
+    ).toBe(true);
+
+    await page.clock.runFor(304);
+    const rebound = await readLeafRotation(movingLeaf);
+    expect(rebound.angle).toBeLessThan(0);
+    expect(rebound.pivotX).toBeCloseTo(forward.pivotX, 2);
+    expect(rebound.pivotY).toBeCloseTo(forward.pivotY, 2);
+
     await page.mouse.move(0, 0);
     await page.clock.runFor(2400);
-    await expect(movingLeaves).toHaveCount(0);
+    await expect(foliage).toHaveCount(0);
+    await expect(background).toHaveCount(0);
 
     await leaf.press("Space");
     await page.clock.runFor(96);
-    await expect(movingLeaves).toHaveCount(2);
+    await expect(movingLeaf).toBeVisible();
   });
 
   test("redraws the two computer screens in place after typing", async ({
@@ -732,9 +828,7 @@ test.describe("Home page", () => {
     expect(leafBox.y + leafBox.height).toBeLessThanOrEqual(375);
     await tap(leaf);
     await page.clock.runFor(96);
-    await expect(scene.locator('[data-workbench-part="leaf-2"]')).toHaveCount(
-      1,
-    );
+    await expect(scene.locator('[data-workbench-leaf="leaf-2"]')).toBeVisible();
     await touch.detach();
   });
 

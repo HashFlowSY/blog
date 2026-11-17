@@ -156,11 +156,7 @@ export function WorkbenchInteractive({
           {controls.map(({ part, label }) => {
             const {
               hit: [x, y, width, height],
-              anchor,
             } = workbenchPartArt[part];
-            const angle = isWorkbenchLeaf(part)
-              ? pose.swings.get(part)
-              : undefined;
             return (
               <button
                 key={part}
@@ -173,10 +169,6 @@ export function WorkbenchInteractive({
                   top: `${((y - workbenchSheet.top) / workbenchSheet.sceneHeight) * 100}%`,
                   width: `${(width / workbenchSheet.width) * 100}%`,
                   height: `${(height / workbenchSheet.sceneHeight) * 100}%`,
-                  transform: angle ? `rotate(${angle}rad)` : undefined,
-                  transformOrigin: anchor
-                    ? `${((anchor[0] - x) * 100) / width}% ${((anchor[1] - y) * 100) / height}%`
-                    : undefined,
                 }}
                 onPointerEnter={(event) => {
                   if (

@@ -72,8 +72,11 @@ function mount({ enabled = true, reducedMotion = false } = {}) {
     button(name: string) {
       return screen.getByRole("button", { name });
     },
-    part(name: string) {
-      return sheet.querySelector(`[data-workbench-part="${name}"]`);
+    movingLeaves() {
+      return Array.from(
+        sheet.querySelectorAll("[data-workbench-leaf]"),
+        (leaf) => leaf.getAttribute("data-workbench-leaf"),
+      );
     },
     blueprint() {
       return sheet.querySelector("[data-blueprint-device]");
@@ -226,7 +229,7 @@ describe("2D workbench controls", () => {
     expect(view.frames.size).toBe(0);
   });
 
-  it("swings the hovered or keyboard-activated leaf and settles back to the original artwork", async () => {
+  it("starts leaf motion on hover or keyboard activation and restores the original artwork", async () => {
     const view = mount();
     const leaf = view.button("盆栽叶片");
     const nextLeaf = view.button("左侧叶片");
@@ -241,12 +244,7 @@ describe("2D workbench controls", () => {
     view.pointer(laptop, "pointermove", { clientX: 200 });
     view.pointer(leaf, "pointerover", { clientX: 180 });
     view.advance(80);
-    expect(view.part("leaf-0")?.parentElement).toHaveAttribute(
-      "transform",
-      expect.stringContaining("rotate(-"),
-    );
-    expect(view.part("leaf-1")).not.toBeNull();
-    expect(view.part("leaf-2")).toBeNull();
+    expect(view.movingLeaves()).toEqual(["leaf-0", "leaf-1"]);
     view.advance(1600);
     expect(view.sheet.innerHTML).toBe(view.rest);
 
@@ -254,9 +252,7 @@ describe("2D workbench controls", () => {
     view.advance(80);
     expect(nextLeaf).toHaveFocus();
     expect(screen.getByRole("status")).toHaveTextContent("树叶轻摆");
-    expect(view.part("leaf-0")).toBeNull();
-    expect(view.part("leaf-1")).not.toBeNull();
-    expect(view.part("leaf-2")).not.toBeNull();
+    expect(view.movingLeaves()).toEqual(["leaf-1", "leaf-2"]);
     view.advance(1600);
     expect(view.sheet.innerHTML).toBe(view.rest);
     expect(view.frames.size).toBe(0);

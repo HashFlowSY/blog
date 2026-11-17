@@ -211,14 +211,16 @@ export function createWorkbenchInteractions({
     sweep,
     tick,
     get pose(): WorkbenchPose {
+      const swings = new Map<WorkbenchLeaf, number>();
+      for (const [part, spring] of springs) {
+        if (spring.angle !== 0) swings.set(part, spring.angle);
+      }
       return {
         lampOn,
         light,
         sourceLight,
         screen,
-        swings: new Map(
-          [...springs].map(([part, spring]) => [part, spring.angle]),
-        ),
+        swings,
       };
     },
   };
