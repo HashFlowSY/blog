@@ -9,7 +9,7 @@ tags:
   - shiki
   - github-pages
   - tailwindcss
-description: "Hashflow 的中文技术博客与作品集，包含手绘工作台上的电脑和盆栽交互、文章全文搜索和构建时 Markdown 渲染。"
+description: "Hashflow 的中文技术博客与作品集。首页用铅笔画出可交互的工作台，文章支持全文搜索，Markdown 在构建时渲染。"
 cover: "/assets/personal-blog-home.jpg"
 source: "https://github.com/HashFlowSY/blog"
 demo: "https://hashflowsy.github.io/blog/"
@@ -18,20 +18,22 @@ duration: "2026 年 4 月至今"
 result: "站点已在 GitHub Pages 上线，公开了两篇技术文章和一个项目案例。"
 evidence:
   label: "查看 GitHub Pages 部署记录"
-  url: "https://github.com/HashFlowSY/blog/actions/runs/43431260684"
+  url: "https://github.com/HashFlowSY/blog/actions/runs/44017752385"
 featured: true
 draft: false
 ---
 
 ## 概述
 
-我用这个站点发布技术写作、记录项目决策，并提供求职和项目合作的联系入口。项目详情展示我负责的工作、实际成果和公开证据。[技术写作](/posts/) · [关于与联系](/about/#contact)
+我用这个站点发布技术文章和项目案例。案例里写清我负责的工作、做过的取舍和可查证的结果。关于页列出工程经历，并提供 GitHub 主页入口。[技术写作](/posts/) · [关于与联系](/about/#contact)
 
 ## 首页交互工作台
 
-素材就绪且工作台进入视口后，铅笔从右桌脚起笔，沿台面从右向左画，再转向挂板左上方和搁板。随后补出体块、草稿、线稿和阴影。局部纹理在相应笔画完成后出现，最后为抽屉添黄并收笔，全程约 6.6 秒。点按笔记本、外接显示器或外接键盘，会先看到键位反馈，再看到对应屏幕逐笔出图。点按或用鼠标扫过叶片，该处叶片会轻摆，邻近叶片略微跟随。点按工作灯可以开灯或关灯。触屏可以直接点按，使用键盘时可以聚焦部件后按 Enter 或空格。
+素材就绪且工作台进入视口后，铅笔从右桌脚起笔，沿台面从右向左画，再转向挂板和搁板。先画结构和草稿，再加深线稿，补上阴影、纹理和抽屉的黄色，约 6.6 秒收笔。系统开启「减少动态效果」时跳过开场绘制，直接显示成稿。
 
-画稿、绘制路径和部件的触发范围使用同一套二维坐标。屏幕绘图和叶片摆动只覆盖各自的区域，动作结束后恢复原画。开灯时灯罩在原处泛起柔和的暖白光，挂板和台面一起渐亮。关灯时三处一起变暗，灯罩变化更快。系统开启减少动态效果时，亮度立即切换。[工作台设计](https://github.com/HashFlowSY/blog/blob/main/docs/design/workbench-interaction-design.md)
+收笔且部件素材就绪后，可以点按笔记本、外接显示器或外接键盘。对应键位先响应，再由屏幕逐笔出图。点按或用鼠标扫过叶片会让它轻摆，附近的叶片也会略微跟随。工作灯默认亮起，切换时灯罩、挂板和台面的亮度在原处变化。触屏可直接点按，用键盘可聚焦部件后按 Enter 或空格。减少动态效果时，屏幕绘图改为就绪提示，叶片保持静止，灯光立即切换。
+
+画稿、绘制路径和可点击区域共用一套二维坐标。屏幕绘图和叶片摆动只覆盖各自的区域，动作结束后恢复成稿。[工作台设计](https://github.com/HashFlowSY/blog/blob/c57ab05f6eaa4ce5ee6e0a5090bfba1a26437660/docs/design/workbench-interaction-design.md)
 
 ## 内容管线
 
@@ -61,7 +63,7 @@ Shiki 在构建时给代码配色。代码围栏可以用 `{1,3-5}` 标出重点
 
 ## 测试与 CI
 
-GitHub Actions 先运行 ESLint、TypeScript 类型检查、Vitest 覆盖率、依赖审计和开发服务器上的 Chromium 测试。Next.js 导出 `out/` 后，再用 Playwright 检查待发布文件，覆盖 Chromium 页面交互、axe 无障碍、Linux 截图比对和 WebKit 冒烟测试。通过后部署同一份产物。[发布工作流](https://github.com/HashFlowSY/blog/blob/44d8229/.github/workflows/deploy.yml)
+GitHub Actions 先运行 ESLint、Prettier 格式检查、TypeScript 类型检查、Vitest 覆盖率、依赖审计和开发服务器上的 Chromium 测试。Next.js 导出 `out/` 后，再用 Playwright 检查待发布文件，覆盖 Chromium 页面交互、axe 无障碍、Linux 截图比对和 WebKit 冒烟测试。通过后部署同一份产物。[发布工作流](https://github.com/HashFlowSY/blog/blob/c57ab05f6eaa4ce5ee6e0a5090bfba1a26437660/.github/workflows/deploy.yml)
 
 ## 设计取舍
 

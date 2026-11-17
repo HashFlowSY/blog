@@ -8,9 +8,10 @@
 
 ## 现在可以看什么
 
-- **工作台**。素材就绪且工作台进入视口后，铅笔在右桌脚起笔，沿台面画向左上方的挂板和搁板，再补草稿、线稿、阴影和细节，约 6.6 秒收笔。随后可直接点按电脑、盆栽或工作灯，也可以用键盘操作。
-- **两篇文章**：[用 Codex 定制桌面宠物：流程与踩坑](https://hashflowsy.github.io/blog/posts/2026-05-02/) 和 [AI 服务中转站：常见术语与风险清单](https://hashflowsy.github.io/blog/posts/2026-04-30/)。文章列表支持主题筛选和关键词搜索，详情提供目录、阅读进度、预计时长与推荐文章。
+- **首页工作台**。素材就绪且工作台进入视口后，铅笔从右桌脚起笔，约 6.6 秒画完整张插画。收笔后，可以触发电脑屏幕绘图、让盆栽叶片摆动，或开关工作灯。部件支持鼠标、触屏和键盘。系统开启「减少动态效果」时跳过开场绘制。
+- **两篇文章**：[用 Codex 定制桌面宠物：流程与踩坑](https://hashflowsy.github.io/blog/posts/2026-05-02/) 和 [AI 服务中转站：常见术语与风险清单](https://hashflowsy.github.io/blog/posts/2026-04-30/)。文章列表可以按主题筛选，也可以搜索标题、摘要、标签和正文。文章详情显示阅读进度和预计时长，并提供目录和推荐文章。
 - **一个项目案例**：[Personal Blog](https://hashflowsy.github.io/blog/projects/personal-blog/) 记录了本站的实现与验证。后续案例待整理[可公开的项目事实和证据](.scratch/site-experience/issues/01-add-real-project-evidence.md)。
+- **关于我**。关于页列出工程经历和能力范围，求职与合作区提供 GitHub 主页入口。
 
 [部署记录](https://github.com/HashFlowSY/blog/actions/workflows/deploy.yml) · [2026-11-14 README 调研与开源项目对照](docs/research/readme-audit.md)
 
