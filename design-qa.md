@@ -1,6 +1,52 @@
-# 首页二维工作台验收
+# 站点设计验收
 
-## 绘制过程与交互
+## 项目详情页正文重排验收
+
+Personal Blog 当前按「概述 → 文章检索 → 首页交互工作台 → 构建与发布 → 实现细节」组织。首屏介绍站点用途，并给出浏览博客、源码和真实文章入口。工作台只在对应章节展示一张成稿，详细的绘制过程交给原有设计记录。
+
+[桌面首屏（1280 × 720）](qa-evidence/output/playwright/project-detail-editorial-2026-11-18/desktop.png) · [手机首屏（390 × 844）](qa-evidence/output/playwright/project-detail-editorial-2026-11-18/mobile.png) · [桌面整页](qa-evidence/output/playwright/project-detail-editorial-2026-11-18/full.png)。320px 宽度下页面无横向溢出。
+
+- 清理了首屏图版组件、`gallery` 内容字段、专用样式、两张过程图和对应测试；保留通用 Markdown 图片、分栏、目录、项目卡片封面和工作台设计记录。与 `16ac0dd` 已发布版本核对，原有十个正文片段均保留；未上线的草图标题直接移除。
+- 全仓沿详情路由、Markdown 载入、内容文件与公开素材追查，又从构建、发布、测试和文档入口复扫。README、作者模板和现行断言均指向新的正文写法；早期调研和截图只作历史依据。
+
+静态构建、格式、ESLint、TypeScript、187 项单测与覆盖率门槛通过。固定 Linux 镜像 `/blog` 下的 28 项静态检查通过，覆盖公开锚点、全文搜索、无脚本阅读、Chromium、WebKit、无障碍与视觉比对。只更新了项目详情页的截图基线。
+
+### 全仓清理复查
+
+以 `16ac0dd` 和复查开始时的未提交工作树为基线，暂存区为空。先沿旧图版、封面弹窗和过程素材找消费者，再从公开路由、静态预览、测试发现和发布配置独立查找。对照 [复查前](qa-evidence/cleanup-project-detail-20261118-before.sha256)及[复查后](qa-evidence/cleanup-project-detail-20261118-after.sha256)的本机文件哈希，保留现有正文和图片。
+
+| 区域             | 核对与处置                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 源码、样式和内容 | 57 个生产 TypeScript 模块均可从路由或配置入口到达；人工核对了静态分析列出的内部成员和动态数据属性。合并为多图复用而拆出的封面校验，仍检查封面路径、文件类型和符号链接。旧图版、弹窗和专用样式已无运行入口。首页绘制时间和笔触表由真实绘制逻辑消费，保留；`normalizeRootRelativePathname` 按[已有决定](.scratch/static-blog-hardening/issues/20-correct-documentation-and-issue-history.md#accepted-final-review-exception)保留。 |
+| 测试和静态产物   | 检查单测、两套浏览器测试的发现规则和 4 张视觉基线。保留项目首页、旧公开片段、正文图片和检索验证。本轮未删现行测试、未修改基线。`out/assets/` 与 `public/assets/` 的 11 个素材一致；保留列表封面、正文成稿和首页素材。                                                                                                                                                                                                            |
+| 说明、模板和历史 | 扫描 55 份 Markdown 的本地链接和发布路径，未发现失效目标。为两篇历史调研中指向旧项目详情及渲染管线的链接固定提交。保留研究、迁移与验收记录。第三方调研链接没有逐一重新访问。                                                                                                                                                                                                                                                     |
+| 预览和发布       | `preview:static` 使用项目指定的 Node 24.22.2 直接运行 `.mts`，去掉冗余的旧参数。检查了根配置、pnpm 清单与锁文件、`.github`、`.husky` 与预览消费方。依赖安装目录、缓存和本机取证目录不属于发布内容。                                                                                                                                                                                                                              |
+
+**复查结果：通过，未发现阻塞。** 格式、ESLint、TypeScript、187 项单测与覆盖率门槛、`/blog` 构建均通过。发布工作流固定的 Linux amd64 镜像在新预览命令上运行全量静态套件，66 项通过，无跳过，含隔离 Markdown 构建、Chromium、WebKit、无障碍和 4 张截图比对。此次未执行线上部署。
+
+## 项目详情页制作档案验收
+
+2026-11-18 · 早期三帧图版首屏的实现记录，已由上方正文重排替代。以下截图为当时的 `/blog` 静态页面，未滚动，手机菜单和项目目录均未打开。
+
+| 视口       | 设计稿                                                                                               | 实际渲染                                                                                       | 同屏对照（左设计稿，右实现）                                                                           |
+| ---------- | ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| 1280 × 720 | [桌面设计稿](qa-evidence/output/playwright/project-detail-layout-v2-2026-11-18/proposal-desktop.png) | [桌面首屏](qa-evidence/output/playwright/project-detail-implementation-2026-11-18/desktop.png) | [桌面对照](qa-evidence/output/playwright/project-detail-implementation-2026-11-18/compare-desktop.png) |
+| 390 × 844  | [手机设计稿](qa-evidence/output/playwright/project-detail-layout-v2-2026-11-18/proposal-mobile.png)  | [手机首屏](qa-evidence/output/playwright/project-detail-implementation-2026-11-18/mobile.png)  | [手机对照](qa-evidence/output/playwright/project-detail-implementation-2026-11-18/compare-mobile.png)  |
+
+两组截图均为 CSS 尺寸、DPR 1，直接并排，无缩放；[成稿局部](qa-evidence/output/playwright/project-detail-implementation-2026-11-18/compare-artwork.png)按图框起点对齐。这一版的截图保留在本机取证目录。
+
+- **字体与间距。** 复用站点字族和真实导航。导航比草图略高，桌面两列与手机一列的主要内容仍在首屏。手机首轮标题偏小，调整到约 40px 后重拍；在 390 × 844 时入口上沿约 231px，最后两张图及图注在约 789px 处结束。320px 下过程图竖排，页面无横向滚动。流程步骤的框线也已对齐。
+- **颜色与图片。** 使用现有的暖纸色、墨色和黄色按钮，不增加视觉主题。三张 WebP 共 183452 字节；对照确认成稿没有裁掉结构，桌面过程图的取景保留台沿、工具和铅笔，手机显示完整取景。
+- **文案和阅读。** 实际页面由三段主线和独立的实现细节组成，见[桌面整页](qa-evidence/output/playwright/project-detail-implementation-2026-11-18/full.png)。用示例链接搜「验收条件」时，结果会高亮命中的正文；上线证据是 2026-11-17 的[成功部署](https://github.com/HashFlowSY/blog/actions/runs/44017752385)。键盘可以跳到正文标题。从列表点封面进入后，返回会聚焦原卡片。关掉 JavaScript 仍能读图版与正文、打开原图和跳到制作笔记。检查未发现新页面脚本或资源错误；浏览器默认请求站点未提供的 `/favicon.ico` 得到 404，与改版无关。
+- **清理。** 以 `16ac0dd` 为基线，先追查旧详情首页图、黄色结果框和弹窗的调用方，再从路由、内容目录、静态生成、浏览器入口和维护文件复查。移除弹窗组件、专有样式与只验证弹窗行为的断言，用原图链接、首屏定位和无脚本阅读取代；保留仍供首页与项目列表使用的封面，也保留所有旧公开正文锚点和历史验收记录。核对 `src/`、`content/`、`public/`、`e2e/`、模板、README、`docs/`、`.scratch/`、工作流与构建配置；依赖、缓存和临时产物不作为维护源码。只更新项目页的视觉基线。
+
+`pnpm build`、ESLint、TypeScript 和 Vitest 覆盖率门槛通过（190 项单测）。固定的 Linux amd64 发布镜像下，`/blog` 的 Chromium、axe、WebKit 和视觉测试共验证 66 项。首次全量启动时隔离工作目录缺少 `.scratch`，补建后独立重跑该夹具通过；四项视觉比对在普通模式下复验两次均通过。
+
+final result: passed
+
+## 首页二维工作台验收
+
+### 绘制过程与交互
 
 用 Chromium 和 WebKit 打开实际静态产物，分别检查 1440 × 900 桌面视口和 390 × 844 手机视口。按正常速度查看约 6.6 秒的入场动画，再用确定性时钟取首笔、关键笔画和最后 0.25 秒的连续帧，以播放开始为计时起点。[分镜与详细验收标准](docs/research/workbench-build-drawing-2026-11-17.md#验收标准)
 
@@ -17,7 +63,7 @@
 - 加载前开启减少动态效果时，直接显示可用成稿，跳过纸稿和铅笔素材的网络请求。纸稿失败时跳到可用成稿，铅笔图失败时笔触继续播放。成稿失败时播报错误。部件图失败时保留成稿并播报部件载入失败。
 - 收笔且部件素材就绪后有七个热点。检查两台设备的逐笔出图、叶片摆动归位、工作灯切换、Enter 和空格操作、触屏点按及从热点起手纵向滚动。绘制中热点不可聚焦或激活。[首页浏览器用例](e2e/home.spec.ts) · [窄屏用例](e2e/interaction.spec.ts) · [组件测试](src/components/home/assembly-workbench.spec.tsx) · [静态产物验证](docs/static-verification.md)
 
-## 2026-11-15 首页二维工作台验收
+### 2026-11-15 首页二维工作台验收
 
 - 在 Linux Chromium 的 1440 × 900 CSS 像素、DPR 1 视口，收笔且部件归位后，从坐标 `(618, 91)` 起取 720 × 607 画稿选区，与第二张概念图逐像素比对，要求 RGB 零差异。[概念图](docs/design/workbench-2d/concept-1440.png) · [像素比对](e2e/visual-regression.spec.ts)
 - 截图基线启用减少动态效果，固定取桌面 1440 × 900 和手机 375 × 667 的可见视口，用于复核首屏、手机端裁剪和移动端菜单。[桌面截图基线](e2e/visual-regression.spec.ts-snapshots/home-desktop-chromium-visual-linux.png) · [手机截图基线](e2e/visual-regression.spec.ts-snapshots/home-mobile-menu-open-chromium-visual-linux.png)

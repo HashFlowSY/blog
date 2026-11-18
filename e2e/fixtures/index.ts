@@ -8,8 +8,6 @@ const SITE_COPY = {
   recentPosts: "最近在写",
   featuredProjects: "代表项目",
   viewFeaturedProject: "查看代表项目",
-  source: "源代码",
-  demo: "在线演示",
   aboutTitle: "关于我",
   skills: "技能介绍",
   experience: "经历介绍",
@@ -25,8 +23,10 @@ const STABLE_POST = {
 const STABLE_PROJECT = {
   slug: "personal-blog",
   title: "Personal Blog",
+  intro:
+    "我用这个站点发布中文技术文章和项目案例，记录做过的尝试、遇到的问题和可以查证的结果。",
   description:
-    "Hashflow 的中文技术博客与作品集。首页用铅笔画出可交互的工作台，文章支持全文搜索，Markdown 在构建时渲染。",
+    "Hashflow 的中文技术博客与作品集，收录 AI 工具实践和项目复盘。文章支持按主题筛选和全文搜索。",
 } as const;
 
 function routeForPost(slug: string = STABLE_POST.slug): string {

@@ -78,7 +78,7 @@ Status: implemented
 - 两个详情页同时切换到共享正文和新阅读工具。工具栏桌面贴在站点头部下面；手机端（≤760px）头部随页面滚走，工具栏贴到视口顶部。目录至少两个正文标题才显示，H3 保留层级缩进。打开目录不改变阅读位置；普通选择后关闭并聚焦目标，Escape 关闭并把焦点交回目录按钮，点击外部也可关闭，修饰键保留浏览器的原有链接操作。当前项用 `aria-current="location"` 标记。≤479px 时隐藏独立的当前章节文案，目录仍可用。
 - 阅读进度以黏性栏下方至可视视口底部为阅读区域，只计算正文；正文还未进入阅读位置时为 0，正文底部已进入阅读区域时为 100%，短正文完全可见时直接为 100%。滚动、视口变化和正文尺寸变化都重新测量；滚过推荐区或联系区时保持 100%。
 - 全站使用同一个回顶组件。详情页桌面滚动后显示悬浮按钮，手机在正文末尾显示按钮。回顶删除片段、保留路径和查询参数，并尊重减少动态效果偏好。详情按钮聚焦页面 H1，其他页面聚焦主内容。
-- 文章返回使用 `q`、`topic` 和原卡片 ID；项目返回使用原项目卡片 ID。保留返回链接的替换历史语义、浏览器前进后退，以及列表结果就绪后把卡片滚到可视区域并恢复焦点。项目封面预览与结果、证据、演示、源代码链接保留；关闭弹窗时重置放大状态并把焦点交回封面按钮。先将弹窗按钮切换到项目样式，再移除旧阅读控件选择器。 [新阅读工具](../../src/components/markdown/reading-tools.tsx) · [新目录](../../src/components/markdown/reading-tools.tsx) · [回顶](../../src/components/layout/back-to-top.tsx#L3) · [返回焦点](../../src/components/layout/collection-return-focus.tsx#L14) · [项目封面](../../src/components/project/project-cover.tsx#L42)
+- 文章返回使用 `q`、`topic` 和原卡片 ID；项目返回使用原项目卡片 ID。保留返回链接的替换历史语义、浏览器前进后退，以及列表结果就绪后把卡片滚到可视区域并恢复焦点。该轮迁移也保留了当时的封面预览、结果、证据、演示和源代码链接。 [阅读工具](../../src/components/markdown/reading-tools.tsx) · [回顶](../../src/components/layout/back-to-top.tsx#L3) · [返回焦点](../../src/components/layout/collection-return-focus.tsx#L14)
 
 ## 删除与切换清单
 

@@ -48,6 +48,7 @@ interface ExpectedPageMetadata {
 interface ExpectedDetailMetadata {
   description: string;
   heading: string;
+  introduction: string;
   pathname: string;
   title: string;
 }
@@ -82,12 +83,14 @@ const stableDetailMetadata = {
   post: {
     description: STABLE_POST.description,
     heading: STABLE_POST.title,
+    introduction: STABLE_POST.description,
     pathname: `/posts/${STABLE_POST.slug}/`,
     title: `${STABLE_POST.title} | Hashflow`,
   },
   project: {
     description: STABLE_PROJECT.description,
     heading: STABLE_PROJECT.title,
+    introduction: STABLE_PROJECT.intro,
     pathname: `/projects/${STABLE_PROJECT.slug}/`,
     title: `${STABLE_PROJECT.title} | Hashflow`,
   },
@@ -118,6 +121,10 @@ const publishedFragments = [
       "中文单站与-seo",
       "测试与-ci",
       "设计取舍",
+      "已发布文章",
+      "搜索示例",
+      "构建与发布",
+      "实现细节",
     ],
   ],
 ] as const;
@@ -164,9 +171,9 @@ async function expectPublishedDetailMetadata(
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     expected.heading,
   );
-  await expect(page.locator(".portfolio-lede")).toHaveText(
-    expected.description,
-  );
+  await expect(
+    page.getByText(expected.introduction, { exact: true }),
+  ).toBeVisible();
   await expectPageMetadata(page, {
     description: expected.description,
     robots: "indexable",

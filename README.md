@@ -55,6 +55,8 @@ draft: false
 
 项目案例可参照[真实案例源码](content/projects/zh-CN/personal-blog.md)和[作者模板](templates/project-case.md)。项目用 `description` 代替 `summary`，另需填写 `role`、`duration`、`result`、`cover` 和 `featured`。封面必须是 `public/` 中已存在的文件，例如 `/assets/personal-blog-home.jpg`。`source`、`demo` 和 `evidence` 都可省略；填写 `evidence` 时需提供 `label` 和 `url`，所有这些外链均使用完整 HTTPS 地址。
 
+`cover` 用于项目列表和首页卡片。需要在详情页展示图片、运行结果或验证记录时，写在对应的 Markdown 段落里。`showcase.chapters: true` 时，二级标题开启一段；该段第一个分隔线 `---` 后的材料在宽屏上排到说明旁边，手机上接在说明后。保留已发布的标题锚点；调整层级不影响原有链接。
+
 ### Markdown 约定
 
 - 支持 CommonMark 及 GFM 表格、任务列表、脚注，自动生成标题锚点。同一篇内可用 `#构建产物` 这样的片段；链接到其他页面时使用目标页实际发布的锚点。

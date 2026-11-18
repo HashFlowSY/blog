@@ -151,6 +151,13 @@ const postFields = {
   summary: nonBlankTextSchema,
 };
 
+const projectShowcaseSchema = z.strictObject({
+  eyebrow: nonBlankTextSchema.optional(),
+  intro: nonBlankTextSchema.optional(),
+  demoLabel: nonBlankTextSchema.optional(),
+  chapters: z.literal(true).optional(),
+});
+
 const projectFields = {
   ...sharedContentFields,
   description: nonBlankTextSchema,
@@ -165,6 +172,7 @@ const projectFields = {
   source: absoluteHttpsUrlSchema.optional(),
   demo: absoluteHttpsUrlSchema.optional(),
   featured: z.boolean(),
+  showcase: projectShowcaseSchema.optional(),
 };
 
 const postStateSchemas = createContentStateSchemas(postFields);
@@ -438,68 +446,40 @@ function isPathWithin(root: string, candidate: string): boolean {
 }
 
 function projectCoverErrors(
-  input: ContentContractInput,
+  { filePath, frontmatter }: ContentContractInput,
   options: ProjectContractOptions,
 ): ContentValidationError[] {
-  if (
-    !isRecord(input.frontmatter) ||
-    typeof input.frontmatter["cover"] !== "string"
-  ) {
-    return [];
-  }
+  if (!isRecord(frontmatter)) return [];
+  const cover = frontmatter["cover"];
+  if (typeof cover !== "string" || !cover) return [];
 
-  const cover = input.frontmatter["cover"];
-  if (cover.length === 0) {
-    return [];
-  }
-
-  const decodedCoverPath = decodeCanonicalRootRelativePathname(cover);
-  if (decodedCoverPath === null) {
-    return [
-      {
-        filePath: input.filePath,
-        field: "cover",
-        reason:
-          "Must be a canonical root-relative URL pathname inside public/ without a query, hash, or encoded path traversal.",
-      },
-    ];
+  const invalidCover = (reason: string): ContentValidationError[] => [
+    { filePath, field: "cover", reason },
+  ];
+  const decodedPath = decodeCanonicalRootRelativePathname(cover);
+  if (decodedPath === null) {
+    return invalidCover(
+      "Must be a canonical root-relative URL pathname inside public/ without a query, hash, or encoded path traversal.",
+    );
   }
 
   const publicDir = path.resolve(/* turbopackIgnore: true */ options.publicDir);
   const coverPath = path.resolve(
     /* turbopackIgnore: true */ publicDir,
-    `.${decodedCoverPath}`,
+    `.${decodedPath}`,
   );
 
   if (!isPathWithin(publicDir, coverPath)) {
-    return [
-      {
-        filePath: input.filePath,
-        field: "cover",
-        reason: "Must resolve inside public/ without path traversal.",
-      },
-    ];
+    return invalidCover("Must resolve inside public/ without path traversal.");
   }
 
   if (!fs.existsSync(/* turbopackIgnore: true */ coverPath)) {
-    return [
-      {
-        filePath: input.filePath,
-        field: "cover",
-        reason: "Referenced file does not exist inside public/.",
-      },
-    ];
+    return invalidCover("Referenced file does not exist inside public/.");
   }
 
   try {
     if (!fs.statSync(/* turbopackIgnore: true */ coverPath).isFile()) {
-      return [
-        {
-          filePath: input.filePath,
-          field: "cover",
-          reason: "Must reference a file inside public/.",
-        },
-      ];
+      return invalidCover("Must reference a file inside public/.");
     }
 
     const realPublicDir = fs.realpathSync(
@@ -509,23 +489,14 @@ function projectCoverErrors(
       /* turbopackIgnore: true */ coverPath,
     );
     if (!isPathWithin(realPublicDir, realCoverPath)) {
-      return [
-        {
-          filePath: input.filePath,
-          field: "cover",
-          reason:
-            "Must resolve inside public/ without following a path outside it.",
-        },
-      ];
+      return invalidCover(
+        "Must resolve inside public/ without following a path outside it.",
+      );
     }
   } catch {
-    return [
-      {
-        filePath: input.filePath,
-        field: "cover",
-        reason: "Could not resolve the referenced file inside public/.",
-      },
-    ];
+    return invalidCover(
+      "Could not resolve the referenced file inside public/.",
+    );
   }
 
   return [];

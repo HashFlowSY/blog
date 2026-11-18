@@ -188,7 +188,11 @@ test.describe("Focused visual regression", () => {
       await expect(page.getByRole("heading", { level: 1 })).toHaveText(
         STABLE_PROJECT.title,
       );
-      await expect(page.locator(".portfolio-case-cover img")).toBeVisible();
+      await expect(
+        page
+          .getByRole("region", { name: "概述", exact: true })
+          .getByRole("heading", { name: "已发布文章" }),
+      ).toBeInViewport();
       await stabilizePage(page);
       await expectStableScreenshot(page, "project-detail-desktop.png");
     });

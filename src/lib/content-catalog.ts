@@ -52,7 +52,7 @@ export function postCardMeta({
 
 type NonEmptyTags = readonly [string, ...string[]];
 
-export interface ProjectCase {
+export interface ProjectCaseMeta {
   slug: string;
   title: string;
   description: string;
@@ -66,10 +66,12 @@ export interface ProjectCase {
   result: string;
   evidence?: Readonly<{ label: string; url: string }>;
   featured: boolean;
-  document: CompiledDocument;
 }
 
-export type ProjectCaseMeta = Omit<ProjectCase, "document">;
+export interface ProjectCase extends ProjectCaseMeta {
+  showcase?: Readonly<NonNullable<PublishedProjectCaseFrontmatter["showcase"]>>;
+  document: CompiledDocument;
+}
 
 interface ContentCatalog {
   readonly posts: readonly Post[];
@@ -241,6 +243,8 @@ function createProjectCase(
   frontmatter: PublishedProjectCaseFrontmatter,
   document: CompiledDocument,
 ): ProjectCase {
+  const { showcase } = frontmatter;
+
   return {
     slug: frontmatter.slug,
     title: frontmatter.title,
@@ -256,6 +260,7 @@ function createProjectCase(
     ...(frontmatter.evidence
       ? { evidence: Object.freeze({ ...frontmatter.evidence }) }
       : {}),
+    ...(showcase ? { showcase: Object.freeze(showcase) } : {}),
     featured: frontmatter.featured,
     document,
   };

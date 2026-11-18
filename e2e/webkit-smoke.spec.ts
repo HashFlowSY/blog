@@ -136,7 +136,7 @@ test.describe("WebKit smoke", () => {
     expect(new URL(page.url()).pathname).toMatch(/\/projects\/$/);
   });
 
-  test("opens the article contents and project image preview", async ({
+  test("navigates from the article and project contents to their sections", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 375, height: 667 });
@@ -190,15 +190,17 @@ test.describe("WebKit smoke", () => {
     expect(new URL(page.url()).pathname).toMatch(
       new RegExp(`/projects/${STABLE_PROJECT.slug}/$`),
     );
-    const preview = page.getByRole("button", { name: "查看项目大图" });
-    await preview.click();
-    const dialog = page.getByRole("dialog", {
-      name: `${STABLE_PROJECT.title}项目大图`,
-    });
-    await expect(dialog).toBeVisible();
-    await page.keyboard.press("Escape");
-    await expect(dialog).toBeHidden();
-    await expect(preview).toBeFocused();
+    await page
+      .getByRole("button", { name: "目录", exact: true })
+      .press("Enter");
+    const chapters = page.getByRole("navigation", { name: "项目章节" });
+    await chapters.getByRole("link", { name: "首页交互工作台" }).press("Enter");
+    const chapter = page.getByRole("heading", { name: "首页交互工作台" });
+    await expect(chapter).toBeFocused();
+    await expect(chapter).toBeInViewport();
+    await expect(
+      page.getByRole("img", { name: /首页手绘工作台/u }),
+    ).toHaveJSProperty("naturalWidth", 900);
   });
 
   test("supports mobile menu open, close, navigation, and basic layout", async ({

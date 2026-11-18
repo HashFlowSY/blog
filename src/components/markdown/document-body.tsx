@@ -4,7 +4,7 @@ import { Fragment, jsx, jsxs } from "react/jsx-runtime";
 import { CopyCode } from "./copy-code";
 
 import type { Element, Root } from "hast";
-import type { ComponentPropsWithoutRef, ReactElement } from "react";
+import type { ComponentPropsWithoutRef } from "react";
 
 function CodeBlock({
   node,
@@ -40,17 +40,20 @@ function ScrollTable({
   );
 }
 
-export function DocumentBody({ id, tree }: { id: string; tree: Root }) {
-  const content: ReactElement = toJsxRuntime(tree, {
+export function renderMarkdown(tree: Root) {
+  return toJsxRuntime(tree, {
     Fragment,
     jsx,
     jsxs,
     components: { pre: CodeBlock, table: ScrollTable },
     passNode: true,
   });
+}
+
+export function DocumentBody({ id, tree }: { id: string; tree: Root }) {
   return (
     <div className="markdown-body" id={id}>
-      {content}
+      {renderMarkdown(tree)}
     </div>
   );
 }
