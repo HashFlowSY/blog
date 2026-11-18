@@ -87,7 +87,7 @@ test.describe("Projects", () => {
 
     await expect(
       page.getByText(
-        "站点已在 GitHub Pages 上线，公开了两篇技术文章和一个项目案例。",
+        "中文技术博客与作品集，已发布到 GitHub Pages。支持按主题筛选文章和搜索正文。",
       ),
     ).toBeVisible();
     await expect(

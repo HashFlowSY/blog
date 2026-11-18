@@ -13,9 +13,9 @@ description: "Hashflow 的中文技术博客与作品集，收录 AI 工具实�
 cover: "/assets/personal-blog-home.jpg"
 source: "https://github.com/HashFlowSY/blog"
 demo: "https://hashflowsy.github.io/blog/"
-role: "站点设计与开发、内容构建、发布维护"
+role: "设计、开发和维护网站，并搭建 Markdown 发布流程"
 duration: "2026 年 4 月至今"
-result: "站点已在 GitHub Pages 上线，公开了两篇技术文章和一个项目案例。"
+result: "中文技术博客与作品集，已发布到 GitHub Pages。支持按主题筛选文章和搜索正文。"
 showcase:
   eyebrow: "个人博客 · 已上线"
   intro: "我用这个站点发布中文技术文章和项目案例，记录做过的尝试、遇到的问题和可以查证的结果。"

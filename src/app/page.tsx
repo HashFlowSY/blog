@@ -16,15 +16,15 @@ export const metadata: Metadata = {
 const capabilities = [
   {
     title: "AI 应用",
-    description: "把模糊需求拆成可运行的 AI 功能、Agent 流程和工具链。",
+    description: "拆解需求，实现 AI 功能，设计 Agent 流程并接入工具。",
   },
   {
     title: "后端系统",
-    description: "从 API、数据库到性能优化，构建能长期维护的服务。",
+    description: "开发 API，优化数据库查询和服务性能。",
   },
   {
     title: "自动化交付",
-    description: "打通需求、开发、测试和部署，减少重复劳动。",
+    description: "让构建、测试和部署自动运行，减少重复操作。",
   },
 ] as const;
 
@@ -50,7 +50,7 @@ export default async function HomePage() {
             、后端系统和自动化工具。
           </p>
           <p className="workbench-intro">
-            4 年以上工程经历 · 开放全职机会与项目合作
+            4 年以上工程经验 · 欢迎聊全职机会和项目合作
           </p>
           <div className="workbench-actions">
             <a
@@ -141,7 +141,7 @@ export default async function HomePage() {
 
       <section className="workbench-section" aria-labelledby="writing-title">
         <div className="workbench-section-heading">
-          <h2 id="writing-title">最近在写</h2>
+          <h2 id="writing-title">最新文章</h2>
           <Link className="workbench-text-link" href="/posts/">
             查看全部文章 <span aria-hidden="true">→</span>
           </Link>

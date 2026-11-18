@@ -5,7 +5,7 @@ const SITE_COPY = {
   projects: "项目",
   about: "关于",
   allProjects: "项目案例",
-  recentPosts: "最近在写",
+  recentPosts: "最新文章",
   featuredProjects: "代表项目",
   viewFeaturedProject: "查看代表项目",
   aboutTitle: "关于我",
