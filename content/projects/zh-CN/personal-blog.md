@@ -59,9 +59,11 @@ draft: false
 
 ## 首页交互工作台
 
-[首页](/)有一张可以互动的手绘工作台。可以切换台灯、拨动叶片，或点按键盘让屏幕显示图纸。开启系统的「减少动态效果」时，首页直接显示完整工作台。
+[首页](/)的手绘工作台会在素材加载完毕并进入视口后自动播放。铅笔先画墙面、地面和透视线，再逐件画出桌子、电脑、盆栽和挂板工具，全程约 25 秒。切到后台时暂停，回到页面后接着画。
 
-[体验首页工作台](/) · [工作台设计记录](https://github.com/HashFlowSY/blog/blob/main/docs/design/workbench-interaction-design.md)
+收笔后，可以开关工作灯、拨动叶片，或操作笔记本、外接显示器和键盘，让对应的屏幕逐笔画出图纸。部件支持鼠标、触屏和键盘操作。系统开启「减少动态效果」时，直接显示完整工作台。
+
+[体验首页工作台](/) · [工作台设计记录](https://github.com/HashFlowSY/blog/blob/083ac431f4daa60fd7cf570174562fa37709e8cc/docs/design/workbench-interaction-design.md)
 
 ---
 
@@ -69,11 +71,11 @@ draft: false
 
 ## 构建与发布
 
-文章和项目案例都用 Markdown 编写。构建时先校验内容，再生成静态页面、文章搜索索引、RSS 和站点地图。浏览器检查通过后，GitHub Pages 发布被检查的那份静态文件。
+文章和项目案例都用 Markdown 编写。构建时校验内容字段并编译正文，然后用 Next.js 生成静态页面、文章搜索索引、RSS 和站点地图。读者搜索时，浏览器按需加载静态索引并匹配文章。
 
 ### 设计取舍
 
-新增或修改内容后重新构建，访客打开时直接读取生成的文件。页面地址由 Markdown 里单独填写的标识决定，改标题或文件名不必改公开链接。[静态托管决定](https://github.com/HashFlowSY/blog/blob/44d8229/docs/adr/0001-keep-the-site-chinese-only-and-static.md)
+新增或修改内容后重新构建，访客打开时直接读取生成的文件。页面地址由 Markdown 中的 `slug` 字段决定，改标题或文件名时可以沿用原来的公开链接。[静态托管决定](https://github.com/HashFlowSY/blog/blob/44d8229/docs/adr/0001-keep-the-site-chinese-only-and-static.md)
 
 ---
 
@@ -87,7 +89,9 @@ draft: false
 
 #### 测试与 CI
 
-2026.11.17 · [查看 GitHub Pages 部署记录](https://github.com/HashFlowSY/blog/actions/runs/44017752385)
+GitHub Actions 对 `out/` 中的静态文件执行浏览器和无障碍检查，随后将同一份文件发布到 GitHub Pages。
+
+2026.11.19 · [查看 GitHub Pages 部署记录](https://github.com/HashFlowSY/blog/actions/runs/44463840286)
 
 ## 实现细节
 
@@ -101,7 +105,7 @@ draft: false
 
 ### 文章推荐
 
-最多推荐三篇。先比较共同标签数，再比较发布日期的距离；没有共同标签时展示最新文章。[推荐规则](https://github.com/HashFlowSY/blog/blob/44d8229/src/lib/related-reading.ts)
+最多推荐三篇有共同标签的文章。共同标签多的排在前面，数量相同时优先推荐发布日期更接近的文章。找不到同标签的文章时，展示其他最新文章。[推荐规则](https://github.com/HashFlowSY/blog/blob/44d8229/src/lib/related-reading.ts)
 
 ### 中文单站与 SEO
 
