@@ -61,7 +61,7 @@ draft: false
 
 [首页](/)有一张可以互动的手绘工作台。可以切换台灯、拨动叶片，或点按键盘让屏幕显示图纸。开启系统的「减少动态效果」时，首页直接显示完整工作台。
 
-[体验首页工作台](/) · [工作台设计记录](https://github.com/HashFlowSY/blog/blob/c57ab05f6eaa4ce5ee6e0a5090bfba1a26437660/docs/design/workbench-interaction-design.md)
+[体验首页工作台](/) · [工作台设计记录](https://github.com/HashFlowSY/blog/blob/main/docs/design/workbench-interaction-design.md)
 
 ---
 

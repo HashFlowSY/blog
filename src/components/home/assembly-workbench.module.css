@@ -47,6 +47,22 @@
   outline-offset: 2px;
 }
 
+.pencilImage {
+  filter: saturate(0.48);
+}
+
+.yellowTip {
+  visibility: hidden;
+}
+
+.pencil[data-pencil-medium="yellow"] .pencilImage {
+  filter: none;
+}
+
+.pencil[data-pencil-medium="yellow"] .yellowTip {
+  visibility: visible;
+}
+
 .srOnly {
   position: absolute;
   margin: 0;

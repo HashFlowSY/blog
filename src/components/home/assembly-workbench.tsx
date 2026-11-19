@@ -1,13 +1,23 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { preload } from "react-dom";
 
 import { assetPath } from "@/lib/site";
 
 import styles from "./assembly-workbench.module.css";
-import { drawingProgress, drawingStageAt, drawingTime } from "./pencil-plan";
-import { workbenchDrawingArt, workbenchInteractionArt } from "./workbench-art";
+import { drawingObjectAt, drawingProgress, drawingTime } from "./pencil-plan";
+import {
+  workbenchDrawingArt,
+  workbenchInteractionArt,
+  workbenchSurfaceArt,
+} from "./workbench-art";
 import { WorkbenchWaitingPaper } from "./workbench-drawing";
 import { WorkbenchInteractive } from "./workbench-interactive";
 
@@ -30,6 +40,11 @@ const animatedImagePreload = {
   type: "image/webp",
   media: "(prefers-reduced-motion: no-preference)",
 } as const;
+
+const animatedArtworkLayers = [
+  "paper",
+  ...workbenchSurfaceArt.map(({ id }) => id),
+] as const;
 
 function subscribeToMotionPreference(onChange: () => void) {
   const preference = window.matchMedia?.(reducedMotionQuery);
@@ -121,17 +136,23 @@ export function AssemblyWorkbench() {
     phase: "waiting",
     progress: 0,
   });
-  const [restStatus, setRestStatus] = useState<WorkbenchArtworkResult>();
-  const [paperStatus, setPaperStatus] = useState<WorkbenchArtworkResult>();
+  const [artwork, setArtwork] = useState<
+    Partial<Record<WorkbenchArtworkLayer, WorkbenchArtworkResult>>
+  >({});
   const [partsStatus, setPartsStatus] = useState<
     "loading" | "ready" | "failed"
   >("loading");
   const [visit, setVisit] = useState(0);
   const sceneRef = useRef<HTMLDivElement>(null);
-  const showStill = motion === "still" || paperStatus === "failed";
+  const restStatus = artwork.rest;
+  const showStill =
+    motion === "still" ||
+    animatedArtworkLayers.some((layer) => artwork[layer] === "failed");
   const canAnimate = motion === "animated" && !showStill;
   const artworkReady =
-    restStatus === "ready" && (showStill || paperStatus === "ready");
+    restStatus === "ready" &&
+    (showStill ||
+      animatedArtworkLayers.every((layer) => artwork[layer] === "ready"));
   const phase =
     restStatus === "failed"
       ? "failed"
@@ -147,14 +168,16 @@ export function AssemblyWorkbench() {
   preload(workbenchDrawingArt.rest, { as: "image", type: "image/webp" });
   preload(workbenchDrawingArt.paper, animatedImagePreload);
   preload(workbenchDrawingArt.pencil, animatedImagePreload);
+  for (const { src } of workbenchSurfaceArt) preload(src, animatedImagePreload);
 
-  function handleArtworkResult(
-    layer: WorkbenchArtworkLayer,
-    result: WorkbenchArtworkResult,
-  ) {
-    if (layer === "rest") setRestStatus(result);
-    else setPaperStatus(result);
-  }
+  const handleArtworkResult = useCallback(
+    (layer: WorkbenchArtworkLayer, result: WorkbenchArtworkResult) => {
+      setArtwork((current) =>
+        current[layer] === result ? current : { ...current, [layer]: result },
+      );
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!artworkReady) return;
@@ -179,6 +202,9 @@ export function AssemblyWorkbench() {
     if (!element || !artworkReady) return;
     let frameId: number | undefined;
     let stopWatching: (() => void) | undefined;
+    let elapsed = 0;
+    let lastFrameAt: number | undefined;
+    let playing = false;
 
     function stopFrame() {
       if (frameId === undefined) return;
@@ -186,37 +212,47 @@ export function AssemblyWorkbench() {
       frameId = undefined;
     }
 
-    function finishDrawing() {
-      stopFrame();
-      setDrawing({ phase: "complete", progress: 100 });
+    function advance(time: number) {
+      frameId = undefined;
+      if (lastFrameAt === undefined) return;
+      elapsed += time - lastFrameAt;
+      lastFrameAt = time;
+      const next = drawingProgress(elapsed);
+      if (next >= 100) {
+        playing = false;
+        lastFrameAt = undefined;
+        setDrawing({ phase: "complete", progress: 100 });
+        return;
+      }
+      setDrawing({ phase: "drawing", progress: next });
+      frameId = window.requestAnimationFrame(advance);
     }
 
     function startDrawing() {
       stopWatching = undefined;
-      const startedAt = performance.now();
+      elapsed = 0;
+      playing = true;
       setDrawing({ phase: "drawing", progress: 0 });
-
-      function advance(time: number) {
-        const next = drawingProgress(time - startedAt);
-        if (next >= 100) {
-          finishDrawing();
-          return;
-        }
-        setDrawing({ phase: "drawing", progress: next });
-        frameId = window.requestAnimationFrame(advance);
-      }
-
-      frameId = window.requestAnimationFrame(advance);
+      syncVisibility();
     }
 
     function stopPlayback() {
       stopWatching?.();
       stopWatching = undefined;
+      playing = false;
+      lastFrameAt = undefined;
       stopFrame();
     }
 
-    function finishWhenHidden() {
-      if (document.hidden && frameId !== undefined) finishDrawing();
+    function syncVisibility() {
+      if (!playing) return;
+      if (document.hidden) {
+        lastFrameAt = undefined;
+        stopFrame();
+      } else if (lastFrameAt === undefined) {
+        lastFrameAt = performance.now();
+        frameId = window.requestAnimationFrame(advance);
+      }
     }
 
     const restartWhenRestored = (event: PageTransitionEvent) => {
@@ -231,11 +267,11 @@ export function AssemblyWorkbench() {
 
     if (canAnimate)
       stopWatching = observeDrawingVisibility(element, startDrawing);
-    document.addEventListener("visibilitychange", finishWhenHidden);
+    document.addEventListener("visibilitychange", syncVisibility);
     window.addEventListener("pageshow", restartWhenRestored);
     return () => {
       stopPlayback();
-      document.removeEventListener("visibilitychange", finishWhenHidden);
+      document.removeEventListener("visibilitychange", syncVisibility);
       window.removeEventListener("pageshow", restartWhenRestored);
     };
   }, [artworkReady, canAnimate]);
@@ -250,9 +286,9 @@ export function AssemblyWorkbench() {
         className={styles["scene"]}
         data-drawing-state={phase}
         data-progress={progress}
-        data-drawing-stage={
+        data-drawing-object={
           phase === "drawing"
-            ? drawingStageAt(drawingTime(progress))
+            ? drawingObjectAt(drawingTime(progress))
             : undefined
         }
       >
@@ -276,7 +312,7 @@ export function AssemblyWorkbench() {
               enabled={interactiveReady}
               progress={progress}
               hidden={phase === "waiting"}
-              loadPaper={motion === "animated"}
+              loadPaper={canAnimate}
               onArtworkResult={handleArtworkResult}
             />
           )}

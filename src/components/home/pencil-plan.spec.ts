@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  artworkSettledAt,
+  backgroundDrawing,
   drawingDuration,
+  drawingObjectAt,
+  drawingObjects,
   drawingProgress,
-  drawingStageAt,
-  drawingStages,
   drawingTime,
 } from "./pencil-plan";
 
@@ -20,13 +22,44 @@ describe("pencil playback timing", () => {
     expect(drawingTime(100)).toBe(drawingDuration);
     expect(drawingProgress(-100)).toBe(0);
     expect(drawingProgress(drawingTime(100) + 1000)).toBe(100);
+    expect(
+      drawingObjects.slice(9, 13).map(({ start, end }) => end - start),
+    ).toEqual([960, 810, 710, 600]);
+    const tools = drawingObjects.at(-1)!;
+    expect(tools.start).toBe(backgroundDrawing.end + 18_380);
+    expect(tools.end - tools.start).toBe(2_600);
+    expect(drawingDuration - artworkSettledAt).toBe(220);
   });
 
-  it("resolves the drawing stage at each boundary", () => {
-    for (const [stage, window] of Object.entries(drawingStages)) {
-      expect(drawingStageAt(window.start)).toBe(stage);
-      expect(drawingStageAt(window.end - 1)).toBe(stage);
+  it("finishes the background before drawing the fifteen objects in order", () => {
+    expect(drawingObjectAt(0)).toBe(backgroundDrawing.id);
+    expect(drawingObjectAt(backgroundDrawing.end - 1)).toBe(
+      backgroundDrawing.id,
+    );
+    expect(drawingObjects.map(({ id }) => id)).toEqual([
+      "table",
+      "toolbox",
+      "drawers",
+      "pegboard",
+      "upper-shelf",
+      "chair",
+      "laptop",
+      "display",
+      "vise",
+      "plant",
+      "shelf-boxes",
+      "books",
+      "small-drawers",
+      "lamp",
+      "tools",
+    ]);
+    for (const [index, object] of drawingObjects.entries()) {
+      expect(object.start).toBe(
+        drawingObjects[index - 1]?.end ?? backgroundDrawing.end,
+      );
+      expect(drawingObjectAt(object.start)).toBe(object.id);
+      expect(drawingObjectAt(object.end - 1)).toBe(object.id);
     }
-    expect(drawingStageAt(drawingStages.finish.end)).toBe("finish");
+    expect(drawingObjectAt(drawingObjects.at(-1)!.end)).toBe("lift");
   });
 });

@@ -6,6 +6,7 @@ export interface PencilStroke {
   end: number;
   path: string;
   point?: PencilPoint;
+  medium: "graphite" | "yellow";
 }
 
 export function constructionFraction(value: number): number {
@@ -24,25 +25,47 @@ export function strokeFraction(
   return pencilEase((progress - stroke.start) / (stroke.end - stroke.start));
 }
 
-export const drawingStages = {
-  point: { start: 0, end: 160 },
-  line: { start: 160, end: 1250 },
-  plane: { start: 1250, end: 1850 },
-  rough: { start: 1850, end: 2650 },
-  ink: { start: 2650, end: 3850 },
-  shadow: { start: 3850, end: 5350 },
-  finish: { start: 5350, end: 6600 },
+const objectDurations = [
+  ["table", 3600],
+  ["toolbox", 1050],
+  ["drawers", 1600],
+  ["pegboard", 1950],
+  ["upper-shelf", 950],
+  ["chair", 1350],
+  ["laptop", 1450],
+  ["display", 1550],
+  ["vise", 950],
+  ["plant", 960],
+  ["shelf-boxes", 810],
+  ["books", 710],
+  ["small-drawers", 600],
+  ["lamp", 850],
+  ["tools", 2600],
+] as const;
+
+type DrawingObject = (typeof objectDurations)[number][0];
+
+export const backgroundDrawing = {
+  id: "background",
+  start: 0,
+  end: 3800,
 } as const;
 
-export type DrawingStage = keyof typeof drawingStages;
+export type DrawingStage = DrawingObject | typeof backgroundDrawing.id;
 
-export const drawingDuration = drawingStages.finish.end;
-export const artworkSettledAt = 6450;
+let clock: number = backgroundDrawing.end;
+export const drawingObjects = objectDurations.map(([id, duration]) => {
+  const start = clock;
+  clock += duration;
+  return { id, start, end: clock };
+});
 
-const stages = Object.keys(drawingStages) as DrawingStage[];
+export const artworkSettledAt = drawingObjects.at(-1)!.end;
+export const drawingDuration = artworkSettledAt + 220;
 
-export function drawingStageAt(time: number): DrawingStage {
-  return stages.find((stage) => time < drawingStages[stage].end) ?? "finish";
+export function drawingObjectAt(time: number): DrawingStage | "lift" {
+  if (time < backgroundDrawing.end) return backgroundDrawing.id;
+  return drawingObjects.find(({ end }) => time < end)?.id ?? "lift";
 }
 
 export function drawingTime(progress: number): number {

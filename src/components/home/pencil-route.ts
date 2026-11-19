@@ -12,34 +12,31 @@ import type { PencilPoint, PencilStroke } from "./pencil-plan";
 // The renderer and cursor read these same stroke windows. Only one stroke is
 // active at a time; the gaps are real pen lifts rather than trailing motion.
 const strokes = drawingMarks
-  .flatMap<
+  .map<
     PencilStroke & {
       length: number;
       minY: number;
     }
   >((mark) => {
-    if (mark.kind === "tone" || mark.pen === false) return [];
     const window = {
       id: mark.id,
       start: drawingProgress(mark.fromMs),
       end: drawingProgress(mark.toMs),
-    };
-    return [
-      mark.kind === "point"
-        ? {
-            ...window,
-            path: "",
-            point: mark.point,
-            length: 2,
-            minY: mark.point[1],
-          }
-        : { ...window, path: mark.path, ...strokeGeometry(mark.path) },
-    ];
+      medium: mark.medium,
+    } as const;
+    return mark.kind === "point"
+      ? {
+          ...window,
+          path: "",
+          point: mark.point,
+          length: 2,
+          minY: mark.point[1],
+        }
+      : { ...window, path: mark.path, ...strokeGeometry(mark.path) };
   })
   .sort((a, b) => a.start - b.start);
 
 const lastStroke = strokes.at(-1)!;
-const liftWear = 0.06;
 const strokeCost = strokes.reduce(
   (total, stroke) => total + Math.sqrt(stroke.length),
   0,
@@ -48,24 +45,22 @@ const strokeCost = strokes.reduce(
 let usedMaterial = 0;
 export const pencilRoute = strokes.map((stroke) => {
   const wearBefore = usedMaterial;
-  const wear = ((1 - liftWear) * Math.sqrt(stroke.length)) / strokeCost;
+  const wear = Math.sqrt(stroke.length) / strokeCost;
   usedMaterial += wear;
   return { ...stroke, wear, wearBefore };
 });
-
-const fullPencilLength = 224;
 
 function finalLift(progress: number) {
   return pencilEase((progress - lastStroke.end) / (100 - lastStroke.end));
 }
 
-// Contact consumes material. Only the finishing lift takes the remaining tip.
-export function pencilLength(progress: number): number {
+// Material is consumed during strokes and stops changing whenever the pen lifts.
+export function pencilWear(progress: number): number {
   const next = pencilRoute.find((stroke) => progress < stroke.end);
   const used = next
     ? next.wearBefore + next.wear * strokeFraction(progress, next)
-    : 1 - liftWear * (1 - finalLift(progress));
-  return fullPencilLength * (1 - constructionFraction(used));
+    : 1;
+  return constructionFraction(used);
 }
 
 function barrelAngle(minY: number): number {
@@ -81,6 +76,7 @@ interface PencilPose {
   stroke: string;
   phase: "drawing" | "lifting";
   fraction: number;
+  medium: PencilStroke["medium"];
 }
 
 type PathSampler = (stroke: PencilStroke, fraction: number) => PencilPoint;
@@ -104,6 +100,7 @@ export function pencilPosition(
       stroke: lastStroke.id,
       phase: "lifting",
       fraction: 1,
+      medium: lastStroke.medium,
     };
   }
   let point: PencilPoint;
@@ -112,6 +109,7 @@ export function pencilPosition(
   let fraction = 0;
   const stroke = next;
   let angle = barrelAngle(stroke.minY);
+  let medium = stroke.medium;
   let phase: PencilPose["phase"] = "drawing";
 
   function at(stroke: PencilStroke, fraction: number): PencilPoint {
@@ -126,6 +124,7 @@ export function pencilPosition(
       const gap = constructionFraction(
         (progress - previous.end) / (next.start - previous.end),
       );
+      if (gap < 0.5) medium = previous.medium;
       const travel = pencilEase((gap - 0.14) / 0.72);
       lift = pencilEase(gap / 0.22) * pencilEase((1 - gap) / 0.22);
       const height = Math.min(
@@ -159,5 +158,6 @@ export function pencilPosition(
     stroke: stroke.id,
     phase,
     fraction,
+    medium,
   };
 }

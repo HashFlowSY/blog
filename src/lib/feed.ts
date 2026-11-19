@@ -14,7 +14,7 @@ interface FeedConfig {
   items: readonly FeedItem[];
 }
 
-export function escapeXml(str: string): string {
+function escapeXml(str: string): string {
   return str
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")

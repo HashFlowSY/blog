@@ -44,7 +44,7 @@
 2. **起稿**：勾出台沿和桌脚。
 3. **描线**：补上工具和暗部。
 
-主图始终保留整张工作台。优先用既有实帧生成发布用压缩图，源素材分别是 [1.845 秒](../../qa-evidence/workbench-build-v2/desktop-1845.png)、[4.260 秒](../../qa-evidence/workbench-build-v2/desktop-4260.png)和[6.605 秒](../../qa-evidence/workbench-build-v2/desktop-6605.png)。[绘制时序](../design/workbench-interaction-design.md)有各阶段的含义。把「本人工作：设计、开发与发布维护」「2026 年 4 月至今」做成图版下的简短资料行。手机顺序是标题和入口、完整成稿、并排的两张过程小图；宽度太窄图注读不下时，过程小图竖排。真实导航栏沿用全站现有样式，静态草图中只简写了品牌和返回链接。
+主图始终保留整张工作台。优先用既有实帧生成发布用压缩图，源素材分别是 [1.845 秒](../../qa-evidence/workbench-build-v2/desktop-1845.png)、[4.260 秒](../../qa-evidence/workbench-build-v2/desktop-4260.png)和[6.605 秒](../../qa-evidence/workbench-build-v2/desktop-6605.png)。[当时的绘制时序](https://github.com/HashFlowSY/blog/blob/c57ab05f6eaa4ce5ee6e0a5090bfba1a26437660/docs/design/workbench-interaction-design.md)记录了各阶段的含义。把「本人工作：设计、开发与发布维护」「2026 年 4 月至今」做成图版下的简短资料行。手机顺序是标题和入口、完整成稿、并排的两张过程小图；宽度太窄图注读不下时，过程小图竖排。真实导航栏沿用全站现有样式，静态草图中只简写了品牌和返回链接。
 
 ### 往下读：三段不同形状的内容
 

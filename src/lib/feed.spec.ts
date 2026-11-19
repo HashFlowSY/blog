@@ -1,18 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildRssXml, escapeXml } from "./feed";
-
-describe("escapeXml", () => {
-  it("escapes all special characters together", () => {
-    expect(escapeXml('<a href="?x=1&y=2">it\'s</a>')).toBe(
-      "&lt;a href=&quot;?x=1&amp;y=2&quot;&gt;it&apos;s&lt;/a&gt;",
-    );
-  });
-
-  it("returns unchanged string when no special characters", () => {
-    expect(escapeXml("hello world")).toBe("hello world");
-  });
-});
+import { buildRssXml } from "./feed";
 
 describe("buildRssXml", () => {
   const baseConfig = {
@@ -88,16 +76,18 @@ describe("buildRssXml", () => {
         {
           title: "Using <script> & 'quotes'",
           link: "https://example.com/posts/p/",
-          description: 'A & B > C "test"',
+          description: '<a href="?x=1&y=2">it\'s</a>',
           pubDate: "2026-04-01",
           categories: [],
         },
       ],
     });
-    expect(xml).toContain("&lt;script&gt;");
-    expect(xml).toContain("&amp;");
-    expect(xml).toContain("&apos;");
-    expect(xml).toContain("&quot;");
+    expect(xml).toContain(
+      "<title>Using &lt;script&gt; &amp; &apos;quotes&apos;</title>",
+    );
+    expect(xml).toContain(
+      "<description>&lt;a href=&quot;?x=1&amp;y=2&quot;&gt;it&apos;s&lt;/a&gt;</description>",
+    );
   });
 
   it("omits category elements when post has no tags", () => {

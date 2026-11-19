@@ -1,10 +1,19 @@
 import { useLayoutEffect, useRef, useState } from "react";
 
 import styles from "./assembly-workbench.module.css";
-import { pencilLength, pencilPosition } from "./pencil-route";
+import { pencilPosition, pencilWear } from "./pencil-route";
 import { workbenchDrawingArt } from "./workbench-art";
 
 import type { PencilPoint } from "./pencil-plan";
+
+const spriteWidth = 250;
+const spriteHeight = 83.333;
+const tipX = 13.006;
+const tipY = 42.012;
+const tailStart = 226;
+const leadWear = 1.8;
+const initialShaftTrim = 75;
+const finalShaftTrim = 128;
 
 export function WorkbenchPencil({ progress }: { progress: number }) {
   const [artFailed, setArtFailed] = useState(false);
@@ -14,13 +23,13 @@ export function WorkbenchPencil({ progress }: { progress: number }) {
   const paths = useRef(
     new Map<string, { path: SVGPathElement; length: number }>(),
   );
-  const source = workbenchDrawingArt.pencil;
-  const length = pencilLength(progress);
-  // Crop the shaft without scaling the artwork or moving the contact point.
-  // Once the shaft is gone, consume the tail and finally the wood/graphite tip.
-  const capWidth = Math.min(9, Math.max(0, length - 28));
-  const bodyEnd = length - capWidth;
-  const bodyWidth = 13.006 + bodyEnd;
+  const wear = pencilWear(progress);
+  const tip = tipX + leadWear * wear;
+  const shaftTrim =
+    initialShaftTrim + (finalShaftTrim - initialShaftTrim) * wear;
+  const shaftLength = tailStart - tip - shaftTrim;
+  const shaftClipWidth = shaftLength + 1;
+  const tailWidth = spriteWidth - tailStart;
 
   useLayoutEffect(() => {
     const element = cursor.current;
@@ -50,56 +59,61 @@ export function WorkbenchPencil({ progress }: { progress: number }) {
     element.setAttribute("data-stroke", pose.stroke);
     element.setAttribute("data-phase", pose.phase);
     element.setAttribute("data-fraction", String(pose.fraction));
+    element.setAttribute("data-pencil-medium", pose.medium);
     barrel.current?.setAttribute("transform", `rotate(${pose.angle})`);
     contact.current?.setAttribute("opacity", String((1 - pose.lift) * 0.16));
   }, [progress]);
 
   if (artFailed) return null;
 
+  const sprite = (
+    <image
+      className={styles["pencilImage"]}
+      href={workbenchDrawingArt.pencil}
+      width={spriteWidth}
+      height={spriteHeight}
+      onError={() => setArtFailed(true)}
+    />
+  );
+
   return (
     <g
       ref={cursor}
       className={styles["pencil"]}
       data-construction-layer="pencil"
-      data-pencil-length={length}
+      data-pencil-wear={wear}
       aria-hidden="true"
       visibility="hidden"
       opacity="0"
     >
-      <ellipse
-        ref={contact}
-        cx="0"
-        cy="2"
-        rx={Math.min(8, length)}
-        ry="2.5"
-        fill="#514a3d"
-      />
+      <ellipse ref={contact} cx="0" cy="2" rx="8" ry="2.5" fill="#514a3d" />
       <g ref={barrel}>
+        {/* Slide the original tail over the shortened shaft. The extra unit
+            under the join covers subpixel gaps when the artwork is scaled. */}
         <svg
-          x="-13.006"
-          y="-42.012"
-          width={bodyWidth}
-          height="83.333"
-          viewBox={`0 0 ${bodyWidth} 83.333`}
+          y={-tipY}
+          width={shaftClipWidth}
+          height={spriteHeight}
+          viewBox={`${tip} 0 ${shaftClipWidth} ${spriteHeight}`}
           style={{ overflow: "hidden" }}
           data-pencil-body="true"
         >
-          <image
-            href={source}
-            width="250"
-            height="83.333"
-            onError={() => setArtFailed(true)}
+          {sprite}
+          <path
+            className={styles["yellowTip"]}
+            d={`M ${tip} ${tipY} L 22 40.45 L 22 43.55 Z`}
+            fill="#bb8a17"
           />
         </svg>
         <svg
-          x={bodyEnd}
-          y="-42.012"
-          width={capWidth}
-          height="83.333"
-          viewBox={`228.006 0 ${Math.max(0.001, capWidth)} 83.333`}
+          x={shaftLength}
+          y={-tipY}
+          width={tailWidth}
+          height={spriteHeight}
+          viewBox={`${tailStart} 0 ${tailWidth} ${spriteHeight}`}
           style={{ overflow: "hidden" }}
         >
-          <image href={source} width="250" height="83.333" />
+          {sprite}
         </svg>
       </g>
     </g>

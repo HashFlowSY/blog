@@ -5,11 +5,10 @@ import { AssemblyWorkbench } from "./assembly-workbench";
 import {
   artworkSettledAt,
   drawingDuration,
+  drawingObjects,
   drawingProgress,
-  drawingStages,
-  drawingTime,
 } from "./pencil-plan";
-import { workbenchDrawingArt } from "./workbench-art";
+import { workbenchDrawingArt, workbenchSurfaceArt } from "./workbench-art";
 import { WorkbenchDrawing } from "./workbench-drawing";
 import { drawingMarks } from "./workbench-geometry";
 
@@ -129,6 +128,10 @@ describe("AssemblyWorkbench", () => {
       fireEvent.load(artwork(workbenchDrawingArt.rest)!);
       const paper = artwork(workbenchDrawingArt.paper);
       if (paper) fireEvent.load(paper);
+      for (const { src } of workbenchSurfaceArt) {
+        const texture = artwork(src);
+        if (texture) fireEvent.load(texture);
+      }
     });
     return view;
   }
@@ -196,7 +199,7 @@ describe("AssemblyWorkbench", () => {
     expect(screen.getAllByRole("button")).toHaveLength(7);
   });
 
-  it("keeps construction marks during the sketch and settles the original before enabling interaction", async () => {
+  it("keeps the same drawn sheet through the final lift and into interaction", async () => {
     await renderReadyWorkbench();
     const rest = artwork(workbenchDrawingArt.rest);
     expect(rest).toBeInTheDocument();
@@ -206,20 +209,19 @@ describe("AssemblyWorkbench", () => {
     revealCanvas();
     expect(scene().querySelector("[data-workbench-waiting]")).toBeNull();
     expect(artwork(workbenchDrawingArt.rest)).toBe(rest);
-    advanceTo(drawingStages.rough.end - 20);
-    expect(scene()).toHaveAttribute("data-drawing-stage", "rough");
+    advanceTo(drawingObjects[0]!.end - 10);
+    expect(scene()).toHaveAttribute("data-drawing-object", "table");
     expect(
-      scene().querySelector('[data-mark-stage="line"]'),
+      scene().querySelector('[data-drawing-mark="table-right-contact"]'),
     ).toBeInTheDocument();
-    expect(
-      scene().querySelector('[data-mark-stage="rough"]'),
-    ).toBeInTheDocument();
-    expect(scene().querySelector('[data-mark-stage="shadow"]')).toBeNull();
-    expect(rest).toHaveAttribute("visibility", "hidden");
+    expect(scene().querySelector('[data-mark-object="toolbox"]')).toBeNull();
+    const contactMask = rest?.parentElement?.getAttribute("mask");
+    expect(contactMask).toMatch(/^url\(/);
     advanceTo(artworkSettledAt + 1);
-    expect(rest).not.toHaveAttribute("mask");
-    expect(rest).not.toHaveAttribute("visibility");
-    expect(scene().querySelector("[data-drawing-mark]")).toBeNull();
+    expect(rest?.parentElement).toHaveAttribute("mask", contactMask);
+    expect(
+      scene().querySelector('[data-mark-part="right-short-driver"]'),
+    ).toBeInTheDocument();
     expect(scene().querySelector('[data-workbench-art="rest"]')).toBeNull();
     expect(
       screen.getByRole("img", { name: "正在绘制的工作台" }),
@@ -227,6 +229,7 @@ describe("AssemblyWorkbench", () => {
     expect(screen.queryAllByRole("button")).toHaveLength(0);
     advanceTo(drawingDuration);
     expect(scene().querySelector('[data-workbench-art="rest"]')).toBe(rest);
+    expect(rest?.parentElement).toHaveAttribute("mask", contactMask);
     expect(
       screen.queryByRole("img", { name: "正在绘制的工作台" }),
     ).not.toBeInTheDocument();
@@ -262,9 +265,9 @@ describe("AssemblyWorkbench", () => {
       screen.queryByRole("group", { name: "二维工作台部件" }),
     ).not.toBeInTheDocument();
     revealCanvas();
-    advanceTo(drawingDuration + drawingStages.point.end / 2);
+    advanceTo(drawingDuration + 500);
     expect(Number(scene().getAttribute("data-progress"))).toBeGreaterThan(0);
-    expect(scene()).toHaveAttribute("data-drawing-stage", "point");
+    expect(scene()).toHaveAttribute("data-drawing-object", "background");
   });
 
   it("starts a fresh timeline when history restores an unfinished playing drawing", async () => {
@@ -276,9 +279,9 @@ describe("AssemblyWorkbench", () => {
     expect(scene()).toHaveAttribute("data-progress", "0");
     expect(frames.size).toBe(0);
     revealCanvas();
-    advanceTo(100000 + drawingStages.point.end / 2);
+    advanceTo(100000 + 500);
     expect(Number(scene().getAttribute("data-progress"))).toBeGreaterThan(0);
-    expect(scene()).toHaveAttribute("data-drawing-stage", "point");
+    expect(scene()).toHaveAttribute("data-drawing-object", "background");
   });
 
   it("shows the finished artwork with reduced motion and resets retained controls on restoration", async () => {
@@ -342,15 +345,29 @@ describe("AssemblyWorkbench", () => {
     },
   );
 
-  it("finishes an in-progress drawing when the document is hidden", async () => {
+  it("pauses a hidden drawing and resumes from the last painted frame", async () => {
     await renderReadyWorkbench();
     revealCanvas();
-    advanceTo(drawingTime(40));
+    const endOfTable = drawingObjects[0]!.end;
+    advanceTo(endOfTable - 100);
+    const pausedProgress = scene().getAttribute("data-progress");
     expect(frames.size).toBe(1);
-    vi.spyOn(document, "hidden", "get").mockReturnValue(true);
+    const hidden = vi.spyOn(document, "hidden", "get").mockReturnValue(true);
     fireEvent(document, new Event("visibilitychange"));
-    expect(scene()).toHaveAttribute("data-drawing-state", "complete");
-    expect(scene()).toHaveAttribute("data-progress", "100");
     expect(frames.size).toBe(0);
+    advanceTo(60000);
+    expect(scene()).toHaveAttribute("data-drawing-state", "drawing");
+    expect(scene()).toHaveAttribute("data-progress", pausedProgress);
+    expect(scene().querySelector('[data-mark-object="toolbox"]')).toBeNull();
+
+    hidden.mockReturnValue(false);
+    fireEvent(document, new Event("visibilitychange"));
+    expect(scene()).toHaveAttribute("data-progress", pausedProgress);
+    advanceTo(60120);
+    expect(scene()).toHaveAttribute("data-drawing-object", "toolbox");
+    expect(scene()).toHaveAttribute(
+      "data-progress",
+      String(drawingProgress(endOfTable + 20)),
+    );
   });
 });

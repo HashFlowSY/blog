@@ -1,6 +1,10 @@
 import { expect } from "@playwright/test";
 
-import { drawingTime } from "../../src/components/home/pencil-plan";
+import {
+  backgroundDrawing,
+  drawingDuration,
+  drawingTime,
+} from "../../src/components/home/pencil-plan";
 
 import type { Locator, Page } from "@playwright/test";
 
@@ -17,19 +21,20 @@ export function workbenchScene(workbench: Locator) {
 export async function drawToTime(page: Page, workbench: Locator, time: number) {
   const scene = workbenchScene(workbench);
   await expect(scene).toHaveAttribute("data-drawing-state", "drawing");
-  const current = Number(await scene.getAttribute("data-progress"));
-  await page.clock.fastForward(Math.max(0, time - drawingTime(current)) + 16);
-  await expect
-    .poll(async () =>
-      drawingTime(Number(await scene.getAttribute("data-progress"))),
-    )
-    .toBeGreaterThanOrEqual(time);
+  const current = async () =>
+    drawingTime(Number(await scene.getAttribute("data-progress")));
+  const remaining = time - (await current());
+  if (remaining > 0) {
+    await page.clock.fastForward(Math.ceil(remaining));
+    if ((await current()) < time) await page.clock.runFor(16);
+  }
+  await expect.poll(current).toBeGreaterThanOrEqual(time);
 }
 
 export async function waitForFinishedWorkbench(workbench: Locator) {
   const scene = workbench.locator('[data-drawing-state="complete"]');
   const artwork = scene.locator('[data-workbench-art="rest"]');
-  await expect(artwork).toBeVisible({ timeout: 15000 });
+  await expect(artwork).toBeVisible({ timeout: drawingDuration + 5000 });
   return scene;
 }
 
@@ -41,7 +46,7 @@ type ArtworkArea = readonly [
 ];
 
 const hidePencil =
-  '[data-construction-layer="pencil"] { visibility: hidden !important; }';
+  '[data-construction-layer="pencil"] { display: none !important; }';
 
 export function captureWorkbenchArtwork(scene: Locator) {
   return scene.screenshot({
@@ -92,6 +97,55 @@ export async function artworkLuma(page: Page, screenshot: Buffer) {
   }, screenshot.toString("base64"));
 }
 
+export async function expectUnchangedArtwork(
+  page: Page,
+  actual: Buffer,
+  previous: Buffer,
+  channelTolerance = 1,
+) {
+  if (actual.equals(previous)) return;
+  const difference = await page.evaluate(
+    async ([first, second, tolerance]) => {
+      async function pixels(png: string) {
+        const image = new Image();
+        image.src = `data:image/png;base64,${png}`;
+        await image.decode();
+        const canvas = document.createElement("canvas");
+        canvas.width = image.naturalWidth;
+        canvas.height = image.naturalHeight;
+        const context = canvas.getContext("2d")!;
+        context.drawImage(image, 0, 0);
+        return context.getImageData(0, 0, canvas.width, canvas.height);
+      }
+      const [a, b] = await Promise.all([pixels(first), pixels(second)]);
+      if (a.width !== b.width || a.height !== b.height)
+        return { changed: 1, visible: 1 };
+      let changed = 0;
+      let visible = 0;
+      for (let index = 0; index < a.data.length; index += 4) {
+        let pixel = 0;
+        for (let channel = index; channel < index + 4; channel++)
+          pixel = Math.max(
+            pixel,
+            Math.abs(a.data[channel]! - b.data[channel]!),
+          );
+        if (pixel > tolerance) changed++;
+        if (pixel > 8) visible++;
+      }
+      const area = a.width * a.height;
+      return { changed: changed / area, visible: visible / area };
+    },
+    [
+      actual.toString("base64"),
+      previous.toString("base64"),
+      channelTolerance,
+    ] as const,
+  );
+  // Repainting soft SVG mask edges can round a color channel differently.
+  expect(difference.changed).toBeLessThan(0.001);
+  expect(difference.visible).toBeLessThan(0.0005);
+}
+
 export async function paintedPencilLength(page: Page, workbench: Locator) {
   await page.evaluate(async () => {
     window.scrollTo({ top: 0, behavior: "instant" });
@@ -117,8 +171,8 @@ export async function paintedPencilLength(page: Page, workbench: Locator) {
     };
   });
   const png = (await page.screenshot({ scale: "css" })).toString("base64");
-  // Compare the same frame without the pencil so the drawer's yellow pixels
-  // cannot be mistaken for a long barrel. Do not limit the search by its model length.
+  // Compare the same frame without the pencil so artwork colors cannot be
+  // mistaken for the barrel or tip.
   const background = (
     await page.screenshot({ scale: "css", style: hidePencil })
   ).toString("base64");
@@ -169,12 +223,7 @@ export async function paintedPencilLength(page: Page, workbench: Locator) {
             Math.abs(green - behind[index + 1]!),
             Math.abs(blue - behind[index + 2]!),
           );
-          if (
-            difference > 8 &&
-            red > green * 1.22 &&
-            green > blue * 1.25 &&
-            red > 90
-          ) {
+          if (difference > 12) {
             min = Math.min(min, along);
             max = Math.max(max, along);
             count++;
@@ -210,6 +259,13 @@ export async function expectPencilAtStroke(workbench: Locator) {
     )!;
     const id = pen.dataset["stroke"];
     const matrix = pen.transform.baseVal.consolidate()!.matrix;
+    const body = pen.querySelector<SVGSVGElement>("[data-pencil-body]")!;
+    const tip = new DOMPoint(
+      body.viewBox.baseVal.x,
+      -body.y.baseVal.value,
+    ).matrixTransform(body.getScreenCTM()!);
+    const anchor = new DOMPoint(0, 0).matrixTransform(pen.getScreenCTM()!);
+    const visibleTipDistance = Math.hypot(tip.x - anchor.x, tip.y - anchor.y);
     const point = element.querySelector<SVGCircleElement>(
       `[data-pencil-point="${id}"]`,
     );
@@ -220,6 +276,7 @@ export async function expectPencilAtStroke(workbench: Locator) {
           matrix.f - point.cy.baseVal.value,
         ),
         fractionDifference: 0,
+        visibleTipDistance,
       };
     }
     const path = element.querySelector<SVGPathElement>(
@@ -233,10 +290,25 @@ export async function expectPencilAtStroke(workbench: Locator) {
     return {
       distance: Math.hypot(matrix.e - head.x, matrix.f - head.y),
       fractionDifference: Math.abs(Number(pen.dataset["fraction"]) - fraction),
+      visibleTipDistance,
     };
   });
   expect(alignment.distance).toBeLessThan(0.05);
   expect(alignment.fractionDifference).toBeLessThan(0.00001);
+  expect(alignment.visibleTipDistance).toBeLessThan(0.05);
+}
+
+export async function expectFirstBackgroundStroke(
+  page: Page,
+  workbench: Locator,
+) {
+  await expect(workbenchScene(workbench)).toHaveAttribute(
+    "data-drawing-object",
+    backgroundDrawing.id,
+  );
+  await expect(workbench.locator("[data-drawing-mark]")).toHaveCount(0);
+  await movePencilToDrawing(page, workbench);
+  await expectPencilAtStroke(workbench);
 }
 
 export async function expectFirstWorkbenchPoint(
@@ -245,13 +317,14 @@ export async function expectFirstWorkbenchPoint(
 ) {
   const marks = workbench.locator("[data-pencil-point]");
   const first = workbench.locator('[data-pencil-point="point-rightFoot"]');
+  await drawToTime(page, workbench, backgroundDrawing.end);
   await expect(workbenchScene(workbench)).toHaveAttribute(
-    "data-drawing-stage",
-    "point",
+    "data-drawing-object",
+    "table",
   );
   await expect(marks).toHaveCount(0);
   await movePencilToDrawing(page, workbench);
-  await expect(first).toBeVisible();
+  await expect(first).toBeAttached();
   await expect(marks).toHaveCount(1);
   await expectPencilAtStroke(workbench);
 }

@@ -3,8 +3,9 @@ import { expect } from "@playwright/test";
 import {
   artworkSettledAt,
   drawingDuration,
-  drawingStages,
+  drawingTime,
 } from "../src/components/home/pencil-plan";
+import { pencilRoute } from "../src/components/home/pencil-route";
 
 import { SITE_COPY, STABLE_POST, STABLE_PROJECT, test } from "./fixtures";
 import {
@@ -18,38 +19,51 @@ import {
   captureArtworkArea,
   captureWorkbenchArtwork,
   drawToTime,
-  expectFirstWorkbenchPoint,
+  expectFirstBackgroundStroke,
   expectPencilAtStroke,
+  expectUnchangedArtwork,
   installDrawingClock,
-  movePencilToDrawing,
   paintedPencilLength,
   waitForFinishedWorkbench,
   workbenchScene,
 } from "./helpers/workbench";
 
 test.describe("WebKit smoke", () => {
-  test("draws contacted points and consumes the pencil before revealing the finished illustration", async ({
+  test("draws contacted strokes and lifts the shortened pencil from the finished illustration", async ({
     page,
   }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
     await installDrawingClock(page);
     await goToHome(page);
     const workbench = page.getByRole("region", { name: "交互工作台" });
-    await expectFirstWorkbenchPoint(page, workbench);
+    await expectFirstBackgroundStroke(page, workbench);
     const early = await paintedPencilLength(page, workbench);
-    await drawToTime(page, workbench, drawingStages.shadow.start);
-    await movePencilToDrawing(page, workbench);
+    const yellow = pencilRoute.find(({ id }) => id === "drawer-yellow-second")!;
+    await drawToTime(
+      page,
+      workbench,
+      drawingTime((yellow.start + yellow.end) / 2),
+    );
     await expectPencilAtStroke(workbench);
-    await drawToTime(page, workbench, drawingStages.finish.start);
-    const late = await paintedPencilLength(page, workbench);
+    const middle = await paintedPencilLength(page, workbench);
     expect(early.pixels).toBeGreaterThan(30);
-    expect(late.pixels).toBeGreaterThan(30);
-    expect(late.extent).toBeLessThan(early.extent);
+    expect(early.extent).toBeGreaterThan(146);
+    expect(early.extent).toBeLessThan(153);
+    expect(middle.pixels).toBeGreaterThan(30);
+    expect(middle.extent).toBeLessThan(early.extent - 15);
     const scene = workbenchScene(workbench);
     await drawToTime(page, workbench, artworkSettledAt);
+    const stub = await paintedPencilLength(page, workbench);
+    expect(stub.extent).toBeGreaterThan(80);
+    expect(stub.extent).toBeLessThan(106);
     const settled = await captureWorkbenchArtwork(scene);
     await drawToTime(page, workbench, drawingDuration);
     await waitForFinishedWorkbench(workbench);
-    expect((await captureWorkbenchArtwork(scene)).equals(settled)).toBe(true);
+    await expectUnchangedArtwork(
+      page,
+      await captureWorkbenchArtwork(scene),
+      settled,
+    );
     await expect(workbench.getByRole("slider")).toHaveCount(0);
   });
 

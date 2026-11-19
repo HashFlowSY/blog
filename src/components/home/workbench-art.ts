@@ -9,9 +9,44 @@ import type {
 const workbenchArtRoot = "/assets/workbench-2d";
 export const workbenchDrawingArt = {
   rest: assetPath(`${workbenchArtRoot}/workbench-rest.webp`),
-  paper: assetPath(`${workbenchArtRoot}/workbench-paper.webp`),
+  paper: assetPath("/assets/sketchbook-paper.webp"),
   pencil: assetPath("/assets/drawing-pencil.webp"),
 } as const;
+
+export const workbenchTextureArt = [
+  {
+    id: "table-texture",
+    owner: "table",
+    src: assetPath(`${workbenchArtRoot}/workbench-table-texture.webp`),
+    parts: ["table-grain", "table-cast-shadow"],
+  },
+  {
+    id: "pegboard-texture",
+    owner: "pegboard",
+    src: assetPath(`${workbenchArtRoot}/workbench-pegboard-texture.webp`),
+    parts: ["pegboard-grain"],
+  },
+  {
+    id: "shelf-texture",
+    owner: "upper-shelf",
+    src: assetPath(`${workbenchArtRoot}/workbench-shelf-texture.webp`),
+    parts: ["shelf-grain"],
+  },
+] as const;
+
+// The image uses the full drawing dimensions to preserve sampling on mobile.
+export const workbenchChairBackground = {
+  id: "chair-background",
+  src: assetPath(`${workbenchArtRoot}/workbench-chair-background.webp`),
+  box: { x: 796, y: 497, width: 186, height: 237 },
+} as const;
+
+export const workbenchSurfaceArt = [
+  ...workbenchTextureArt,
+  workbenchChairBackground,
+] as const;
+
+export type WorkbenchSurfaceLayer = (typeof workbenchSurfaceArt)[number]["id"];
 
 export const workbenchSheet = {
   width: 1440,

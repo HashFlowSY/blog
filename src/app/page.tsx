@@ -123,7 +123,7 @@ export default async function HomePage() {
       </section>
 
       <section
-        className="workbench-section workbench-capabilities"
+        className="workbench-section"
         aria-labelledby="capabilities-title"
       >
         <div className="workbench-section-heading">

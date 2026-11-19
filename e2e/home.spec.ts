@@ -2,11 +2,13 @@ import { expect } from "@playwright/test";
 
 import {
   artworkSettledAt,
+  backgroundDrawing,
   drawingDuration,
-  drawingStages,
+  drawingObjects,
   drawingTime,
 } from "../src/components/home/pencil-plan";
 import { pencilRoute } from "../src/components/home/pencil-route";
+import { drawingParts } from "../src/components/home/workbench-geometry";
 
 import { SITE_COPY, STABLE_PROJECT, test } from "./fixtures";
 import { goToHome, waitForRouteEntry } from "./helpers/navigation";
@@ -15,8 +17,10 @@ import {
   captureArtworkArea,
   captureWorkbenchArtwork,
   drawToTime,
+  expectFirstBackgroundStroke,
   expectFirstWorkbenchPoint,
   expectPencilAtStroke,
+  expectUnchangedArtwork,
   installDrawingClock,
   movePencilToDrawing,
   paintedPencilLength,
@@ -25,6 +29,11 @@ import {
 } from "./helpers/workbench";
 
 import type { Locator, Page } from "@playwright/test";
+
+const workbenchArtwork = {
+  paper: "sketchbook-paper.webp",
+  rest: "workbench-rest.webp",
+};
 
 async function holdRequest(page: Page, url: string | RegExp) {
   const { promise, resolve } = Promise.withResolvers<void>();
@@ -45,7 +54,7 @@ function drawnMarkProgress(workbench: Locator) {
             [
               mark.getAttribute("data-drawing-mark")!,
               mark instanceof SVGCircleElement
-                ? mark.r.baseVal.value
+                ? Number(mark.getAttribute("opacity"))
                 : 1 - Number(mark.getAttribute("stroke-dashoffset")),
             ] as const,
         ),
@@ -63,18 +72,22 @@ test.describe("Home page", () => {
     }) => {
       await page.setViewportSize({ width: 1440, height: 900 });
       await installDrawingClock(page);
-      const firstUrl = `**/workbench-${first}.webp`;
+      const firstUrl = `**/${workbenchArtwork[first]}`;
       const artworkRequests: string[] = [];
       page.on("request", (request) => {
         const pathname = new URL(request.url()).pathname;
-        const asset = /\/(workbench-(?:paper|rest)\.webp)$/.exec(pathname)?.[1];
-        if (asset) artworkRequests.push(asset);
+        const asset = pathname.split("/").at(-1);
+        if (
+          asset === workbenchArtwork[first] ||
+          asset === workbenchArtwork[second]
+        )
+          artworkRequests.push(asset);
       });
       const releaseScripts = await holdRequest(page, /\/_next\/.*\.js$/);
       const releaseFirst = await holdRequest(page, firstUrl);
       const releaseSecond = await holdRequest(
         page,
-        `**/workbench-${second}.webp`,
+        `**/${workbenchArtwork[second]}`,
       );
       const releaseLamp = await holdRequest(
         page,
@@ -117,8 +130,8 @@ test.describe("Home page", () => {
         releaseLamp();
         await expect(workbench.getByRole("button")).toHaveCount(7);
         expect(artworkRequests.sort()).toEqual([
-          "workbench-paper.webp",
-          "workbench-rest.webp",
+          workbenchArtwork.paper,
+          workbenchArtwork.rest,
         ]);
       } finally {
         releaseScripts();
@@ -129,21 +142,30 @@ test.describe("Home page", () => {
     });
   }
 
-  for (const reason of ["reduced motion", "missing paper"] as const) {
+  for (const [reason, asset] of [
+    ["reduced motion", undefined],
+    ["missing paper", workbenchArtwork.paper],
+    ["missing tabletop texture", "workbench-table-texture.webp"],
+    ["missing chair background", "workbench-chair-background.webp"],
+  ] as const) {
     test(`shows the finished workbench without drawing for ${reason}`, async ({
       page,
     }) => {
       const animationAssetRequests: string[] = [];
-      if (reason === "reduced motion") {
+      if (asset) {
+        await page.route(`**/${asset}`, (route) => route.abort());
+      } else {
         await page.emulateMedia({ reducedMotion: "reduce" });
         page.on("request", (request) => {
           const pathname = new URL(request.url()).pathname;
-          if (/\/(?:workbench-paper|drawing-pencil)\.webp$/.test(pathname)) {
+          if (
+            /\/(?:sketchbook-paper|drawing-pencil|workbench-(?:(?:table|pegboard|shelf)-texture|chair-background))\.webp$/.test(
+              pathname,
+            )
+          ) {
             animationAssetRequests.push(pathname);
           }
         });
-      } else {
-        await page.route("**/workbench-paper.webp", (route) => route.abort());
       }
       await installDrawingClock(page);
       const restUrl = "**/workbench-rest.webp";
@@ -160,7 +182,7 @@ test.describe("Home page", () => {
         releaseRest();
         await waitForFinishedWorkbench(workbench);
         await expect(workbench.getByRole("button")).toHaveCount(7);
-        if (reason === "reduced motion") {
+        if (!asset) {
           expect(animationAssetRequests).toEqual([]);
         }
       } finally {
@@ -192,13 +214,16 @@ test.describe("Home page", () => {
     await installDrawingClock(page);
     await goToHome(page);
     const workbench = page.getByRole("region", { name: "交互工作台" });
-    await drawToTime(page, workbench, drawingStages.line.end);
+    const scene = workbenchScene(workbench);
+    const worktop = [750, 435, 1050, 476] as const;
+    const paper = await captureArtworkArea(scene, worktop);
+    await drawToTime(page, workbench, drawingObjects[0]!.end - 18);
     await expect(
       workbench.locator('[data-construction-layer="pencil"]'),
     ).toHaveCount(0);
-    await expect(
-      workbench.locator('[data-pencil-path="guide-worktop"]'),
-    ).toBeVisible();
+    expect((await captureArtworkArea(scene, worktop)).equals(paper)).toBe(
+      false,
+    );
     await drawToTime(page, workbench, drawingDuration);
     await waitForFinishedWorkbench(workbench);
   });
@@ -212,15 +237,15 @@ test.describe("Home page", () => {
     const scene = workbenchScene(workbench);
     async function expectFreshDrawing() {
       await expect(scene).toHaveAttribute("data-progress", "0");
-      await expectFirstWorkbenchPoint(page, workbench);
+      await expectFirstBackgroundStroke(page, workbench);
       await expect(workbench.getByRole("button")).toHaveCount(0);
       expect(
         Number(
           await workbench
             .locator('[data-construction-layer="pencil"]')
-            .getAttribute("data-pencil-length"),
+            .getAttribute("data-pencil-wear"),
         ),
-      ).toBeGreaterThan(200);
+      ).toBeLessThan(0.03);
     }
     await expectFreshDrawing();
     await expect(workbench.getByRole("slider")).toHaveCount(0);
@@ -261,23 +286,39 @@ test.describe("Home page", () => {
     await expectFirstWorkbenchPoint(page, workbench);
   });
 
-  test("visibly consumes the pencil and exhausts the last tip at completion", async ({
+  test("shortens the pencil while drawing and lifts the remaining stub", async ({
     page,
   }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
     await installDrawingClock(page);
     await goToHome(page);
     const workbench = page.getByRole("region", { name: "交互工作台" });
     const pen = workbench.locator('[data-construction-layer="pencil"]');
-    await expectFirstWorkbenchPoint(page, workbench);
+    await expectFirstBackgroundStroke(page, workbench);
     const early = await paintedPencilLength(page, workbench);
-    await drawToTime(page, workbench, drawingStages.finish.start);
-    const late = await paintedPencilLength(page, workbench);
+    await expect(pen).toHaveAttribute("data-pencil-medium", "graphite");
+    const yellow = pencilRoute.find(({ id }) => id === "drawer-yellow-second")!;
+    await drawToTime(
+      page,
+      workbench,
+      drawingTime((yellow.start + yellow.end) / 2),
+    );
+    const middle = await paintedPencilLength(page, workbench);
+    await expect(pen).toHaveAttribute("data-pencil-medium", "yellow");
     expect(early.pixels).toBeGreaterThan(30);
-    expect(late.pixels).toBeGreaterThan(30);
-    expect(late.extent).toBeLessThan(early.extent);
-    expect(
-      Number(await pen.getAttribute("data-pencil-length")),
-    ).toBeGreaterThan(0);
+    expect(early.extent).toBeGreaterThan(146);
+    expect(early.extent).toBeLessThan(153);
+    expect(middle.pixels).toBeGreaterThan(30);
+    expect(middle.extent).toBeLessThan(early.extent - 15);
+    await drawToTime(page, workbench, artworkSettledAt);
+    await expect(pen).toHaveAttribute("data-phase", "lifting");
+    await expect(pen).toHaveAttribute("data-pencil-medium", "graphite");
+    await expect(pen).toBeVisible();
+    const stub = await paintedPencilLength(page, workbench);
+    expect(stub.pixels).toBeGreaterThan(30);
+    expect(stub.extent).toBeLessThan(middle.extent - 15);
+    expect(stub.extent).toBeGreaterThan(80);
+    expect(stub.extent).toBeLessThan(106);
     await drawToTime(page, workbench, drawingDuration);
     await expect(pen).toHaveCount(0);
     await waitForFinishedWorkbench(workbench);
@@ -289,12 +330,12 @@ test.describe("Home page", () => {
     await installDrawingClock(page);
     await goToHome(page);
     const workbench = page.getByRole("region", { name: "交互工作台" });
-    for (const stage of ["line", "ink", "shadow"] as const) {
-      await drawToTime(page, workbench, drawingStages[stage].start);
+    for (const object of drawingObjects.slice(1)) {
+      await drawToTime(page, workbench, object.start);
       await movePencilToDrawing(page, workbench);
       await expect(workbenchScene(workbench)).toHaveAttribute(
-        "data-drawing-stage",
-        stage,
+        "data-drawing-object",
+        object.id,
       );
       await expectPencilAtStroke(workbench);
     }
@@ -309,7 +350,7 @@ test.describe("Home page", () => {
     const pen = workbench.locator('[data-construction-layer="pencil"]');
     const shelfArea = [730, 190, 1220, 228] as const;
     const samples = [
-      { id: "guide-right-leg", area: [1155, 536, 1176, 662] },
+      { id: "guide-depth", area: [1173, 438, 1250, 476] },
       { id: "guide-worktop", area: [800, 435, 1060, 480] },
     ] as const;
 
@@ -317,14 +358,14 @@ test.describe("Home page", () => {
       const stroke = pencilRoute.find((item) => item.id === id)!;
       const start = drawingTime(stroke.start);
       const end = drawingTime(stroke.end);
-      await drawToTime(page, workbench, start + (end - start) / 4);
+      await drawToTime(page, workbench, start + (end - start) / 8);
       await expect(pen).toHaveAttribute("data-stroke", id);
       await expectPencilAtStroke(workbench);
       const before = await drawnMarkProgress(workbench);
       const nearby = await captureArtworkArea(scene, area);
       const farAway = await captureArtworkArea(scene, shelfArea);
 
-      await drawToTime(page, workbench, (start + end) / 2);
+      await drawToTime(page, workbench, start + (end - start) * 0.58);
       await expect(pen).toHaveAttribute("data-stroke", id);
       await expectPencilAtStroke(workbench);
       const after = await drawnMarkProgress(workbench);
@@ -335,41 +376,68 @@ test.describe("Home page", () => {
       expect((await captureArtworkArea(scene, area)).equals(nearby)).toBe(
         false,
       );
-      expect((await captureArtworkArea(scene, shelfArea)).equals(farAway)).toBe(
-        true,
+      await expectUnchangedArtwork(
+        page,
+        await captureArtworkArea(scene, shelfArea),
+        farAway,
       );
     }
 
-    const worktop = pencilRoute.find(
-      (stroke) => stroke.id === "guide-worktop",
-    )!;
-    const post = pencilRoute.find((stroke) => stroke.id === "guide-left-post")!;
-    const liftStart = drawingTime(worktop.end);
-    const drawingWithoutPencil = () =>
-      scene.locator("[data-workbench-drawing]").evaluate((svg) => {
-        const drawing = svg.cloneNode(true) as SVGSVGElement;
-        drawing.querySelector('[data-construction-layer="pencil"]')?.remove();
-        return drawing.outerHTML;
-      });
-    await drawToTime(page, workbench, liftStart);
+    const yellow = pencilRoute.find(({ id }) => id === "drawer-yellow-first")!;
+    const previousStroke = pencilRoute[pencilRoute.indexOf(yellow) - 1]!;
+    const liftStart = drawingTime(previousStroke.end);
+    const liftEnd = drawingTime(yellow.start);
+    await drawToTime(page, workbench, liftStart + 4);
     await expect(pen).toHaveAttribute("data-phase", "lifting");
-    const lifted = await drawingWithoutPencil();
+    const lifted = await captureWorkbenchArtwork(scene);
     const initialPose = await pen.getAttribute("transform");
+    await drawToTime(page, workbench, (liftStart + liftEnd) / 2);
+    await expect(pen).toHaveAttribute("data-phase", "lifting");
+    expect(await pen.getAttribute("transform")).not.toBe(initialPose);
+    await expectUnchangedArtwork(
+      page,
+      await captureWorkbenchArtwork(scene),
+      lifted,
+    );
+  });
+
+  test("shades the cabinet progressively beside the moving pencil", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await installDrawingClock(page);
+    await goToHome(page);
+    const workbench = page.getByRole("region", { name: "交互工作台" });
+    const scene = workbenchScene(workbench);
+    const near = [1030, 575, 1050, 592] as const;
+    const far = [1118, 610, 1134, 630] as const;
+    const wash = pencilRoute.find(
+      (stroke) => stroke.id === "drawers-lower-tone",
+    )!;
+    await drawToTime(page, workbench, drawingTime(wash.start) - 33);
+    const bareSide = await captureArtworkArea(scene, near);
+    const bareBase = await captureArtworkArea(scene, far);
     await drawToTime(
       page,
       workbench,
-      (liftStart + drawingTime(post.start)) / 2,
+      drawingTime(wash.start + (wash.end - wash.start) / 4),
     );
-    await expect(pen).toHaveAttribute("data-phase", "lifting");
-    expect(await pen.getAttribute("transform")).not.toBe(initialPose);
-    expect(await drawingWithoutPencil()).toBe(lifted);
+    await expectPencilAtStroke(workbench);
+    expect((await captureArtworkArea(scene, near)).equals(bareSide)).toBe(
+      false,
+    );
+    await expectUnchangedArtwork(
+      page,
+      await captureArtworkArea(scene, far),
+      bareBase,
+    );
   });
 
   for (const viewport of [
     { width: 1440, height: 900 },
     { width: 390, height: 844 },
   ]) {
-    test(`builds the whole workbench before adding details at ${viewport.width}px`, async ({
+    test(`draws each object over finished supports in order at ${viewport.width}px`, async ({
       page,
     }) => {
       await page.setViewportSize(viewport);
@@ -378,111 +446,398 @@ test.describe("Home page", () => {
       const workbench = page.getByRole("region", { name: "交互工作台" });
       const scene = workbenchScene(workbench);
       await scene.scrollIntoViewIfNeeded();
-      await expect(scene).toHaveAttribute("data-drawing-stage", "point");
-
-      const regions = [
-        [730, 190, 1220, 228], // upper shelf
-        [635, 427, 945, 475], // front edge of the worktop
-        [1149, 494, 1181, 689], // lower right support
-      ] as const;
-      const paper: Buffer[] = [];
-      for (const area of regions)
-        paper.push(await captureArtworkArea(scene, area));
-
-      await drawToTime(page, workbench, drawingStages.line.end);
-      for (const [index, area] of regions.entries()) {
-        const structure = await captureArtworkArea(scene, area);
-        expect(structure.equals(paper[index]!)).toBe(false);
-      }
-      for (const id of ["guide-shelf", "guide-worktop", "guide-right-leg"])
-        await expect(
-          workbench.locator(`[data-pencil-path="${id}"]`),
-        ).toBeVisible();
-      await expect(
-        workbench.locator(
-          '[data-mark-stage="rough"], [data-mark-stage="finish"]',
+      await expect(scene).toHaveAttribute("data-drawing-object", "background");
+      const wallLine = [729, 245, 741, 312] as const;
+      const farFloor = [1020, 714, 1080, 746] as const;
+      const unmarkedWall = await captureArtworkArea(scene, wallLine);
+      const unmarkedFloor = await captureArtworkArea(scene, farFloor);
+      const firstStroke = pencilRoute[0]!;
+      await drawToTime(
+        page,
+        workbench,
+        drawingTime(
+          firstStroke.start + (firstStroke.end - firstStroke.start) * 0.65,
         ),
-      ).toHaveCount(0);
-
-      await drawToTime(page, workbench, drawingStages.plane.end);
-      await expect(
-        workbench.locator('[data-mark-stage="plane"]').first(),
-      ).toBeVisible();
-
-      await drawToTime(page, workbench, drawingStages.rough.end);
-      for (const id of [
-        "rough-notebook",
-        "rough-display",
-        "rough-stool",
-        "rough-tools",
-      ])
-        await expect(
-          workbench.locator(`[data-pencil-path="${id}"]`),
-        ).toBeVisible();
-      await expect(
-        workbench.locator(
-          '[data-mark-stage="shadow"], [data-mark-stage="finish"]',
-        ),
-      ).toHaveCount(0);
-
-      await drawToTime(page, workbench, drawingStages.shadow.end - 48);
-      await expect(
-        workbench.locator('[data-mark-stage="ink"]').first(),
-      ).toBeVisible();
-      await expect(
-        workbench
-          .locator('[data-mark-stage="shadow"][data-mark-kind="stroke"]')
-          .first(),
-      ).toBeVisible();
-      await expect(workbench.locator('[data-mark-stage="finish"]')).toHaveCount(
-        0,
       );
-      await expect(workbench.getByRole("button")).toHaveCount(0);
+      await expectPencilAtStroke(workbench);
+      expect(
+        (await captureArtworkArea(scene, wallLine)).equals(unmarkedWall),
+      ).toBe(false);
+      await expectUnchangedArtwork(
+        page,
+        await captureArtworkArea(scene, farFloor),
+        unmarkedFloor,
+      );
+      await expect(scene.locator('[data-mark-object="table"]')).toHaveCount(0);
+      await drawToTime(page, workbench, backgroundDrawing.end);
+      await expect(scene).toHaveAttribute("data-drawing-object", "table");
+      expect(
+        (await captureArtworkArea(scene, farFloor)).equals(unmarkedFloor),
+      ).toBe(false);
 
-      const finishing = [
-        { id: "finish-notebook-study", area: [774, 362, 853, 416] },
-        { id: "finish-display-study", area: [1027, 347, 1068, 394] },
-        { id: "finish-yellow-pencil", area: [1025, 579, 1125, 628] },
+      const roomGuides = [
+        [688, 250, 740, 340],
+        [1256, 109, 1337, 396],
+        [585, 724, 737, 756],
+        [803, 83, 811, 94],
       ] as const;
-      const beforeFinish: Buffer[] = [];
-      for (const { area } of finishing)
-        beforeFinish.push(await captureArtworkArea(scene, area));
-
-      const pen = workbench.locator('[data-construction-layer="pencil"]');
-      for (const [index, { id, area }] of finishing.entries()) {
-        const stroke = pencilRoute.find((item) => item.id === id)!;
-        await drawToTime(
-          page,
-          workbench,
-          drawingTime((stroke.start + stroke.end) / 2),
+      const roomAtFirstStroke = await Promise.all(
+        roomGuides.map((area) => captureArtworkArea(scene, area)),
+      );
+      const tabletopSpots = [
+        { name: "under the notebook", area: [782, 427, 839, 436] },
+        { name: "clear wood between the devices", area: [927, 459, 952, 464] },
+        { name: "under the monitor", area: [1008, 433, 1045, 443] },
+        { name: "under the vise", area: [1143, 440, 1186, 452] },
+        { name: "under the left toolbox", area: [749, 546, 791, 553] },
+      ] as const;
+      const supportDetails = [
+        {
+          object: "table",
+          name: "diagonal brace",
+          area: [693, 473, 733, 492],
+          contrast: 18,
+        },
+        {
+          object: "table",
+          name: "rear foot plate",
+          area: [752, 591, 780, 606],
+          contrast: 25,
+        },
+        {
+          object: "table",
+          name: "floor shading",
+          area: [713, 607, 805, 650],
+          contrast: 12,
+        },
+        {
+          object: "upper-shelf",
+          name: "shadow beneath the shelf",
+          area: [1050, 218, 1142, 240],
+          contrast: 6,
+        },
+      ] as const;
+      const objectAreas = {
+        table: [660, 598, 697, 633],
+        toolbox: [731, 508, 797, 549],
+        drawers: [1030, 578, 1120, 629],
+        pegboard: [812, 264, 1190, 415],
+        "upper-shelf": [834, 205, 1057, 219],
+        chair: [853, 534, 920, 563],
+        laptop: [770, 360, 863, 410],
+        display: [1000, 345, 1095, 398],
+        vise: [1144, 412, 1178, 449],
+        plant: [769, 108, 854, 192],
+        "shelf-boxes": [833, 175, 939, 197],
+        books: [1065, 137, 1114, 193],
+        "small-drawers": [1131, 153, 1199, 193],
+        lamp: [863, 221, 1003, 234],
+        tools: [794, 267, 1190, 330],
+      } as const;
+      const paper = [];
+      for (const { area } of tabletopSpots) {
+        paper.push(
+          await artworkLuma(page, await captureArtworkArea(scene, area)),
         );
-        await expect(pen).toHaveAttribute("data-stroke", id);
-        await expectPencilAtStroke(workbench);
-        expect(
-          (await captureArtworkArea(scene, area)).equals(beforeFinish[index]!),
-        ).toBe(false);
-        for (const [later, sample] of finishing.entries()) {
-          if (later <= index) continue;
+      }
+      const clearTabletop = tabletopSpots[1].area;
+      const desktopBackgroundAreas = [
+        { object: "chair", area: [916, 631, 922, 634] },
+        { object: "laptop", area: [923, 365, 940, 395] },
+        { object: "display", area: [1137, 351, 1152, 388] },
+        { object: "lamp", area: [870, 245, 1006, 256] },
+        { object: "tools", area: [779, 267, 787, 330] },
+      ] as const;
+      const stableBackgroundAreas = [
+        { object: "chair", area: [823, 531, 830, 566] },
+        { object: "chair", area: [905, 578, 930, 602] },
+        { object: "chair", area: [1070, 700, 1190, 730] },
+        ...(viewport.width === 1440 ? desktopBackgroundAreas : []),
+      ] as const;
+      let finishedTabletop: Buffer | undefined;
+      const seen: string[] = [];
+
+      for (const { id, start, end } of drawingObjects) {
+        await drawToTime(page, workbench, start);
+        const before = await captureArtworkArea(scene, objectAreas[id]);
+        const backgroundAreas = stableBackgroundAreas.filter(
+          ({ object }) => object === id,
+        );
+        const backgroundBefore: Buffer[] = [];
+        for (const { area } of backgroundAreas) {
+          backgroundBefore.push(await captureArtworkArea(scene, area));
+        }
+        const details = supportDetails.filter(({ object }) => object === id);
+        const unpainted: number[] = [];
+        for (const { area } of details) {
+          unpainted.push(
+            await artworkLuma(page, await captureArtworkArea(scene, area)),
+          );
+        }
+        if (id === "tools") {
+          const right = [1158, 291, 1188, 326] as const;
+          const left = [798, 268, 818, 329] as const;
+          const bareRight = await captureArtworkArea(scene, right);
+          const bareLeft = await captureArtworkArea(scene, left);
+          const firstTool = pencilRoute.find(
+            (stroke) => stroke.id === "left-pliers-hatch",
+          )!;
+          await drawToTime(page, workbench, drawingTime(firstTool.end));
+          expect((await captureArtworkArea(scene, left)).equals(bareLeft)).toBe(
+            false,
+          );
+          await expectUnchangedArtwork(
+            page,
+            await captureArtworkArea(scene, right),
+            bareRight,
+          );
+        }
+
+        if (id === "display") {
+          const pencilArea = [920, 436, 960, 447] as const;
+          const pen = pencilRoute.find(
+            (stroke) => stroke.id === "desk-pencil-point",
+          )!;
+          await drawToTime(page, workbench, drawingTime(pen.start) - 24);
+          await expect(
+            scene.locator('[data-mark-part="desk-pencil"]'),
+          ).toHaveCount(0);
+          const onTheWood = await captureArtworkArea(scene, pencilArea);
+          await drawToTime(page, workbench, end - 18);
+          const shadedPencil = await artworkLuma(
+            page,
+            await captureArtworkArea(scene, pencilArea),
+          );
           expect(
-            (await captureArtworkArea(scene, sample.area)).equals(
-              beforeFinish[later]!,
+            (await artworkLuma(page, onTheWood)) - shadedPencil,
+            "pencil on the desk",
+          ).toBeGreaterThan(4);
+        } else {
+          await drawToTime(page, workbench, end - 18);
+        }
+        await expect(scene).toHaveAttribute("data-drawing-object", id);
+        seen.push(id);
+        const painted = await scene
+          .locator("[data-mark-object]")
+          .evaluateAll((marks) =>
+            Array.from(
+              new Set(
+                marks.map((mark) => mark.getAttribute("data-mark-object")),
+              ),
             ),
-          ).toBe(true);
+          );
+        expect(painted.sort()).toEqual([backgroundDrawing.id, ...seen].sort());
+        expect(
+          (await captureArtworkArea(scene, objectAreas[id])).equals(before),
+          id,
+        ).toBe(false);
+        if (["table", "pegboard", "plant", "tools"].includes(id)) {
+          for (const [index, area] of roomGuides.entries()) {
+            await expectUnchangedArtwork(
+              page,
+              await captureArtworkArea(scene, area),
+              roomAtFirstStroke[index]!,
+            );
+          }
+        }
+        for (const [index, background] of backgroundBefore.entries()) {
+          // Chromium can round the fixed pegboard texture by two channel values
+          // beside the display when the SVG mask is composited again.
+          await expectUnchangedArtwork(
+            page,
+            await captureArtworkArea(scene, backgroundAreas[index]!.area),
+            background,
+            id === "display" ? 2 : 1,
+          );
+        }
+        for (const [index, { area, name, contrast }] of details.entries()) {
+          const darkened = await artworkLuma(
+            page,
+            await captureArtworkArea(scene, area),
+          );
+          expect(unpainted[index]! - darkened, name).toBeGreaterThan(contrast);
+        }
+
+        if (id === "table") {
+          for (const [index, { name, area }] of tabletopSpots.entries()) {
+            const surface = await artworkLuma(
+              page,
+              await captureArtworkArea(scene, area),
+            );
+            expect(paper[index]! - surface, name).toBeGreaterThan(3);
+          }
+          finishedTabletop = await captureArtworkArea(scene, clearTabletop);
+        } else if (id === "laptop" || id === "vise") {
+          // The SVG table gradient can round differently at subpixel scales.
+          await expectUnchangedArtwork(
+            page,
+            await captureArtworkArea(scene, clearTabletop),
+            finishedTabletop!,
+            2,
+          );
         }
       }
 
-      await drawToTime(page, workbench, artworkSettledAt - 96);
-      await expect(
-        workbench.locator('[data-drawing-mark="finish-yellow-drawer"]'),
-      ).toBeVisible();
+      await expect(workbench.getByRole("button")).toHaveCount(0);
       await drawToTime(page, workbench, artworkSettledAt);
-      await expect(scene).toHaveAttribute("data-drawing-stage", "finish");
+      await expect(scene).toHaveAttribute("data-drawing-object", "lift");
       const settled = await captureWorkbenchArtwork(scene);
+      await drawToTime(page, workbench, artworkSettledAt + 125);
+      await expectUnchangedArtwork(
+        page,
+        await captureWorkbenchArtwork(scene),
+        settled,
+      );
       await drawToTime(page, workbench, drawingDuration);
       await waitForFinishedWorkbench(workbench);
-      expect((await captureWorkbenchArtwork(scene)).equals(settled)).toBe(true);
+      await expectUnchangedArtwork(
+        page,
+        await captureWorkbenchArtwork(scene),
+        settled,
+      );
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await expect(scene.locator("[data-workbench-surface]")).toHaveCount(0);
+      await expectUnchangedArtwork(
+        page,
+        settled,
+        await captureWorkbenchArtwork(scene),
+      );
     });
   }
+
+  for (const { edge, earlier, later, area } of [
+    {
+      edge: "monitor upper-left corner",
+      earlier: "monitor",
+      later: "t-handle",
+      area: [988, 329, 994, 334],
+    },
+    {
+      edge: "monitor stand",
+      earlier: "monitor",
+      later: "external-keyboard",
+      area: [1018, 434, 1047, 438],
+    },
+    {
+      edge: "right edge of the plant pot",
+      earlier: "plant",
+      later: "shelf-box-left",
+      area: [819, 184, 825, 197],
+    },
+    {
+      edge: "right edge of the leftmost book",
+      earlier: "book-left",
+      later: "book-inner-left",
+      area: [1068, 155, 1073, 183],
+    },
+    {
+      edge: "right edge of the middle book",
+      earlier: "book-center",
+      later: "book-inner-right",
+      area: [1095, 141, 1098, 186],
+    },
+  ] as const) {
+    test(`keeps the finished ${edge} through the next stroke`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await installDrawingClock(page);
+      await goToHome(page);
+      const workbench = page.getByRole("region", { name: "交互工作台" });
+      const scene = workbenchScene(workbench);
+      const endOf = (id: string) =>
+        drawingParts.find((part) => part.id === id)!.marks.at(-1)!.toMs;
+
+      await drawToTime(page, workbench, endOf(earlier));
+      const finished = await captureArtworkArea(scene, area);
+      await drawToTime(page, workbench, endOf(later));
+      await expectUnchangedArtwork(
+        page,
+        await captureArtworkArea(scene, area),
+        finished,
+      );
+    });
+  }
+
+  test("keeps the second book's upper edge hidden until its own strokes", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await installDrawingClock(page);
+    await goToHome(page);
+    const workbench = page.getByRole("region", { name: "交互工作台" });
+    const scene = workbenchScene(workbench);
+    const firstBook = drawingParts.find(({ id }) => id === "book-left")!;
+    const secondBook = drawingParts.find(({ id }) => id === "book-inner-left")!;
+    const area = [1073, 134, 1076, 141] as const;
+
+    await drawToTime(page, workbench, firstBook.marks[0]!.fromMs - 24);
+    const barePaper = await captureArtworkArea(scene, area);
+    await drawToTime(page, workbench, firstBook.marks.at(-1)!.toMs);
+    await expectUnchangedArtwork(
+      page,
+      await captureArtworkArea(scene, area),
+      barePaper,
+    );
+    await drawToTime(page, workbench, secondBook.marks.at(-1)!.toMs);
+    const drawn = await captureArtworkArea(scene, area);
+    expect(
+      (await artworkLuma(page, barePaper)) - (await artworkLuma(page, drawn)),
+    ).toBeGreaterThan(4);
+  });
+
+  test("keeps each finished tool and the surrounding pegboard stable", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await installDrawingClock(page);
+    await goToHome(page);
+    const workbench = page.getByRole("region", { name: "交互工作台" });
+    const scene = workbenchScene(workbench);
+    const endOf = (tool: string) =>
+      drawingParts.find(({ id }) => id === tool)!.marks.at(-1)!.toMs;
+    const samples = [
+      {
+        before: "first-spanner",
+        after: "second-spanner",
+        areas: [[904, 285, 910, 322]],
+      },
+      {
+        before: "second-spanner",
+        after: "third-spanner",
+        areas: [[937, 272, 939, 279]],
+      },
+      {
+        before: "hammer",
+        after: "right-tall-driver",
+        areas: [[1162, 273, 1170, 284]],
+      },
+      {
+        before: "right-tall-driver",
+        after: "right-short-driver",
+        areas: [
+          [1160, 290, 1171, 345],
+          [1176, 301, 1183, 306],
+        ],
+      },
+    ] as const;
+
+    for (const { before, after, areas } of samples) {
+      await drawToTime(page, workbench, endOf(before));
+      const finished: Buffer[] = [];
+      for (const area of areas) {
+        finished.push(await captureArtworkArea(scene, area));
+      }
+      await drawToTime(page, workbench, endOf(after));
+      for (const [index, area] of areas.entries()) {
+        await expectUnchangedArtwork(
+          page,
+          await captureArtworkArea(scene, area),
+          finished[index]!,
+        );
+      }
+    }
+  });
 
   test("exposes only the computers, leaves, and light and keeps the other artwork static", async ({
     page,
@@ -510,22 +865,24 @@ test.describe("Home page", () => {
 
     await page.mouse.move(0, 0);
     const resting = await scene.screenshot();
-    const points = await scene.locator("svg").evaluate((element) => {
-      const transform = (element as SVGSVGElement).getScreenCTM();
-      if (!transform)
-        throw new Error("Finished drawing has no coordinate transform");
-      return [
-        [808, 286], // hanging tool
-        [1072, 447], // mouse
-        [771, 524], // toolbox
-        [882, 546], // stool
-        [1076, 605], // drawer
-        [1147, 445], // vise handle
-      ].map(([x, y]) => {
-        const point = new DOMPoint(x, y).matrixTransform(transform);
-        return { x: point.x, y: point.y };
+    const points = await scene
+      .locator("[data-workbench-drawing]")
+      .evaluate((element) => {
+        const transform = (element as SVGSVGElement).getScreenCTM();
+        if (!transform)
+          throw new Error("Finished drawing has no coordinate transform");
+        return [
+          [808, 286], // hanging tool
+          [1072, 447], // mouse
+          [771, 524], // toolbox
+          [882, 546], // stool
+          [1076, 605], // drawer
+          [1147, 445], // vise handle
+        ].map(([x, y]) => {
+          const point = new DOMPoint(x, y).matrixTransform(transform);
+          return { x: point.x, y: point.y };
+        });
       });
-    });
     for (const { x, y } of points) await page.mouse.click(x, y);
     const handle = points.at(-1)!;
     await page.mouse.down();
@@ -533,7 +890,7 @@ test.describe("Home page", () => {
     await page.mouse.up();
     await page.mouse.move(0, 0);
     await page.clock.runFor(100);
-    expect((await scene.screenshot()).equals(resting)).toBe(true);
+    await expectUnchangedArtwork(page, await scene.screenshot(), resting);
   });
 
   test("fades the workbench light in place by mouse and keyboard", async ({
@@ -619,7 +976,7 @@ test.describe("Home page", () => {
     await expectUnlitRegionsUnchanged();
     await page.clock.runFor(260);
     await lamp.blur();
-    expect((await scene.screenshot()).equals(resting)).toBe(true);
+    await expectUnchangedArtwork(page, await scene.screenshot(), resting);
 
     for (const [direction, frame, start, end] of [
       ["off", dimming, lit, dark],
