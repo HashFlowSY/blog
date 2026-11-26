@@ -9,7 +9,8 @@ interface ProjectListProps {
 }
 
 export function ProjectList({ projects }: ProjectListProps) {
-  if (projects.length === 0) return <p className="empty-state">暂无项目</p>;
+  if (projects.length === 0)
+    return <p className="portfolio-empty-state">暂无项目</p>;
 
   return (
     <div className="portfolio-project-grid">

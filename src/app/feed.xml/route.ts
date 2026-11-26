@@ -18,7 +18,7 @@ export async function GET() {
   const items = posts.map((post) => ({
     title: post.title,
     link: siteUrl(`/posts/${post.slug}/`),
-    description: post.summary ?? "",
+    description: post.summary,
     pubDate: post.updated,
     categories: [...post.tags],
   }));

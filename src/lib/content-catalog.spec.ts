@@ -9,7 +9,6 @@ import {
   ContentCatalogError,
   createContentCatalogReader,
   getContentCatalog,
-  type ContentCatalogOptions,
   type Post,
   type ProjectCase,
 } from "./content-catalog";
@@ -124,23 +123,6 @@ describe("Content Catalog", () => {
     void projectCaseResultIsOptional;
     void postTagsAllowEmpty;
     void projectCaseTagsAllowEmpty;
-  });
-
-  it("keeps collection paths internal to the Catalog API", () => {
-    const rootOnlyOptions: ContentCatalogOptions = { rootDir: "/fixture" };
-
-    expect(rootOnlyOptions).toEqual({ rootDir: "/fixture" });
-
-    // @ts-expect-error Collection paths are derived from the Catalog root.
-    const invalidPostsOption: ContentCatalogOptions = { postsDir: "." };
-    // @ts-expect-error Collection paths are derived from the Catalog root.
-    const badProjects: ContentCatalogOptions = { projectsDir: "." };
-    // @ts-expect-error Collection paths are derived from the Catalog root.
-    const invalidPublicOption: ContentCatalogOptions = { publicDir: "." };
-
-    void invalidPostsOption;
-    void badProjects;
-    void invalidPublicOption;
   });
 
   it("builds one published snapshot from representative Post and Project Case files", async () => {

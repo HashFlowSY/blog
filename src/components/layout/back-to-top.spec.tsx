@@ -22,6 +22,7 @@ describe("BackToTop", () => {
   });
 
   afterEach(() => {
+    window.history.replaceState(null, "", "/");
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
@@ -40,5 +41,22 @@ describe("BackToTop", () => {
     const { getByRole } = renderBackToTop();
     fireEvent.click(getByRole("button", { name: "回到顶部" }));
     expect(scrollToMock).toHaveBeenCalledWith({ top: 0, behavior: "instant" });
+  });
+
+  it("removes the current chapter fragment while keeping the navigation entry", () => {
+    const state = { projectOrigin: { id: "featured-personal-blog" } };
+    window.history.replaceState(
+      state,
+      "",
+      "/projects/personal-blog/?view=case#chapter",
+    );
+    const { getByRole } = render(
+      <BackToTop targetId="project-title" placement="detail" />,
+    );
+    fireEvent.click(getByRole("button", { name: "回到顶部" }));
+    expect(
+      window.location.pathname + window.location.search + window.location.hash,
+    ).toBe("/projects/personal-blog/?view=case");
+    expect(window.history.state).toEqual(state);
   });
 });

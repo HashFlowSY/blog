@@ -20,8 +20,7 @@ export default defineConfig({
       reporter: ["text", "lcov", "html"],
       include: ["src/**/*.{ts,tsx}"],
       exclude: [
-        // 纯类型和 barrel 文件
-        "src/**/types/**",
+        // TypeScript 声明文件
         "src/**/*.d.ts",
         // Next.js 服务端组件和特殊文件
         "src/**/layout.tsx",

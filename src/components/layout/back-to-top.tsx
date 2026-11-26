@@ -2,7 +2,8 @@
 
 function returnToTop(target: HTMLElement | null) {
   const { hash, pathname, search } = window.location;
-  if (hash) window.history.replaceState(null, "", pathname + search);
+  if (hash)
+    window.history.replaceState(window.history.state, "", pathname + search);
 
   target?.focus({ preventScroll: true });
 
@@ -34,7 +35,7 @@ export function BackToTop({
           <span aria-hidden="true">↑</span> 回到顶部
         </>
       ) : (
-        "TOP"
+        <span aria-hidden="true">↑</span>
       )}
     </button>
   );

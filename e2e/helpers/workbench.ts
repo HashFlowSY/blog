@@ -51,30 +51,36 @@ const hidePencil =
 export function captureWorkbenchArtwork(scene: Locator) {
   return scene.screenshot({
     animations: "disabled",
-    scale: "css",
+    // Keep the actual screen pixels of the mobile drawing, including its mask.
+    scale: "device",
     style: hidePencil,
   });
 }
 
 export async function captureArtworkArea(scene: Locator, area: ArtworkArea) {
-  const clip = await scene
+  const [left, top, right, bottom] = area;
+  // A finished pencil stroke can occupy less than one screen pixel in the
+  // responsive panel. Inspect the live SVG at its source resolution so the
+  // small sample still represents the same marks at either viewport size.
+  const viewBox = await scene
     .locator("[data-workbench-drawing]")
-    .evaluate((element, area) => {
-      const matrix = (element as SVGSVGElement).getScreenCTM();
-      if (!matrix) throw new Error("The drawing has no coordinate transform");
-      const [left, top, right, bottom] = area;
-      const start = new DOMPoint(left, top).matrixTransform(matrix);
-      const end = new DOMPoint(right, bottom).matrixTransform(matrix);
-      const x = Math.ceil(start.x);
-      const y = Math.ceil(start.y);
-      return {
-        x,
-        y,
-        width: Math.floor(end.x) - x,
-        height: Math.floor(end.y) - y,
-      };
-    }, area);
-  return scene.page().screenshot({ clip, scale: "css", style: hidePencil });
+    .evaluate((element) => {
+      const { x, y, width, height } = (element as SVGSVGElement).viewBox
+        .baseVal;
+      return { x, y, width, height };
+    });
+  return scene.page().screenshot({
+    clip: { x: 0, y: 0, width: right - left, height: bottom - top },
+    scale: "css",
+    style: `${hidePencil}
+      [data-drawing-state] {
+        position: fixed !important; inset: ${viewBox.y - top}px auto auto ${viewBox.x - left}px !important;
+        width: ${viewBox.width}px !important; height: ${viewBox.height}px !important;
+        z-index: 2147483647 !important;
+      }
+      [data-drawing-state], [data-workbench-drawing] { mask: none !important; }
+      [data-drawing-state] > :first-child { inset: 0 !important; width: 100% !important; }`,
+  });
 }
 
 export async function artworkLuma(page: Page, screenshot: Buffer) {

@@ -32,8 +32,8 @@ export interface WorkbenchPose {
 }
 
 interface WorkbenchInteractionOptions {
-  reducedMotion?: () => boolean;
-  onMessage?: (message: string) => void;
+  reducedMotion: () => boolean;
+  onMessage: (message: string) => void;
   random?: () => number;
 }
 
@@ -47,10 +47,10 @@ function smoothstep(value: number, start: number, end: number) {
 }
 
 export function createWorkbenchInteractions({
-  reducedMotion = () => false,
-  onMessage = () => {},
+  reducedMotion,
+  onMessage,
   random = Math.random,
-}: WorkbenchInteractionOptions = {}) {
+}: WorkbenchInteractionOptions) {
   const springs = new Map<
     WorkbenchLeaf,
     { angle: number; speed: number; entered: number }

@@ -1,0 +1,71 @@
+.clippings .clip-title {
+  margin-bottom: clamp(25px, 2.5vw, 40px);
+}
+
+.clippings .question {
+  border: 0;
+  background: linear-gradient(90deg, #afbeab, #bdc9b6 62%, transparent) top left / 100% 1px no-repeat;
+}
+
+.clippings .question summary,
+.clippings .question[open] summary {
+  padding-block: clamp(20px, 1.8vw, 29px);
+}
+
+.question summary .category {
+  letter-spacing: .055em;
+}
+
+.question[open] summary h3 {
+  color: var(--forest);
+}
+
+.question .excerpt {
+  animation: none;
+  padding-bottom: clamp(25px, 2vw, 34px);
+}
+
+.excerpt-window {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.question .toggle {
+  background: transparent;
+  border-color: #b7c4af;
+}
+
+.question[open] .toggle {
+  background: #dce6d5;
+  border-color: #96a98e;
+}
+
+.question[data-intent="closed"] .toggle {
+  background: transparent;
+  border-color: #b7c4af;
+}
+.question[data-intent="closed"] .toggle::after {
+  transform: rotate(90deg);
+}
+
+@media (hover: hover) {
+  .question summary:hover .toggle {
+    border-color: #82977c;
+    background-color: #e4eadc;
+  }
+}
+
+@media (max-width: 730px) {
+  .clippings .clip-title {
+    margin-bottom: 24px;
+  }
+  .question .excerpt {
+    padding-bottom: 22px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .question .toggle::after {
+    transition: none;
+  }
+}

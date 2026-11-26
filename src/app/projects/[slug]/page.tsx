@@ -1,14 +1,15 @@
-import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 
 import { BackToTop } from "@/components/layout/back-to-top";
 import { DocumentBody } from "@/components/markdown/document-body";
 import { ReadingTools } from "@/components/markdown/reading-tools";
+import { ProjectCover } from "@/components/project/project-cover";
 import styles from "@/components/project/project-detail.module.css";
+import { ProjectReturnLink } from "@/components/project/project-return-link";
 import { ProjectStory } from "@/components/project/project-story";
 import { getContentCatalog } from "@/lib/content-catalog";
-import { collectionCardId } from "@/lib/content-navigation";
-import { siteUrl } from "@/lib/site";
+import { assetPath, siteUrl } from "@/lib/site";
 
 import type { Metadata } from "next";
 
@@ -51,25 +52,41 @@ export default async function ProjectDetailPage({ params }: Props) {
 
   return (
     <article
-      className="portfolio-page content-page content-detail-page"
+      className="content-page content-detail-page"
       aria-labelledby="project-title"
     >
-      <div className={styles["shell"]}>
-        <header className={styles["intro"]}>
-          <div>
-            <p className={styles["eyebrow"]}>
-              {showcase?.eyebrow ?? "项目档案"}
-            </p>
-            <h1 id="project-title" tabIndex={-1}>
-              {projectCase.title}
-            </h1>
-            <p>{showcase?.intro ?? projectCase.description}</p>
-          </div>
+      <ReadingTools
+        bodyId={projectBodyId}
+        collection="projects"
+        slug={slug}
+        outline={outline}
+      />
+      <header className={styles["intro"]}>
+        <div>
+          <p className="collection-eyebrow">
+            {showcase?.eyebrow ?? "项目档案"}
+          </p>
+          <h1 id="project-title" tabIndex={-1}>
+            {projectCase.title}
+          </h1>
+          <p className={styles["lead"]}>
+            {showcase?.intro ?? projectCase.description}
+          </p>
+          <dl className={styles["facts"]}>
+            <div>
+              <dt>我的角色</dt>
+              <dd>{projectCase.role}</dd>
+            </div>
+            <div>
+              <dt className="sr-only">项目周期</dt>
+              <dd>{projectCase.duration}</dd>
+            </div>
+          </dl>
           {(demo || source) && (
             <nav className={styles["actions"]} aria-label="项目入口">
               {demo && (
                 <a
-                  className="portfolio-button portfolio-button-primary"
+                  className="content-text-link"
                   href={demo}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -80,7 +97,7 @@ export default async function ProjectDetailPage({ params }: Props) {
               )}
               {source && (
                 <a
-                  className={styles["source"]}
+                  className="content-text-link"
                   href={source}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -90,57 +107,61 @@ export default async function ProjectDetailPage({ params }: Props) {
               )}
             </nav>
           )}
-        </header>
-
-        <dl className={styles["facts"]}>
-          <div>
-            <dt>本人工作</dt>
-            <dd>{projectCase.role}</dd>
-          </div>
-          <div>
-            <dt className="sr-only">项目周期</dt>
-            <dd>{projectCase.duration}</dd>
-          </div>
-        </dl>
-
-        <ReadingTools
-          bodyId={projectBodyId}
-          collection="projects"
-          slug={slug}
-          outline={outline}
-        />
-        {showcase?.chapters ? (
-          <ProjectStory id={projectBodyId} tree={document.tree} />
-        ) : (
-          <div className={styles["plainStory"]}>
-            <DocumentBody id={projectBodyId} tree={document.tree} />
-          </div>
-        )}
-
-        <footer className={styles["footer"]}>
-          <div>
-            <p className={styles["result"]}>{projectCase.result}</p>
-            {evidence && (
-              <a href={evidence.url} target="_blank" rel="noopener noreferrer">
-                {evidence.label} <span aria-hidden="true">↗</span>
-              </a>
-            )}
-          </div>
-          <div className={styles["tags"]} aria-label="技术标签">
-            {projectCase.tags.map((tag) => (
-              <span key={tag}>{tag}</span>
-            ))}
-          </div>
-          <Link
-            className={styles["footerReturn"]}
-            href={`/projects/#${collectionCardId("projects", slug)}`}
-            replace
+        </div>
+        <figure className={styles["figure"]}>
+          <ProjectCover slug={slug} className={styles["cover"]}>
+            <Image
+              src={assetPath(projectCase.cover)}
+              alt={`${projectCase.title}界面预览`}
+              fill
+              preload
+              sizes="(max-width: 650px) 100vw, 47vw"
+            />
+          </ProjectCover>
+          <figcaption>{projectCase.title} · 项目封面</figcaption>
+        </figure>
+      </header>
+      <div className={styles["bodyLayout"]}>
+        {outline.length >= 2 && (
+          <nav
+            className={styles["index"]}
+            id={`${projectBodyId}-index`}
+            aria-label="项目目录"
           >
-            <span aria-hidden="true">←</span> 返回项目
-          </Link>
-          <BackToTop targetId="project-title" placement="detail" />
-        </footer>
+            <h2>项目目录</h2>
+            {outline.map((heading) => (
+              <a key={heading.id} href={`#${heading.id}`}>
+                {heading.text}
+              </a>
+            ))}
+          </nav>
+        )}
+        <div className={styles["manuscript"]}>
+          {showcase?.chapters ? (
+            <ProjectStory id={projectBodyId} tree={document.tree} />
+          ) : (
+            <DocumentBody id={projectBodyId} tree={document.tree} />
+          )}
+        </div>
       </div>
+
+      <footer className={styles["footer"]}>
+        <div>
+          <p className={styles["result"]}>{projectCase.result}</p>
+          {evidence && (
+            <a href={evidence.url} target="_blank" rel="noopener noreferrer">
+              {evidence.label} <span aria-hidden="true">↗</span>
+            </a>
+          )}
+        </div>
+        <div className={styles["tags"]} aria-label="技术标签">
+          {projectCase.tags.map((tag) => (
+            <span key={tag}>{tag}</span>
+          ))}
+        </div>
+        <ProjectReturnLink slug={slug} className="content-text-link" compact />
+        <BackToTop targetId="project-title" placement="detail" />
+      </footer>
     </article>
   );
 }

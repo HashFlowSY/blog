@@ -321,13 +321,16 @@ describe("strict content contracts", () => {
 
   describe("Project Case drafts", () => {
     it("allows an explicit draft to omit publication fields and body", () => {
-      const result = validateProjectCaseContracts([
-        {
-          filePath: "content/projects/zh-CN/idea.md",
-          frontmatter: { draft: true },
-          body: "",
-        },
-      ]);
+      const result = validateProjectCaseContracts(
+        [
+          {
+            filePath: "content/projects/zh-CN/idea.md",
+            frontmatter: { draft: true },
+            body: "",
+          },
+        ],
+        { publicDir: createPublicDirectory() },
+      );
 
       expect(result.errors).toEqual([]);
       expect(result.entries[0]?.frontmatter).toEqual({ draft: true });

@@ -1,0 +1,368 @@
+/* The book has its own proportions. Opening a clipping should only lengthen the reading column. */
+.mast-inner,
+.shell {
+  width: min(88%, 1240px);
+}
+.mast-inner {
+  min-height: 75px;
+}
+.shell {
+  padding-block: clamp(44px, 4.8vw, 80px) 26px;
+}
+.home-spread {
+  grid-template-columns: minmax(0, .94fr) minmax(0, 1fr);
+  column-gap: clamp(48px, 7vw, 110px);
+  align-items: start;
+}
+.cover {
+  min-height: 0;
+  aspect-ratio: 1 / 1.04;
+}
+.cover-type {
+  margin: clamp(35px, 3.7vw, 62px) clamp(30px, 3.25vw, 56px);
+}
+.cover h1 {
+  margin-block: 17px 22px;
+}
+.cover-copy {
+  max-width: 18em;
+  font-size: 16px;
+  line-height: 1.9;
+}
+.cover-art {
+  right: -7%;
+  bottom: -15%;
+  width: 71%;
+  height: 73%;
+}
+.art-source {
+  bottom: 22px;
+}
+.clippings {
+  align-self: start;
+  padding-top: 0;
+}
+.clip-title {
+  margin-bottom: 27px;
+}
+.clip-title h2 {
+  margin-top: 11px;
+}
+.question {
+  border-color: var(--rule);
+}
+.question:last-child {
+  border-bottom: 0;
+}
+.question summary {
+  min-height: 0;
+  padding: 21px 0;
+  gap: 22px;
+}
+.question summary .category {
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+.question h3 {
+  line-height: 1.55;
+}
+.question[open] summary {
+  padding-bottom: 15px;
+}
+.excerpt {
+  padding: 0 1.5rem 24px 0;
+}
+.excerpt blockquote {
+  max-width: 32em;
+  padding-left: 19px;
+  font-size: clamp(16px, 1.25vw, 19px);
+  line-height: 1.95;
+}
+.quote-source {
+  margin: 14px 0 0 19px;
+  gap: 3px 18px;
+}
+.chapter {
+  padding-block: 5px;
+}
+.home-lower {
+  border-top: 0;
+  margin-top: clamp(64px, 6.8vw, 108px);
+  padding: 0;
+  gap: clamp(44px, 6vw, 90px);
+}
+.section-title {
+  margin-bottom: 22px;
+}
+.post-row {
+  padding: 22px 0;
+}
+.post-meta {
+  display: block;
+  margin-bottom: 7px;
+}
+.post-row p {
+  margin-top: 8px;
+  max-width: 40em;
+}
+.project-aside {
+  border-left: 0;
+  padding-left: 0;
+}
+.project-words h3 {
+  margin-block: 11px 12px;
+}
+.project-words p {
+  margin-bottom: 14px;
+}
+footer {
+  margin-top: clamp(48px, 5.5vw, 90px);
+  padding-block: 20px;
+}
+
+.browse {
+  max-width: 840px;
+  min-height: 0;
+}
+.page-head {
+  padding-bottom: clamp(30px, 3.5vw, 52px);
+}
+.page-head h1 {
+  margin-top: 14px;
+}
+.page-head p {
+  max-width: 38em;
+  margin-top: 20px;
+  line-height: 1.95;
+}
+.archive-tools {
+  padding-top: 28px;
+}
+.search {
+  max-width: 580px;
+  padding: 12px 18px;
+}
+.topic-list {
+  gap: 8px;
+  margin-block: 17px 34px;
+}
+.topic-list button {
+  padding: 8px 13px;
+}
+.browse > .project-entry {
+  padding-block: 28px;
+}
+.author-note {
+  padding: 24px;
+  line-height: 1.9;
+}
+.about section {
+  margin-block: 42px;
+}
+.about h2 {
+  margin-bottom: 19px;
+}
+.about dl > div {
+  padding-block: 18px;
+}
+
+.reading {
+  max-width: 1030px;
+}
+.back {
+  margin-bottom: 28px;
+  padding-block: 5px;
+}
+.reading .page-head {
+  max-width: 49rem;
+}
+.read-columns {
+  grid-template-columns: minmax(0, 40rem) minmax(150px, 200px);
+  gap: clamp(42px, 6.8vw, 105px);
+  justify-content: space-between;
+  padding-top: 32px;
+}
+.prose {
+  font-size: 17px;
+  line-height: 2.05;
+}
+.prose p {
+  margin-block: .9em;
+}
+.prose h2,
+.prose h3,
+.prose h4 {
+  margin-block: 1.9em .7em;
+  scroll-margin-top: 28px;
+}
+.prose hr {
+  margin-block: 2em;
+}
+.prose li + li {
+  margin-top: .3em;
+}
+.prose th,
+.prose td {
+  padding-block: 12px;
+}
+.project-context {
+  margin-bottom: 27px;
+  gap: 12px 34px;
+}
+.marginal {
+  padding: 17px 16px;
+}
+.marginal .text-link {
+  padding-block: 8px;
+}
+.marginal.slim {
+  margin-top: 25px;
+}
+.reading-end {
+  max-width: 40rem;
+  margin-top: 48px;
+}
+
+@media (max-width: 1050px) and (min-width: 731px) {
+  .mast-inner,
+  .shell {
+    width: calc(100% - 64px);
+  }
+  .home-spread {
+    column-gap: 36px;
+  }
+  .cover-type {
+    margin: 29px 25px 120px;
+  }
+  .cover-copy {
+    font-size: 15px;
+  }
+  .cover-art {
+    height: 57%;
+    right: -9%;
+  }
+}
+@media (max-width: 730px) {
+  .mast-inner,
+  .shell {
+    width: calc(100% - 40px);
+  }
+  .mast-inner {
+    min-height: 58px;
+  }
+  .shell {
+    padding-block: 27px 20px;
+  }
+  .cover {
+    aspect-ratio: auto;
+    min-height: 0;
+  }
+  .cover-type {
+    margin: 0;
+    padding: 28px 25px 51px;
+  }
+  .cover-copy {
+    max-width: 24em;
+    width: 64%;
+    font-size: 14px;
+    line-height: 1.9;
+  }
+  .cover h1 {
+    margin-block: 10px 15px;
+  }
+  .cover-art {
+    width: 41%;
+    height: 122%;
+    right: -6%;
+    bottom: -28%;
+    mask-image: linear-gradient(to right, transparent, black 26%);
+  }
+  .art-source {
+    bottom: 14px;
+    left: 25px;
+  }
+  .clippings {
+    padding-top: 46px;
+  }
+  .clip-title {
+    margin-bottom: 21px;
+  }
+  .question summary {
+    padding-block: 19px;
+    gap: 14px;
+  }
+  .excerpt {
+    padding-right: 0;
+    padding-bottom: 21px;
+  }
+  .excerpt blockquote {
+    font-size: 16px;
+  }
+  .quote-source {
+    align-items: flex-start;
+    flex-direction: column;
+    margin-top: 13px;
+    gap: 0;
+  }
+  .chapter,
+  .back,
+  .marginal .text-link,
+  .section-title .text-link,
+  .project-words .text-link {
+    min-height: 44px;
+  }
+  .home-lower {
+    margin-top: 47px;
+  }
+  .section-title {
+    align-items: center;
+    margin-bottom: 7px;
+  }
+  .project-aside {
+    margin-top: 36px;
+  }
+  .post-row {
+    padding-block: 20px;
+  }
+  .read-columns {
+    gap: 30px;
+    padding-top: 21px;
+  }
+  .prose {
+    font-size: 16px;
+    line-height: 2;
+  }
+  .marginal {
+    padding: 13px 16px 8px;
+  }
+  .back {
+    margin-bottom: 18px;
+  }
+  .topic-list button {
+    min-height: 44px;
+  }
+}
+@media (max-width: 475px) {
+  .mast-inner {
+    grid-template-rows: 47px 42px;
+  }
+  .mast nav {
+    gap: 29px;
+  }
+  .cover-type {
+    padding-inline: 22px;
+  }
+  .cover-copy {
+    width: 68%;
+    font-size: 13px;
+  }
+  .cover-art {
+    right: -12%;
+  }
+  .question summary .category {
+    font-size: 11px;
+  }
+  .about section {
+    margin-block: 33px;
+  }
+}

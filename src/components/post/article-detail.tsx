@@ -26,10 +26,10 @@ export function ArticleDetail({
 
   return (
     <article
-      className="portfolio-page content-page content-detail-page"
+      className="content-page content-detail-page"
       aria-labelledby={titleId}
     >
-      <div className="portfolio-shell">
+      <div className="post-document">
         <ReadingTools
           bodyId={bodyId}
           collection="posts"
@@ -40,6 +40,7 @@ export function ArticleDetail({
           className="portfolio-article-hero content-reading-width"
           aria-labelledby={titleId}
         >
+          <p className="collection-eyebrow">技术文章</p>
           <h1 id={titleId} tabIndex={-1} aria-label={split ? title : undefined}>
             {split ? (
               <>
@@ -89,7 +90,7 @@ export function ArticleDetail({
           </section>
         )}
         <section
-          className="portfolio-contact-band"
+          className="collection-contact content-reading-width"
           aria-labelledby="writing-contact-title"
         >
           <div>
@@ -97,7 +98,7 @@ export function ArticleDetail({
             <p>可以在 GitHub 查看我的公开仓库。</p>
           </div>
           <a
-            className="portfolio-button"
+            className="content-text-link"
             href={SITE.githubProfile.url}
             target="_blank"
             rel="noopener noreferrer"

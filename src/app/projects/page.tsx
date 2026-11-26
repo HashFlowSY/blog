@@ -19,32 +19,39 @@ export default async function ProjectsPage() {
   const projectCases = catalog.projectCases.slice();
 
   return (
-    <section
-      className="portfolio-page content-page"
-      aria-labelledby="projects-title"
-    >
-      <div className="portfolio-shell">
-        <header className="content-list-intro">
+    <section className="content-page" aria-labelledby="projects-title">
+      <header className="content-list-intro">
+        <div>
+          <p className="collection-eyebrow" lang="en">
+            Selected projects
+          </p>
           <h1 id="projects-title">项目案例</h1>
-        </header>
-
-        <section className="content-list-section" aria-label="项目案例列表">
-          <ProjectList projects={projectCases} />
-        </section>
-
-        <section
-          className="portfolio-contact-band"
-          aria-labelledby="projects-contact-title"
+          <p>我做过的项目、承担的角色，以及可以查证的结果。</p>
+        </div>
+        <span
+          className="collection-count"
+          aria-label={`${projectCases.length} 个项目`}
         >
-          <div>
-            <h2 id="projects-contact-title">有类似的问题需要推进？</h2>
-            <p>可以从需求、技术方案或现有系统开始聊。</p>
-          </div>
-          <Link className="portfolio-button" href="/about/#contact">
-            联系我
-          </Link>
-        </section>
-      </div>
+          {String(projectCases.length).padStart(2, "0")}
+        </span>
+      </header>
+
+      <section className="content-list-section" aria-label="项目案例列表">
+        <ProjectList projects={projectCases} />
+      </section>
+
+      <section
+        className="collection-contact"
+        aria-labelledby="projects-contact-title"
+      >
+        <div>
+          <h2 id="projects-contact-title">有类似的问题需要推进？</h2>
+          <p>可以从需求、技术方案或现有系统开始聊。</p>
+        </div>
+        <Link className="content-text-link" href="/about/#contact">
+          联系我
+        </Link>
+      </section>
     </section>
   );
 }

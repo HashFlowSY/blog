@@ -55,7 +55,7 @@ draft: false
 
 项目用 `description` 代替文章的 `summary`，另需填写 `role`、`duration`、`result`、`cover` 和 `featured`。`cover` 指向 `public/` 中已存在的文件，例如 `/assets/personal-blog-home.jpg`。`source`、`demo` 和 `evidence` 为可选字段。填写 `evidence` 时需提供 `label` 和 `url`。这些外链均使用完整 HTTPS 地址。[已发布案例源码](content/projects/zh-CN/personal-blog.md) · [项目模板](templates/project-case.md)
 
-`cover` 用于项目列表和首页卡片。详情页的图片、运行结果和验证记录写在对应的 Markdown 段落里。设置 `showcase.chapters: true` 后，二级标题会开启章节并进入目录。章节中第一个分隔线 `---` 后的材料在宽屏上排到说明旁边，在手机上接在说明后。
+`cover` 同时用于首页卡片、项目列表和详情页首屏。读者从卡片打开案例时，封面会移到详情页的位置。正文图片、运行结果和验证记录写在对应的 Markdown 段落里。设置 `showcase.chapters: true` 后，二级标题会开启章节并进入目录。章节中第一个分隔线 `---` 后的材料紧接该章说明，方便对照阅读。
 
 ### Markdown 约定
 

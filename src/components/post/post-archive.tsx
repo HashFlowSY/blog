@@ -158,7 +158,9 @@ export function PostArchive({ posts, tags, indexUrl }: PostArchiveProps) {
         </label>
         {tags.length > 0 && (
           <div className="archive-topics">
-            <span id="archive-topics-label">主题</span>
+            <span id="archive-topics-label" className="sr-only">
+              主题
+            </span>
             <div
               className="portfolio-topic-row"
               role="group"

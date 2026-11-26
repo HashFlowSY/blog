@@ -14,12 +14,18 @@ test.describe("Post detail", () => {
     });
     await page.setViewportSize({ width: 375, height: 667 });
     await goToPosts(page);
-    await expect(
-      page
-        .locator(".portfolio-article-list article")
-        .first()
-        .locator(".content-card-summary"),
-    ).toBeInViewport({ ratio: 1 });
+    const firstArticle = page
+      .locator(".portfolio-article-list article")
+      .first();
+    await expect(firstArticle.getByRole("heading")).toBeInViewport({
+      ratio: 1,
+    });
+    await firstArticle
+      .locator(".content-card-summary")
+      .scrollIntoViewIfNeeded();
+    await expect(firstArticle.locator(".content-card-summary")).toBeInViewport({
+      ratio: 1,
+    });
     expect(indexRequests).toBe(0);
 
     const search = page.getByRole("searchbox", { name: "查找文章" });

@@ -9,7 +9,9 @@ const eslintConfig = defineConfig([
   ...nextTs,
   globalIgnores([
     ".next/**",
+    ".scratch/motion-options-v4/**",
     ".superpowers/**",
+    "qa-evidence/**",
     "playwright-report/**",
     "playwright-static-report/**",
     "test-results/**",

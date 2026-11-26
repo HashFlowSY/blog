@@ -38,9 +38,9 @@ PLAYWRIGHT_STATIC_BASE_URL=http://127.0.0.1:4173/ STATIC_BASE_PATH= pnpm test:e2
 
 ## 视觉基线
 
-当前截图覆盖桌面首页、文章详情、项目详情和打开菜单的手机首页。四张截图均要求与对应基线逐像素一致。桌面首页另在 1440 × 900、DPR 1 下将工作台插画区域与选定概念图逐像素比对，导航等网页文字由页面基线验证。[截图基线](../e2e/visual-regression.spec.ts-snapshots/) · [概念图](design/workbench-2d/concept-1440.png) · [视觉用例](../e2e/visual-regression.spec.ts) · [固定视口和浏览器设置](../e2e/visual-regression-config.ts)
+当前截图覆盖桌面首页、文章详情、项目详情和直接展示主导航的手机首页。四张截图均要求与对应基线逐像素一致，包含工作台在页面中的位置、大小和边缘渐隐。另将实际渲染的工作台临时还原到原稿尺寸，从原稿坐标 `(618, 91)` 取 720 × 607 像素，与概念图同一区域逐像素比对。取样后恢复页面布局。[截图基线](../e2e/visual-regression.spec.ts-snapshots/) · [概念图](design/workbench-2d/concept-1440.png) · [视觉用例](../e2e/visual-regression.spec.ts) · [固定视口和浏览器设置](../e2e/visual-regression-config.ts)
 
-非 Linux 主机跳过截图比对。界面变更需要更新基线时，使用[发布工作流](../.github/workflows/deploy.yml)固定的 Linux amd64 Playwright 镜像与 Chromium 版本，构建对应的静态产物，再显式更新：
+非 Linux 主机跳过截图比对。截图用的 Chromium 固定为灰度字体抗锯齿，避免相同字形在不同次渲染时出现彩色子像素差异。界面变更需要更新基线时，使用[发布工作流](../.github/workflows/deploy.yml)固定的 Linux amd64 Playwright 镜像与 Chromium 版本，构建对应的静态产物，再显式更新：
 
 ```bash
 pnpm test:e2e:static:visual --update-snapshots

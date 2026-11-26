@@ -66,27 +66,13 @@ export function ProjectStory({ id, tree }: { id: string; tree: Root }) {
 
   return (
     <div id={id}>
-      {hasContent(preface) && (
-        <MarkdownColumn nodes={preface} className={styles["plainStory"]} />
-      )}
-      {chapters.map(({ id, prose, evidence }, index) => {
+      {hasContent(preface) && <MarkdownColumn nodes={preface} />}
+      {chapters.map(({ id, prose, evidence }) => {
         const withEvidence = evidence && hasContent(evidence);
 
         return (
-          <section
-            key={id}
-            aria-labelledby={id}
-            className={styles["chapter"]}
-            data-evidence={withEvidence || undefined}
-          >
-            <div>
-              {withEvidence && (
-                <p className={styles["chapterIndex"]} aria-hidden="true">
-                  {String(index + 1).padStart(2, "0")}
-                </p>
-              )}
-              <MarkdownColumn nodes={prose} />
-            </div>
+          <section key={id} aria-labelledby={id} className={styles["chapter"]}>
+            <MarkdownColumn nodes={prose} />
             {withEvidence && (
               <MarkdownColumn
                 nodes={evidence}
@@ -96,9 +82,7 @@ export function ProjectStory({ id, tree }: { id: string; tree: Root }) {
           </section>
         );
       })}
-      {footnotes.length > 0 && (
-        <MarkdownColumn nodes={footnotes} className={styles["plainStory"]} />
-      )}
+      {footnotes.length > 0 && <MarkdownColumn nodes={footnotes} />}
     </div>
   );
 }

@@ -1,8 +1,6 @@
 html:has(.content-detail-page) {
-  --reader-height: 56px;
-  --reader-offset: var(--studio-header-height);
-  scroll-behavior: auto;
-  scroll-padding-block-start: calc(var(--reader-offset) + var(--reader-height));
+  --reader-height: 52px;
+  scroll-padding-block-start: var(--reader-height);
 }
 
 body:has(.content-detail-page) .back-to-top {
@@ -10,19 +8,20 @@ body:has(.content-detail-page) .back-to-top {
 }
 
 .reader-tools {
-  --reader-panel-top: calc(var(--reader-offset) + var(--reader-height));
+  --reader-panel-top: var(--reader-height);
   --reader-view-bottom: 100dvh;
   position: sticky;
   z-index: 8;
-  top: var(--reader-offset);
+  top: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   height: var(--reader-height);
   gap: 10px;
-  padding-inline: var(--content-gutter);
-  border-bottom: 1px solid var(--studio-line);
-  background: var(--studio-paper);
+  padding-inline: 0;
+  margin-block: clamp(17px, 2.5vw, 38px) clamp(12px, 1.85vw, 28px);
+  border-bottom: 1px solid transparent;
+  background: var(--paper);
 }
 
 .reader-button,
@@ -32,25 +31,24 @@ body:has(.content-detail-page) .back-to-top {
   align-items: center;
   min-height: 44px;
   gap: 8px;
-  padding: 8px 12px;
-  border: 1px solid transparent;
+  padding: 8px 0;
+  border: none;
   background: transparent;
-  color: var(--studio-ink);
-  font: 14px / 1.35 var(--font-body);
+  color: var(--ink);
+  font: 14px / 1.35 var(--font-ui);
   text-decoration: none;
   cursor: pointer;
 }
 
-.reader-return,
-.reader-top {
-  border-color: var(--studio-line);
-  background: #fdfbf5;
+.reader-return {
+  color: var(--muted);
 }
 
 .reader-button:hover,
 .reader-top:hover {
-  border-color: var(--studio-ink);
-  background: #f2eee1;
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
 }
 
 .reader-contents {
@@ -64,7 +62,7 @@ body:has(.content-detail-page) .back-to-top {
 
 .reader-section-name {
   overflow: hidden;
-  color: var(--studio-muted);
+  color: var(--muted);
   font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -82,12 +80,8 @@ body:has(.content-detail-page) .back-to-top {
 .reader-panel {
   position: fixed;
   inset: calc(var(--reader-panel-top) + 6px)
-    max(
-      var(--content-gutter),
-      calc((100vw - 1600px) / 2 + 48px + var(--content-gutter))
-    )
-    auto auto;
-  width: min(360px, calc(100% - var(--content-gutter) * 2));
+    max(20px, calc((100vw - min(1232px, 86vw)) / 2)) auto auto;
+  width: min(360px, calc(100% - 40px));
   max-height: min(
     420px,
     calc(var(--reader-view-bottom) - var(--reader-panel-top) - 24px)
@@ -96,9 +90,14 @@ body:has(.content-detail-page) .back-to-top {
   padding: 8px;
   overflow-y: auto;
   overscroll-behavior: contain;
-  border: 1px solid var(--studio-line);
-  background: var(--studio-paper);
-  box-shadow: 0 10px 26px rgb(53 49 44 / 14%);
+  border: 1px solid var(--content-rule);
+  background: var(--paper);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgb(72 50 33 / 12%);
+}
+
+.post-document .reader-panel {
+  right: max(20px, calc((100vw - var(--reading-width)) / 2));
 }
 
 .reader-outline {
@@ -107,11 +106,12 @@ body:has(.content-detail-page) .back-to-top {
 }
 
 .reader-outline a {
+  position: relative;
   display: flex;
   min-height: 44px;
   align-items: center;
   padding: 8px 12px;
-  color: var(--studio-ink);
+  color: var(--ink);
   font-size: 14px;
   line-height: 1.5;
   text-decoration: none;
@@ -123,19 +123,58 @@ body:has(.content-detail-page) .back-to-top {
 }
 
 .reader-outline a:hover {
-  background: #f2eee1;
+  background: var(--focus-wash);
 }
 
 .reader-outline [aria-current="location"] {
-  background: #f3ebc4;
-  box-shadow: inset 2px 0 var(--studio-ink);
+  color: var(--focus-ink);
+  font-weight: 650;
+}
+.reader-outline [aria-current="location"]::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 3px;
+  width: 2px;
+  height: 1em;
+  border-radius: 2px;
+  background: currentColor;
+}
+
+.reader-outline a:focus-visible {
+  outline: none;
+  box-shadow: none;
+  border-radius: var(--focus-radius);
+  color: var(--focus-ink);
+  background: var(--focus-wash);
+  text-decoration: underline 2px;
+  text-underline-offset: 0.22em;
+}
+
+.reader-return:focus-visible {
+  position: relative;
+  isolation: isolate;
+  outline: none;
+  box-shadow: none;
+  color: var(--focus-ink);
+  text-decoration: underline 2px;
+  text-underline-offset: 0.22em;
+}
+.reader-return:focus-visible::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset-inline: -0.25em;
+  inset-block: max(0px, calc(50% - 0.85em));
+  border-radius: var(--focus-radius);
+  background: var(--focus-wash);
+  pointer-events: none;
 }
 
 .reader-progress {
   position: absolute;
   inset: auto 0 0;
   height: 2px;
-  background: #9c8b30;
+  background: var(--accent);
   transform-origin: left;
   pointer-events: none;
 }
@@ -146,33 +185,38 @@ body:has(.content-detail-page) .back-to-top {
   bottom: clamp(16px, 4vw, 34px);
   z-index: 15;
   visibility: hidden;
-  border-color: var(--studio-ink);
-  background: var(--studio-yellow);
+  padding: 8px 13px;
+  border: 1px solid var(--content-rule);
+  border-radius: 8px;
+  background: var(--paper);
 }
 
-body.is-scrolled .reader-top {
+body[data-scrolled="true"] .reader-top {
   visibility: visible;
 }
 
+/* Fragment navigation and the return-to-top control focus actual headings.
+   The underline follows their text even when a title wraps across lines. */
 .content-detail-page h1:focus-visible,
-.markdown-body :focus-visible {
-  outline: 2px solid var(--studio-ink);
-  outline-offset: 4px;
+.markdown-body :is(h1, h2, h3, h4, h5, h6):focus-visible {
+  outline: none;
+  box-shadow: none;
+  text-decoration: underline solid var(--focus-ring) 2px;
+  text-underline-offset: 0.16em;
 }
 
 .markdown-body {
   min-width: 0;
-  color: #454944;
-  font-size: 17px;
-  line-height: 1.86;
+  color: var(--ink);
+  font: 400 19px/2.02 var(--font-reading);
   overflow-wrap: anywhere;
 }
 
 .markdown-body :is(h1, h2, h3, h4, h5, h6) {
-  margin-block: 1.65em 0.65em;
-  color: #202326;
-  font-family: var(--font-display);
-  font-weight: 800;
+  margin-block: 2.15em 0.75em;
+  color: var(--ink);
+  font-family: var(--font-reading);
+  font-weight: 650;
   letter-spacing: -0.025em;
   line-height: 1.35;
 }
@@ -195,17 +239,32 @@ body.is-scrolled .reader-top {
 
 .markdown-body p,
 .markdown-body :is(ul, ol) {
-  margin-block: 0 1.25em;
+  margin-block: 0 1.3em;
 }
 
-.markdown-body :is(a, strong) {
-  color: #202326;
+.markdown-body strong {
+  font-weight: 700;
 }
 
 .markdown-body a {
   text-decoration-line: underline;
-  text-decoration-color: #d1b900;
+  color: var(--accent);
+  text-underline-offset: 0.2em;
+  text-decoration-thickness: 1px;
+}
+
+.markdown-body a:focus-visible {
+  outline: none;
+  box-shadow: none;
+  color: var(--focus-ink);
+  background: var(--focus-wash);
+  border-radius: 0.2em;
   text-decoration-thickness: 2px;
+  box-decoration-break: clone;
+}
+.markdown-body a:focus-visible > img {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
 }
 
 .markdown-body img {
@@ -213,7 +272,7 @@ body.is-scrolled .reader-top {
   max-inline-size: 100%;
   block-size: auto;
   margin: 1.6em auto;
-  border: 1px solid var(--studio-line);
+  border-radius: 4px;
 }
 
 .markdown-body :is(ul, ol) {
@@ -261,14 +320,14 @@ body.is-scrolled .reader-top {
   width: 1em;
   height: 1em;
   margin: 0;
-  accent-color: #766723;
+  accent-color: var(--accent);
 }
 
 .markdown-body blockquote {
   margin: 1.5em 0;
-  padding: 16px 20px;
-  border-inline-start: 4px solid #e0c600;
-  background: #fffce3;
+  padding: 0.3em 0 0.3em 16px;
+  border-inline-start: 2px solid var(--accent);
+  color: var(--muted);
 }
 
 .markdown-body blockquote > :last-child {
@@ -278,13 +337,13 @@ body.is-scrolled .reader-top {
 .markdown-body hr {
   margin-block: 1.8em;
   border: 0;
-  border-block-start: 1px solid var(--studio-line);
+  border-block-start: 1px solid var(--content-rule);
 }
 
 .markdown-body :not(pre) > code {
   padding: 0.15em 0.4em;
   background: #ebe9e2;
-  color: #202326;
+  color: var(--ink);
 }
 
 .markdown-table-scroll {
@@ -297,21 +356,20 @@ body.is-scrolled .reader-top {
   width: 100%;
   min-inline-size: max-content;
   border-collapse: collapse;
-  font-size: 0.92em;
-  line-height: 1.62;
+  font: 400 15px/1.7 var(--font-ui);
 }
 
 .markdown-body :is(th, td) {
   padding: 0.72em 0.86em;
-  border: 1px solid var(--studio-line);
+  border: 1px solid var(--content-rule);
   text-align: start;
   vertical-align: top;
 }
 
 .markdown-body th {
-  background: #f2ecd9;
-  color: var(--studio-ink);
-  font-weight: 800;
+  background: #eee8dc;
+  color: var(--ink);
+  font-weight: 600;
 }
 
 .markdown-body tr:nth-child(even) td {
@@ -326,7 +384,7 @@ body.is-scrolled .reader-top {
 
 .markdown-code {
   margin: 1.5em 0;
-  border: 1px solid var(--studio-line);
+  border: 1px solid var(--content-rule);
 }
 
 .markdown-code-bar {
@@ -335,8 +393,8 @@ body.is-scrolled .reader-top {
   justify-content: space-between;
   gap: 8px;
   padding-inline: 12px;
-  background: #f2ecd9;
-  color: var(--studio-ink);
+  background: #eee8dc;
+  color: var(--ink);
   font: 14px / 1.35 var(--font-mono);
 }
 
@@ -385,7 +443,7 @@ body.is-scrolled .reader-top {
 .markdown-body .footnotes {
   margin-block-start: 2.4em;
   padding-block-start: 1em;
-  border-block-start: 1px solid var(--studio-line);
+  border-block-start: 1px solid var(--content-rule);
   font-size: 0.9em;
 }
 
@@ -393,21 +451,47 @@ body.is-scrolled .reader-top {
   margin-block-end: 0;
 }
 
+.markdown-body .footnotes li[tabindex]:focus-visible {
+  position: relative;
+  outline: none;
+}
+.markdown-body .footnotes li[tabindex]:focus-visible::marker {
+  color: var(--focus-ink);
+  font-weight: 700;
+}
+.markdown-body .footnotes li[tabindex]:focus-visible::before {
+  content: "";
+  position: absolute;
+  inset-block-start: 0.42em;
+  inset-inline-start: -0.35em;
+  width: 3px;
+  height: 1.1em;
+  border-radius: 2px;
+  background: var(--focus-ring);
+}
+
 .markdown-body [data-footnote-backref] {
   margin-inline-start: 0.25em;
 }
 
 @media (max-width: 760px) {
-  html:has(.content-detail-page) {
-    --reader-offset: 0px;
+  .reader-tools {
+    margin-block: 9px 12px;
+  }
+  .markdown-body {
+    font-size: 17px;
+    line-height: 2;
+  }
+  .markdown-body :is(h2, h3, h4) {
+    margin-block: 1.65em 0.66em;
+  }
+  .markdown-body > :first-child {
+    margin-block-start: 0;
   }
 
-  body:has(.content-detail-page) .site-header {
-    position: relative;
-  }
-
-  .reader-panel {
-    right: var(--content-gutter);
+  .reader-panel,
+  .post-document .reader-panel {
+    right: 20px;
   }
 
   .reader-top {
@@ -431,5 +515,20 @@ body.is-scrolled .reader-top {
 @media (max-width: 479px) {
   .reader-section-name {
     display: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .content-detail-page :is(h1, .reader-return, .reader-outline a):focus-visible,
+  .markdown-body
+    :is(a, h2, h3, h4, h5, h6, .footnotes li[tabindex]):focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+    box-shadow: none;
+  }
+  .reader-outline [aria-current="location"]::before,
+  .markdown-body .footnotes li[tabindex]:focus-visible::before {
+    background: Highlight;
+    forced-color-adjust: none;
   }
 }

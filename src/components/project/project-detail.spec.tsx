@@ -17,7 +17,7 @@ async function renderStory(body: string) {
 }
 
 describe("Project story", () => {
-  it("renders Markdown with no numbered chapters as readable text", async () => {
+  it("preserves the link in Markdown without section headings", async () => {
     await renderStory("记录一次发布，源码见[项目列表](/projects/)。");
     expect(screen.getByRole("link", { name: "项目列表" })).toHaveAttribute(
       "href",

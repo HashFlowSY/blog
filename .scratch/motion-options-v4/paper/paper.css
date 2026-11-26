@@ -1,0 +1,98 @@
+.finishes {
+  display: inline-flex;
+  gap: 2px;
+  align-items: center;
+  padding: 0 3px;
+  border: 1px solid #d6cdbf;
+  border-radius: 18px;
+  background: #f6f1e7;
+}
+.finishes button {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  color: #68594d;
+  font: 500 13px/1.4 var(--ui);
+}
+.finishes button[aria-pressed="true"] { color: #603e2e; text-decoration: underline; text-underline-offset: 5px; }
+@media (max-width: 650px) { .finishes { margin-left: auto; } }
+
+/* The marks belong to the drawing. Let the surrounding page read as a single sheet. */
+[data-surface="paper"] {
+  --paper: #f8f4ea;
+  --ink: #3b342d;
+  --muted: #6c6256;
+  --red: #884b35;
+  --hair: #d9cebd;
+}
+[data-surface="paper"] .masthead { border-color: transparent; }
+[data-surface="paper"] .mark { color: #97644a; }
+[data-surface="paper"] .mark b { border-radius: 4px; }
+[data-surface="paper"] .role { letter-spacing: .045em; }
+[data-surface="paper"] .role::before { display: none; }
+[data-surface="paper"] .hero h1 { font-weight: 400; letter-spacing: -.065em; }
+[data-surface="paper"] .hero .lede { font-weight: 500; letter-spacing: 0; }
+[data-surface="paper"] .action {
+  background: #794936;
+  border-radius: 12px 15px 13px 10px;
+  padding-inline: 21px;
+}
+[data-surface="paper"] .hero .artboard { background: transparent; }
+[data-surface="paper"] .hero .artboard::before,
+[data-surface="paper"] .hero .artboard::after { content: none; }
+[data-surface="paper"] .hero .artboard img {
+  mask-image: linear-gradient(to right, transparent, black 13%, black 87%, transparent),
+    linear-gradient(to bottom, transparent, black 12%, black 86%, transparent);
+  mask-composite: intersect;
+}
+[data-surface="paper"] .caption { border: 0; justify-content: flex-start; gap: 24px; }
+[data-surface="paper"] .hero .caption { margin-inline-start: 6%; }
+[data-surface="paper"] :is(.home-index > section, .project-card, .project-head, .archive-tools, .profile) { border-color: transparent; }
+[data-surface="paper"] .band h2::before {
+  content: "";
+  display: block;
+  width: 38px;
+  height: 3px;
+  margin-bottom: 14px;
+  background: #a88f72;
+  border-radius: 80% 30% 75% 25%;
+  transform: rotate(-2deg);
+}
+[data-surface="paper"] .entry { border-color: #e4dbcf; }
+[data-surface="paper"] .entry:last-child { border-color: transparent; }
+[data-surface="paper"] .home-project .thumb {
+  border: 5px solid #fffbf1;
+  border-radius: 3px 5px 5px 2px;
+  box-shadow: 0 5px 14px -5px #59453252;
+}
+[data-surface="paper"] .project-card .artboard { border-radius: 6px; overflow: hidden; }
+[data-surface="paper"] .shared-title { view-transition-name: none; }
+[data-surface="paper"] .tags button { border-radius: 7px; }
+[data-surface="paper"] .arrow { transform: none; }
+
+/* Only the object under the pointer moves. The caption and the link hit area stay put. */
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  [data-surface="paper"] :is(.hero .artboard img, .home-project .thumb, .project-card .artboard) {
+    transition: transform 240ms cubic-bezier(.2,.72,.25,1), box-shadow 240ms ease-out;
+  }
+  [data-surface="paper"] .artlink:is(:hover, :focus-visible) .artboard img { transform: translateY(-3px) rotate(-.45deg); }
+  [data-surface="paper"] .home-project:is(:hover, :focus-visible) .thumb,
+  [data-surface="paper"] .project-card:is(:hover, :focus-visible) .artboard {
+    transform: translateY(-3px) rotate(-.45deg);
+    box-shadow: 0 10px 22px -8px #59453259;
+  }
+}
+@media (min-width: 651px) {
+  /* Keep the cover on the same side when following the link to its detail. */
+  [data-surface="paper"] .project-card { grid-template-columns: 1fr 1.18fr; gap: 8%; }
+  [data-surface="paper"] .project-card .artboard,
+  [data-surface="paper"] .home-project .thumb { order: 2; }
+}
+@media (max-width: 650px) {
+  [data-surface="paper"] .project-card .artboard { order: 2; }
+  [data-surface="paper"] .hero .caption { margin-inline-start: 2%; }
+  [data-surface="paper"] .hero .artboard img { mask-size: 105% 105%; mask-position: center; }
+}

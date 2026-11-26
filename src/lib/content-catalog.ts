@@ -84,7 +84,7 @@ interface ContentCatalog {
   getProjectCaseBySlug(slug: string): ProjectCase | null;
 }
 
-export interface ContentCatalogOptions {
+interface ContentCatalogOptions {
   rootDir?: string;
 }
 
@@ -330,7 +330,7 @@ function createCatalog(
 }
 
 export async function buildContentCatalog(
-  options: ContentCatalogOptions = {},
+  options: ContentCatalogOptions,
 ): Promise<ContentCatalog> {
   const directories = resolveDirectories(options);
   const postParsing = parseFiles(

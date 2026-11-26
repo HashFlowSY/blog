@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useId, useRef, useState } from "react";
 
+import { ProjectReturnLink } from "@/components/project/project-return-link";
 import {
   articleFilterSearch,
   collectionCardId,
@@ -109,6 +110,14 @@ export function ReadingTools({
     if (!toolbar || !body || !viewport) return;
 
     const sections = outline.map(({ id }) => document.getElementById(id));
+    const index = document.getElementById(`${bodyId}-index`);
+    const sectionLinks = new Map(
+      Array.from(
+        index?.querySelectorAll("a") ?? [],
+        (link) => [link.getAttribute("href")?.slice(1), link] as const,
+      ),
+    );
+    let currentIndexLink: HTMLAnchorElement | undefined;
     let frame = 0;
     const measure = () => {
       frame = 0;
@@ -134,6 +143,12 @@ export function ReadingTools({
       for (const section of sections) {
         if (!section || section.getBoundingClientRect().top > top + 24) break;
         activeId = section.id;
+      }
+      const nextIndexLink = activeId ? sectionLinks.get(activeId) : undefined;
+      if (nextIndexLink !== currentIndexLink) {
+        currentIndexLink?.removeAttribute("aria-current");
+        nextIndexLink?.setAttribute("aria-current", "location");
+        currentIndexLink = nextIndexLink;
       }
       toolbar.style.setProperty("--reader-panel-top", `${top}px`);
       toolbar.style.setProperty("--reader-view-bottom", `${bottom}px`);
@@ -174,7 +189,10 @@ export function ReadingTools({
           <PostReturn card={card} />
         </Suspense>
       ) : (
-        <ReturnLink href={`/projects/#${card}`} label="返回项目列表" />
+        <ProjectReturnLink
+          slug={slug}
+          className="reader-button reader-return"
+        />
       )}
       {outline.length >= 2 && (
         <Contents

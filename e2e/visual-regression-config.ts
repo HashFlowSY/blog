@@ -9,9 +9,12 @@ const VISUAL_USE_OPTIONS = {
   colorScheme: "light" as const,
   contextOptions: { reducedMotion: "reduce" as const },
   deviceScaleFactor: 1,
+  // LCD subpixel antialiasing can change a glyph's outermost blue channel
+  // between Linux runs. Capture type with grayscale antialiasing at DPR 1.
+  launchOptions: { args: ["--disable-lcd-text"] },
   locale: "zh-CN",
   timezoneId: "Asia/Shanghai",
-} as const;
+};
 
 const VISUAL_SCREENSHOT_OPTIONS = {
   ...VISUAL_PIXEL_COMPARISON,

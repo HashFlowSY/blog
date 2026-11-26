@@ -11,13 +11,10 @@ function relativeRoute(pathname: string): string {
 }
 
 export async function waitForRouteEntry(page: Page): Promise<void> {
-  await expect(page.locator("body")).toHaveAttribute("data-route", /\S+/);
-  // The client sets data-route before animating the main content.
-  await page.locator("main").evaluate(async (element) => {
-    await Promise.all(
-      element.getAnimations().map((animation) => animation.finished),
-    );
-  });
+  await expect(page.locator("body")).toHaveAttribute(
+    "data-scrolled",
+    /^(true|false)$/,
+  );
 }
 
 async function goToRoute(page: Page, pathname: string): Promise<void> {

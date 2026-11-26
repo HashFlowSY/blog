@@ -14,9 +14,9 @@ test.describe("About page", () => {
     ).toBeVisible();
 
     await expect(page.getByLabel(copy.skills)).toBeVisible();
-    expect(await page.locator(".portfolio-skill-card").count()).toBeGreaterThan(
-      0,
-    );
+    await expect(
+      page.getByLabel(copy.skills).getByText("AI 应用与 Agent"),
+    ).toBeVisible();
 
     await expect(page.getByLabel(copy.experience)).toBeVisible();
     await expect(

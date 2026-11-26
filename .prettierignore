@@ -6,3 +6,5 @@ coverage
 playwright-static-report
 pnpm-lock.yaml
 .superpowers
+# Frozen design references served by the comparison preview.
+.scratch/motion-options-v4/

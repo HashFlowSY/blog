@@ -72,6 +72,10 @@ test.describe("Projects", () => {
     const content = page.getByRole("region", { name: "概述", exact: true });
     const firstPost = content.getByRole("link", { name: /AI 服务中转站/ });
     await expect(firstPost).toHaveAttribute("href", /\/posts\/2026-04-30\/$/u);
+    await expect(
+      page.getByRole("img", { name: STABLE_PROJECT.title + "界面预览" }),
+    ).toBeInViewport({ ratio: 1 });
+    await firstPost.scrollIntoViewIfNeeded();
     await expect(firstPost).toBeInViewport({ ratio: 1 });
     await expect(
       content.getByRole("link", { name: /用 Codex 定制桌面宠物/ }),

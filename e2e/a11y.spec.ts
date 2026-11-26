@@ -122,6 +122,43 @@ test.describe("Accessibility scans on the static artifact", () => {
 });
 
 test.describe("Keyboard accessibility on the static artifact", () => {
+  test("article search keeps its rounded focus indicator in normal and forced colors", async ({
+    page,
+  }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await prepareA11yPage(page, "/posts/");
+    const field = page.getByRole("searchbox", { name: "查找文章" });
+    await field.scrollIntoViewIfNeeded();
+    const restingBounds = await field.boundingBox();
+    const restingBorder = await field.evaluate(
+      (element) => getComputedStyle(element).borderTopColor,
+    );
+
+    await field.click();
+    await expect(field).toBeFocused();
+    await expect(field).not.toHaveCSS("border-top-color", restingBorder);
+    expect(
+      await field.evaluate((element) =>
+        parseFloat(getComputedStyle(element).borderTopLeftRadius),
+      ),
+    ).toBeGreaterThan(0);
+    expect(await field.boundingBox()).toEqual(restingBounds);
+
+    await page.keyboard.press("Tab");
+    await expect(
+      page.getByRole("button", { name: "全部", exact: true }),
+    ).toBeFocused();
+    await page.emulateMedia({ forcedColors: "active" });
+    await page.keyboard.press("Shift+Tab");
+    await expect(field).toBeFocused();
+    await expect(field).toHaveCSS("outline-style", "solid");
+    expect(
+      await field.evaluate((element) =>
+        parseFloat(getComputedStyle(element).outlineWidth),
+      ),
+    ).toBeGreaterThanOrEqual(2);
+  });
+
   test("skip link is visible on focus and moves focus to main content", async ({
     page,
   }) => {
@@ -136,24 +173,21 @@ test.describe("Keyboard accessibility on the static artifact", () => {
     await expect(page.locator("main#content")).toBeFocused();
   });
 
-  test("mobile menu opens with the keyboard and Escape returns focus", async ({
+  test("mobile section links can be traversed and opened with the keyboard", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 375, height: 667 });
     await prepareA11yPage(page, "/");
-
-    const menuButton = page.getByRole("button", { name: "菜单" });
-    const menu = page.locator("#site-nav");
-    await menuButton.focus();
+    const nav = page.getByRole("navigation", { name: "主导航" });
+    await nav.getByRole("link", { name: "首页" }).focus();
+    await page.keyboard.press("Tab");
+    await expect(nav.getByRole("link", { name: "项目" })).toBeFocused();
     await page.keyboard.press("Enter");
-
-    await expect(menuButton).toHaveAttribute("aria-expanded", "true");
-    await expect(menu).toBeVisible();
-
-    await page.keyboard.press("Escape");
-    await expect(menuButton).toHaveAttribute("aria-expanded", "false");
-    await expect(menu).not.toBeVisible();
-    await expect(menuButton).toBeFocused();
+    await page.waitForURL((url) => url.pathname === routePath("/projects/"));
+    await expect(nav.getByRole("link", { name: "项目" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
   });
 
   test("navigation links can be triggered from the keyboard", async ({

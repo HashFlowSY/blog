@@ -52,10 +52,6 @@ interface ProjectContractOptions {
   publicDir: string;
 }
 
-const DEFAULT_PROJECT_CONTRACT_OPTIONS: ProjectContractOptions = {
-  publicDir: path.join(process.cwd(), "public"),
-};
-
 const nonBlankTextSchema = z.string().trim().min(1, "Must not be blank.");
 
 const calendarDateSchema = z.string().superRefine((value, context) => {
@@ -518,7 +514,7 @@ function validatePostContract(
 
 function validateProjectCaseContract(
   input: ContentContractInput,
-  options: ProjectContractOptions = DEFAULT_PROJECT_CONTRACT_OPTIONS,
+  options: ProjectContractOptions,
 ): ContentContractResult<ProjectCaseFrontmatter> {
   const result = validateContentState(input, projectStateSchemas);
 
@@ -601,7 +597,7 @@ export function validatePostContracts(
 
 export function validateProjectCaseContracts(
   inputs: readonly ContentContractInput[],
-  options: ProjectContractOptions = DEFAULT_PROJECT_CONTRACT_OPTIONS,
+  options: ProjectContractOptions,
 ): ContentContractBatchResult<ProjectCaseFrontmatter> {
   return batchResult(
     inputs,

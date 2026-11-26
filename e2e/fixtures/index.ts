@@ -33,7 +33,7 @@ function routeForPost(slug: string = STABLE_POST.slug): string {
   return `/posts/${slug}/`;
 }
 
-function routeForProject(slug: string = STABLE_PROJECT.slug): string {
+function routeForProject(slug: string): string {
   return `/projects/${slug}/`;
 }
 

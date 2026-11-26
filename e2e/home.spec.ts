@@ -433,14 +433,19 @@ test.describe("Home page", () => {
     );
   });
 
-  for (const viewport of [
-    { width: 1440, height: 900 },
-    { width: 390, height: 844 },
+  for (const { viewport, deviceScaleFactor } of [
+    { viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 },
+    { viewport: { width: 390, height: 844 }, deviceScaleFactor: 3 },
   ]) {
-    test(`draws each object over finished supports in order at ${viewport.width}px`, async ({
-      page,
-    }) => {
-      await page.setViewportSize(viewport);
+    test.describe(() => {
+      test.use({ viewport, deviceScaleFactor });
+      test(
+        `draws each object over finished supports in order at ${viewport.width}px`,
+        drawObjectsInOrder,
+      );
+    });
+
+    async function drawObjectsInOrder({ page }: { page: Page }) {
       await installDrawingClock(page);
       await goToHome(page);
       const workbench = page.getByRole("region", { name: "交互工作台" });
@@ -702,7 +707,7 @@ test.describe("Home page", () => {
         settled,
         await captureWorkbenchArtwork(scene),
       );
-    });
+    }
   }
 
   for (const { edge, earlier, later, area } of [
@@ -1066,6 +1071,9 @@ test.describe("Home page", () => {
 
     await leaf.hover();
     await page.clock.runFor(48);
+    // Source-resolution crops temporarily reposition the hit targets. Keep the
+    // pointer off the sheet so taking a sample cannot trigger a second sweep.
+    await page.mouse.move(-1, -1);
     await expect(backgroundImage).toHaveCount(1);
     await expect(movingLeaf).toBeVisible();
     expect(await leaf.boundingBox()).toEqual(restingHotspot);
@@ -1127,7 +1135,6 @@ test.describe("Home page", () => {
     expect(rebound.pivotX).toBeCloseTo(forward.pivotX, 2);
     expect(rebound.pivotY).toBeCloseTo(forward.pivotY, 2);
 
-    await page.mouse.move(0, 0);
     await page.clock.runFor(2400);
     await expect(foliage).toHaveCount(0);
     await expect(background).toHaveCount(0);
@@ -1307,7 +1314,7 @@ test.describe("Home page", () => {
     await touch.detach();
   });
 
-  test("links the hero to the featured project and the footer to contact", async ({
+  test("links the hero to projects and keeps the featured section and contact reachable", async ({
     page,
   }) => {
     const copy = SITE_COPY;
@@ -1318,6 +1325,11 @@ test.describe("Home page", () => {
       page.getByRole("heading", { name: /Hashflow AI 全栈工程师/ }),
     ).toBeVisible();
 
+    const allProjects = page.getByRole("link", {
+      name: "浏览项目",
+      exact: true,
+    });
+    await expect(allProjects).toHaveAttribute("href", /\/projects\/$/);
     const viewProjectsLink = page.getByRole("link", {
       name: copy.viewFeaturedProject,
       exact: true,
@@ -1336,7 +1348,7 @@ test.describe("Home page", () => {
     await expect(page).toHaveURL(/\/about\/#contact$/);
     await expect(
       page
-        .getByRole("region", { name: "求职或合作，欢迎联系我。" })
+        .getByRole("region", { name: "求职与合作" })
         .getByRole("link", { name: /GitHub/ }),
     ).toBeInViewport();
   });
@@ -1370,8 +1382,7 @@ test.describe("Home page", () => {
     ).toBeVisible();
 
     const featuredProjectLink = page.getByRole("link", {
-      name: "查看项目详情",
-      exact: true,
+      name: `${STABLE_PROJECT.title} 查看项目详情`,
     });
     await expect(featuredProjectLink).toHaveAttribute(
       "href",

@@ -1,16 +1,36 @@
 .workbench {
+  --drawing-ratio: 1.46;
   min-width: 0;
+  aspect-ratio: var(--drawing-ratio);
+  display: grid;
+  place-items: center;
 }
 
 .scene {
+  --paper-edge-y: linear-gradient(
+    to bottom,
+    transparent,
+    black 12%,
+    black 86%,
+    transparent
+  );
   position: relative;
-  aspect-ratio: 1440 / 682;
+  width: calc(100% * 900 / 682 / var(--drawing-ratio));
+  aspect-ratio: 900 / 682;
   overflow: clip;
+  mask-image:
+    linear-gradient(to right, transparent, black 13%, black 87%, transparent),
+    var(--paper-edge-y);
+  mask-composite: intersect;
 }
 
 .sheet {
+  /* The drawing, pencil and hit targets all keep their original 1440px plane.
+     The case photograph shows the 900px window starting at source x = 540. */
   position: absolute;
-  inset: 0;
+  inset-block: 0;
+  inset-inline-start: calc(-540 / 900 * 100%);
+  width: calc(1440 / 900 * 100%);
 }
 
 .interactive {
@@ -35,16 +55,57 @@
   position: absolute;
   padding: 0;
   border: 0;
-  border-radius: 4px;
+  border-radius: 50%;
   background: transparent;
   cursor: pointer;
   touch-action: pan-y pinch-zoom;
   pointer-events: auto;
 }
 
+/* Keep the paper feather behind the active control. The same crop on the
+   1440px sheet starts at x=540 and is opaque from x=657 to x=1323. */
+.scene:has(.hotspot:is(:hover, :focus-visible, :active)) {
+  mask: none;
+}
+.scene:has(.hotspot:is(:hover, :focus-visible, :active)) .drawing {
+  mask-image:
+    linear-gradient(
+      to right,
+      transparent 37.5%,
+      black 45.625%,
+      black 91.875%,
+      transparent
+    ),
+    var(--paper-edge-y);
+  mask-composite: intersect;
+}
+
 .hotspot:focus-visible {
-  outline: 2px solid var(--studio-ink);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
+  box-shadow: 0 0 0 5px var(--paper);
+}
+
+.hotspot:active {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 0;
+  box-shadow: 0 0 0 2px var(--paper);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .hotspot:hover:not(:focus-visible, :active) {
+    outline: 1px solid var(--focus-ring);
+    outline-offset: 1px;
+    box-shadow: 0 0 0 2px var(--paper);
+  }
+}
+
+@media (forced-colors: active) {
+  .hotspot:is(:focus-visible, :active) {
+    outline: 3px solid Highlight;
+    outline-offset: 1px;
+    box-shadow: none;
+  }
 }
 
 .pencilImage {
@@ -74,16 +135,9 @@
   white-space: nowrap;
 }
 
-@media (max-width: 760px) {
-  .scene {
-    aspect-ratio: 770 / 682;
-  }
-
-  /* The mobile frame crops the shared coordinate plane around the artwork. */
-  .sheet {
-    inset-inline-start: calc(-570 / 770 * 100%);
-    inset-inline-end: auto;
-    width: calc(1440 / 770 * 100%);
+@media (max-width: 650px) {
+  .workbench {
+    --drawing-ratio: 1.8;
   }
 }
 

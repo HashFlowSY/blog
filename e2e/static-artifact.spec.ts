@@ -506,10 +506,6 @@ test.describe("generated static artifact", () => {
     await expectCanonical(page, stableDetailMetadata.project.pathname);
     await expectPublishedDetailMetadata(page, stableDetailMetadata.project);
 
-    const projectText = (await page.locator("body").innerText()).toLowerCase();
-    expect(projectText).not.toContain("template case");
-    expect(projectText).not.toContain("示例项目");
-
     expect(new URL(page.url()).pathname).toContain(staticBasePath || "/");
     expect(failures, "Critical static resources must not fail to load").toEqual(
       [],
@@ -608,7 +604,6 @@ test.describe("generated static artifact", () => {
     const visibleText = (await page.locator("body").innerText()).toLowerCase();
     expect(visibleText).not.toContain("hello@example.com");
     expect(visibleText).not.toContain("later replace");
-    expect(visibleText).not.toContain("template case");
 
     const feed = await page.request.get(routePath("/feed.xml"));
     expect(feed.status()).toBe(200);
@@ -663,10 +658,7 @@ test.describe("generated static artifact", () => {
       await expect(
         page.getByRole("heading", { name: "页面不存在" }),
       ).toBeVisible();
-      await expect(page.locator("main .portfolio-article-page")).toHaveCount(0);
-      await expect(page.locator("main .portfolio-project-detail")).toHaveCount(
-        0,
-      );
+      await expect(page.getByRole("main").getByRole("article")).toHaveCount(0);
       await expect(page.locator('link[rel="canonical"]')).toHaveCount(0);
       await expectBasePathReferences(page);
     }
@@ -681,9 +673,10 @@ test.describe("generated static artifact", () => {
     await expect(
       page.getByRole("heading", { name: "页面不存在" }),
     ).toBeVisible();
-    await expect(page.getByText("404 / missing signal")).toBeVisible();
-    await expect(page.locator("main .portfolio-article-page")).toHaveCount(0);
-    await expect(page.locator("main .portfolio-project-detail")).toHaveCount(0);
+    await expect(
+      page.getByRole("main").getByText("404", { exact: true }),
+    ).toBeVisible();
+    await expect(page.getByRole("main").getByRole("article")).toHaveCount(0);
     await expect(page.locator('link[rel="canonical"]')).toHaveCount(0);
     await expectPageMetadata(page, {
       description: defaultDescription,

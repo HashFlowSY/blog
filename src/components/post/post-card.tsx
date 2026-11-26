@@ -55,7 +55,7 @@ export function PostCard({
           )}
         </div>
         <span className="content-card-action" aria-hidden="true">
-          阅读 <span>→</span>
+          →
         </span>
       </Link>
     </article>

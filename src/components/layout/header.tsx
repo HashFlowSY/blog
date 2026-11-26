@@ -2,146 +2,50 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
 
-const navLinks = [
-  { href: "/", label: "首页", route: "home" },
-  { href: "/posts/", label: "文章", route: "articles" },
-  { href: "/projects/", label: "项目", route: "projects" },
-  { href: "/about/", label: "关于", route: "about" },
+const destinations = [
+  { href: "/", label: "首页" },
+  { href: "/projects/", label: "项目" },
+  { href: "/posts/", label: "文章" },
+  { href: "/about/", label: "关于" },
 ] as const;
 
-function isActivePath(pathname: string, href: string): boolean {
-  if (href === "/") return pathname === "/";
-  return pathname === href || pathname.startsWith(href);
-}
-
-interface HeaderProps {
-  siteName: string;
-  siteRole: string;
-}
-
-export function Header({ siteName, siteRole }: HeaderProps) {
+export function Header({ siteName }: { siteName: string }) {
   const pathname = usePathname();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
-  const menuButtonRef = useRef<HTMLButtonElement>(null);
-  const headerRef = useRef<HTMLElement>(null);
-
-  useEffect(() => {
-    let frameId = 0;
-
-    function syncScrollState() {
-      const compact =
-        window.matchMedia?.("(max-width: 760px)").matches ?? false;
-      const nextScrolled = window.scrollY > (compact ? 72 : 96);
-      setIsScrolled(nextScrolled);
-      document.body.classList.toggle("is-scrolled", nextScrolled);
-      frameId = 0;
-    }
-
-    function requestScrollSync() {
-      if (frameId) return;
-      frameId = window.requestAnimationFrame(syncScrollState);
-    }
-
-    syncScrollState();
-    window.addEventListener("scroll", requestScrollSync, { passive: true });
-    return () => {
-      window.removeEventListener("scroll", requestScrollSync);
-      window.cancelAnimationFrame(frameId);
-      document.body.classList.remove("is-scrolled");
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!isMenuOpen) return;
-
-    function closeOnEscape(event: KeyboardEvent) {
-      if (event.key !== "Escape") return;
-      setIsMenuOpen(false);
-      menuButtonRef.current?.focus();
-    }
-
-    function closeOutside(event: PointerEvent | FocusEvent) {
-      if (
-        event.target instanceof Node &&
-        !headerRef.current?.contains(event.target)
-      ) {
-        setIsMenuOpen(false);
-      }
-    }
-
-    function closeOnDesktop() {
-      if (window.innerWidth > 760) setIsMenuOpen(false);
-    }
-
-    document.addEventListener("keydown", closeOnEscape);
-    document.addEventListener("pointerdown", closeOutside);
-    document.addEventListener("focusin", closeOutside);
-    window.addEventListener("resize", closeOnDesktop);
-    return () => {
-      document.removeEventListener("keydown", closeOnEscape);
-      document.removeEventListener("pointerdown", closeOutside);
-      document.removeEventListener("focusin", closeOutside);
-      window.removeEventListener("resize", closeOnDesktop);
-    };
-  }, [isMenuOpen]);
-
-  const closeMenu = useCallback(() => {
-    setIsMenuOpen(false);
-  }, []);
 
   return (
-    <header
-      className={[
-        "site-header",
-        isScrolled ? "is-scrolled" : "",
-        isMenuOpen ? "is-menu-open" : "",
-      ]
-        .filter(Boolean)
-        .join(" ")}
-      aria-label="站点头部"
-      ref={headerRef}
-    >
+    <header className="site-header" aria-label="站点头部">
       <Link className="brand-lockup" href="/" aria-label="回到首页">
         <span className="brand-mark" aria-hidden="true">
-          H
+          <i />
+          <i />
+          <i />
         </span>
-        <span className="brand-text">
-          <strong>{siteName}</strong>
-          <span>{siteRole}</span>
-        </span>
+        <strong className="brand-name">{siteName}</strong>
       </Link>
-      <button
-        className="menu-toggle"
-        type="button"
-        aria-controls="site-nav"
-        aria-expanded={isMenuOpen}
-        onClick={() => setIsMenuOpen((open) => !open)}
-        ref={menuButtonRef}
-      >
-        菜单
-      </button>
-      <nav className="site-nav" id="site-nav" aria-label="主导航">
-        {navLinks.map((link, index) => {
-          const active = isActivePath(pathname, link.href);
-          return (
-            <Link
-              key={link.route}
-              className="nav-link"
-              href={link.href}
-              aria-current={active ? "page" : "false"}
-              onClick={closeMenu}
-            >
-              <span className="nav-index" aria-hidden="true">
-                0{index + 1}
-              </span>
-              {link.label}
-            </Link>
-          );
-        })}
+      <nav className="site-nav" aria-label="主导航">
+        {destinations.map(({ href, label }) => (
+          <Link
+            key={href}
+            className="nav-link"
+            href={href}
+            aria-current={
+              (
+                href === "/"
+                  ? pathname === href
+                  : pathname === href.slice(0, -1) || pathname.startsWith(href)
+              )
+                ? "page"
+                : "false"
+            }
+          >
+            {label}
+          </Link>
+        ))}
       </nav>
+      <Link className="header-contact" href="/about/#contact">
+        联系我 <span aria-hidden="true">↗</span>
+      </Link>
     </header>
   );
 }

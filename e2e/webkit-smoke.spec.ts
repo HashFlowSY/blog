@@ -8,12 +8,7 @@ import {
 import { pencilRoute } from "../src/components/home/pencil-route";
 
 import { SITE_COPY, STABLE_POST, STABLE_PROJECT, test } from "./fixtures";
-import {
-  goToHome,
-  goToPost,
-  goToProject,
-  goToRoute,
-} from "./helpers/navigation";
+import { goToHome, goToPost, goToProject } from "./helpers/navigation";
 import {
   artworkLuma,
   captureArtworkArea,
@@ -217,40 +212,18 @@ test.describe("WebKit smoke", () => {
     ).toHaveJSProperty("naturalWidth", 900);
   });
 
-  test("supports mobile menu open, close, navigation, and basic layout", async ({
+  test("supports direct mobile navigation and basic layout", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 375, height: 667 });
     await goToHome(page);
-
-    await expect(page.locator(".site-frame")).toBeVisible();
+    const nav = page.getByRole("navigation", { name: "主导航" });
     await expect(page.locator("main#content")).toBeVisible();
-
-    const menuButton = page.getByRole("button", { name: "菜单" });
-    const mobileNavigation = page.locator("#site-nav");
-
-    await menuButton.click();
-    await expect(menuButton).toHaveAttribute("aria-expanded", "true");
-    await expect(mobileNavigation).toBeVisible();
-
-    await menuButton.click();
-    await expect(menuButton).toHaveAttribute("aria-expanded", "false");
-    await expect(mobileNavigation).not.toBeVisible();
-
-    await menuButton.click();
-    await expect(mobileNavigation).toBeVisible();
-    await Promise.all([
-      page.waitForURL((url) => url.pathname.endsWith("/posts/")),
-      mobileNavigation
-        .getByRole("link", { name: SITE_COPY.posts, exact: true })
-        .click(),
-    ]);
-
-    expect(new URL(page.url()).pathname).toMatch(/\/posts\/$/);
-    await expect(menuButton).toHaveAttribute("aria-expanded", "false");
-    await expect(mobileNavigation).not.toBeVisible();
-
-    await goToRoute(page, "/posts/");
-    await expect(page.locator("main#content")).toBeVisible();
+    await expect(nav.getByRole("link", { name: "关于" })).toBeInViewport();
+    await nav.getByRole("link", { name: SITE_COPY.posts, exact: true }).click();
+    await page.waitForURL((url) => url.pathname.endsWith("/posts/"));
+    await expect(
+      nav.getByRole("link", { name: SITE_COPY.posts }),
+    ).toHaveAttribute("aria-current", "page");
   });
 });

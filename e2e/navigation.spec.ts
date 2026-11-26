@@ -11,11 +11,10 @@ import { goToHome, goToPosts } from "./helpers/navigation";
  */
 async function clickNavAndWait(
   page: Page,
-  navSelector: string,
   linkText: string,
   pathnameSuffix: string,
 ) {
-  const nav = page.locator(navSelector);
+  const nav = page.getByRole("navigation", { name: "主导航" });
   const link = nav.getByRole("link", { name: linkText, exact: true });
   await Promise.all([
     page.waitForURL((url) => url.pathname.endsWith(pathnameSuffix)),
@@ -44,30 +43,15 @@ test.describe("Navigation", () => {
     const copy = SITE_COPY;
 
     await goToHome(page);
-    await clickNavAndWait(
-      page,
-      'nav[aria-label="主导航"]',
-      copy.posts,
-      "/posts/",
-    );
+    await clickNavAndWait(page, copy.posts, "/posts/");
     expect(new URL(page.url()).pathname).toMatch(/\/posts\/$/);
 
     await goToHome(page);
-    await clickNavAndWait(
-      page,
-      'nav[aria-label="主导航"]',
-      copy.projects,
-      "/projects/",
-    );
+    await clickNavAndWait(page, copy.projects, "/projects/");
     expect(new URL(page.url()).pathname).toMatch(/\/projects\/$/);
 
     await goToHome(page);
-    await clickNavAndWait(
-      page,
-      'nav[aria-label="主导航"]',
-      copy.about,
-      "/about/",
-    );
+    await clickNavAndWait(page, copy.about, "/about/");
     expect(new URL(page.url()).pathname).toMatch(/\/about\/$/);
 
     await goToHome(page);
@@ -104,12 +88,7 @@ test.describe("Navigation", () => {
 
     await goToHome(page);
     const homePathname = new URL(page.url()).pathname;
-    await clickNavAndWait(
-      page,
-      'nav[aria-label="主导航"]',
-      copy.posts,
-      "/posts/",
-    );
+    await clickNavAndWait(page, copy.posts, "/posts/");
     expect(new URL(page.url()).pathname).toMatch(/\/posts\/$/);
 
     const stablePostLink = page.getByRole("link", {
@@ -138,33 +117,19 @@ test.describe("Navigation", () => {
     expect(new URL(page.url()).pathname).toMatch(/\/posts\/$/);
   });
 
-  test("mobile hamburger menu opens and navigates", async ({ page }) => {
-    const copy = SITE_COPY;
-
+  test("all four sections are directly reachable on mobile", async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 375, height: 667 });
     await goToHome(page);
-
-    const menuButton = page.getByRole("button", { name: "菜单" });
-    await menuButton.click();
-
-    await expect(menuButton).toHaveAttribute("aria-expanded", "true");
-
-    const mobileNav = page.locator("#site-nav");
-    await expect(mobileNav).toBeVisible();
-
-    await menuButton.click();
-    await expect(menuButton).toHaveAttribute("aria-expanded", "false");
-    await expect(mobileNav).not.toBeVisible();
-
-    await menuButton.click();
-    await expect(menuButton).toHaveAttribute("aria-expanded", "true");
-    await expect(mobileNav).toBeVisible();
-
-    await clickNavAndWait(page, "#site-nav", copy.posts, "/posts/");
-
-    expect(new URL(page.url()).pathname).toMatch(/\/posts\/$/);
-
-    await expect(menuButton).toHaveAttribute("aria-expanded", "false");
-    await expect(mobileNav).not.toBeVisible();
+    const navigation = page.getByRole("navigation", { name: "主导航" });
+    await expect(navigation.getByRole("link")).toHaveCount(4);
+    await expect(
+      navigation.getByRole("link", { name: "关于" }),
+    ).toBeInViewport();
+    await clickNavAndWait(page, SITE_COPY.posts, "/posts/");
+    await expect(
+      navigation.getByRole("link", { name: "文章" }),
+    ).toHaveAttribute("aria-current", "page");
   });
 });

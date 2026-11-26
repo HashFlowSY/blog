@@ -10,7 +10,10 @@ import {
   test,
 } from "./fixtures";
 import { visitStaticPage } from "./helpers/static-page";
-import { waitForFinishedWorkbench } from "./helpers/workbench";
+import {
+  captureArtworkArea,
+  waitForFinishedWorkbench,
+} from "./helpers/workbench";
 import {
   VISUAL_DESKTOP_VIEWPORT,
   VISUAL_MOBILE_VIEWPORT,
@@ -98,10 +101,18 @@ async function waitForHomeArtwork(page: Page): Promise<void> {
 }
 
 async function expectCanonicalWorkbenchArtwork(page: Page): Promise<void> {
-  // The crop covers the bench and drafting lines, excluding editable UI text.
+  // The new right-hand panel scales and feathers the sheet. Measure its live
+  // SVG and interaction layers at source resolution, before the edge mask.
+  // The complete page screenshot below verifies the responsive presentation.
   const crop = { x: 618, y: 91, width: 720, height: 607 };
   const source = await readFile("docs/design/workbench-2d/concept-1440.png");
-  const screenshot = await page.screenshot({ clip: crop, scale: "css" });
+  const scene = page.locator("[data-drawing-state]");
+  const screenshot = await captureArtworkArea(scene, [
+    crop.x,
+    crop.y,
+    crop.x + crop.width,
+    crop.y + crop.height,
+  ]);
   const differentPixels = await page.evaluate(
     async ({ source, screenshot, crop }) => {
       async function pngPixels(png: string, x = 0, y = 0) {
@@ -189,9 +200,10 @@ test.describe("Focused visual regression", () => {
         STABLE_PROJECT.title,
       );
       await expect(
-        page
-          .getByRole("region", { name: "概述", exact: true })
-          .getByRole("heading", { name: "已发布文章" }),
+        page.getByRole("img", { name: `${STABLE_PROJECT.title}界面预览` }),
+      ).toBeInViewport();
+      await expect(
+        page.getByRole("link", { name: "查看源码", exact: true }),
       ).toBeInViewport();
       await stabilizePage(page);
       await expectStableScreenshot(page, "project-detail-desktop.png");
@@ -201,35 +213,20 @@ test.describe("Focused visual regression", () => {
   test.describe("mobile viewport", () => {
     test.use({ hasTouch: true, viewport: VISUAL_MOBILE_VIEWPORT });
 
-    test("captures the home page with mobile navigation open", async ({
+    test("captures the home page with inline mobile navigation", async ({
       page,
     }) => {
       await visitStaticPage(page, "/");
-      await expect(page.getByRole("button", { name: "菜单" })).toBeVisible();
+      const mobileNavigation = page.getByRole("navigation", { name: "主导航" });
+      await expect(mobileNavigation.getByRole("link")).toHaveCount(4);
+      await expect(
+        mobileNavigation.getByRole("link", { name: "关于" }),
+      ).toBeInViewport();
       await waitForHomeArtwork(page);
       await stabilizePage(page);
-
-      const menuButton = page.getByRole("button", { name: "菜单" });
-      const mobileNavigation = page.locator("#site-nav");
-      await menuButton.click();
-      await expect(menuButton).toHaveAttribute("aria-expanded", "true");
-      await expect(mobileNavigation).toBeVisible();
-      const navigationDimensions = await mobileNavigation.evaluate(
-        (element) => ({
-          clientHeight: element.clientHeight,
-          scrollHeight: element.scrollHeight,
-        }),
-      );
-      expect(
-        navigationDimensions.scrollHeight,
-        "The open mobile navigation must not clip its final row",
-      ).toBeLessThanOrEqual(navigationDimensions.clientHeight);
-      await expect(
-        mobileNavigation.getByRole("link", { name: "关于", exact: true }),
-      ).toBeVisible();
       await clearTransientState(page);
 
-      await expectStableScreenshot(page, "home-mobile-menu-open.png");
+      await expectStableScreenshot(page, "home-mobile.png");
     });
   });
 });

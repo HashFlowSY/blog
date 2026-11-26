@@ -61,7 +61,7 @@ function shade(
   id: string,
   width: number,
   path: string,
-  opacity = 0.15,
+  opacity: number,
 ): Contact {
   return stroke(id, width, path, opacity, "ink");
 }

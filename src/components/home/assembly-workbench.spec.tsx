@@ -57,10 +57,6 @@ describe("AssemblyWorkbench", () => {
   }
 
   beforeEach(() => {
-    document.documentElement.style.setProperty(
-      "--studio-header-height",
-      "82px",
-    );
     time = 0;
     nextId = 0;
     frames = new Map();
@@ -100,7 +96,6 @@ describe("AssemblyWorkbench", () => {
   });
 
   afterEach(() => {
-    document.documentElement.style.removeProperty("--studio-header-height");
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });

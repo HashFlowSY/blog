@@ -1,0 +1,5 @@
+/* Keep the digits stationary and legible throughout the feedback. */
+.result :is([data-minute], [data-cjk], [data-words]) {
+  --result-mark: #f2c099;
+  border-radius: .14em;
+}

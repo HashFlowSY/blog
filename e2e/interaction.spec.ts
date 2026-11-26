@@ -61,41 +61,33 @@ test.describe("Continuous browsing interactions", () => {
     ).toHaveAttribute("aria-pressed", "true");
   });
 
-  test("opens the mobile menu without moving content and keeps it available after scrolling", async ({
+  test("keeps the primary mobile links in one row with usable tap targets", async ({
     page,
   }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
+    await page.setViewportSize({ width: 320, height: 670 });
     await goToPosts(page);
-    const heading = page.getByRole("heading", {
-      name: "技术写作",
-      exact: true,
-    });
-    await expect(page.locator("body")).toHaveAttribute(
-      "data-route",
-      "articles",
+    const links = page
+      .getByRole("navigation", { name: "主导航" })
+      .getByRole("link");
+    const boxes = await links.evaluateAll((items) =>
+      items.map((item) => {
+        const { top, width, height } = item.getBoundingClientRect();
+        return { top, width, height };
+      }),
     );
-    const originalTop = await heading.evaluate(
-      (element) => element.getBoundingClientRect().top,
-    );
-    const menu = page.getByRole("button", { name: "菜单", exact: true });
-    await menu.click();
-    await expect(menu).toHaveAttribute("aria-expanded", "true");
-    expect(
-      await heading.evaluate((element) => element.getBoundingClientRect().top),
-    ).toBe(originalTop);
-    await menu.press("Escape");
-    await expect(menu).toHaveAttribute("aria-expanded", "false");
-    await expect(menu).toBeFocused();
+    expect(boxes).toHaveLength(4);
+    for (const box of boxes) {
+      expect(box.top).toBe(boxes[0]!.top);
+      expect(box.width).toBeGreaterThanOrEqual(44);
+      expect(box.height).toBeGreaterThanOrEqual(44);
+    }
     await page
-      .getByRole("searchbox", { name: "查找文章" })
-      .scrollIntoViewIfNeeded();
-    await expect(menu).toBeInViewport();
-    await menu.click();
-    await page.getByRole("link", { name: "项目", exact: true }).click();
+      .getByRole("navigation", { name: "主导航" })
+      .getByRole("link", { name: "项目" })
+      .click();
     await expect(
       page.getByRole("heading", { name: "项目案例", exact: true }),
     ).toBeVisible();
-    await expect(menu).toHaveAttribute("aria-expanded", "false");
   });
 
   test("opens the mobile contents, jumps to a heading, and keeps its highlight", async ({
@@ -239,8 +231,16 @@ test.describe("Continuous browsing interactions", () => {
   });
 
   test("marks a fully visible short article as read", async ({ page }) => {
-    await page.setViewportSize({ width: 1440, height: 1800 });
     await goToPost(page, "2026-05-02");
+    const articleBottom = await page
+      .locator("#article-body")
+      .evaluate((body) =>
+        Math.ceil(body.getBoundingClientRect().bottom + window.scrollY),
+      );
+    await page.setViewportSize({
+      width: page.viewportSize()!.width,
+      height: articleBottom + 16,
+    });
     await expect(page.locator("#article-body")).toBeInViewport({ ratio: 1 });
     await expect(
       page.getByRole("progressbar", { name: "正文阅读进度" }),

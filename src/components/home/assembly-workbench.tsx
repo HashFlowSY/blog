@@ -97,12 +97,7 @@ function observeDrawingVisibility(scene: HTMLDivElement, start: () => void) {
     observer = undefined;
     visible = false;
     const height = scene.clientHeight;
-    const inset = Number.parseFloat(
-      getComputedStyle(document.documentElement).getPropertyValue(
-        "--studio-header-height",
-      ),
-    );
-    const availableHeight = window.innerHeight - inset;
+    const availableHeight = window.innerHeight;
     if (height <= 0 || availableHeight <= 0) return;
 
     // Short viewports can reveal less than the full height of the paper.
@@ -113,7 +108,7 @@ function observeDrawingVisibility(scene: HTMLDivElement, start: () => void) {
         visible = entry.isIntersecting && entry.intersectionRatio >= threshold;
         startWhenVisible();
       },
-      { rootMargin: `-${inset}px 0px 0px 0px`, threshold },
+      { threshold },
     );
     observer = next;
     next.observe(scene);
