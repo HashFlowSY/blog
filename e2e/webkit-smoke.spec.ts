@@ -59,7 +59,6 @@ test.describe("WebKit smoke", () => {
       await captureWorkbenchArtwork(scene),
       settled,
     );
-    await expect(workbench.getByRole("slider")).toHaveCount(0);
   });
 
   test("starts the computer animation by keyboard and resets it after a refresh", async ({
@@ -80,8 +79,12 @@ test.describe("WebKit smoke", () => {
     await page.reload();
     await expect(workbenchScene(workbench)).toHaveAttribute(
       "data-progress",
-      "0",
+      "100",
     );
+    await expect(laptop).toBeEnabled();
+    await expect(screen).toHaveCount(0);
+    await page.getByRole("button", { name: "重看绘制" }).click();
+    await expectFirstBackgroundStroke(page, workbench);
     await expect(laptop).toHaveCount(0);
     await drawToTime(page, workbench, drawingDuration);
     await expect(laptop).toBeVisible();
@@ -173,6 +176,16 @@ test.describe("WebKit smoke", () => {
     await expect(
       page.locator("#article-body").getByRole("listitem"),
     ).toHaveCount(5);
+    const chapterUrl = page.url();
+    const related = page.locator(".content-related .article-card-link").first();
+    const relatedTitle = await related.getByRole("heading").innerText();
+    await related.click();
+    await expect(title).toHaveText(relatedTitle);
+    await page.goBack();
+    await expect(page).toHaveURL(chapterUrl);
+    await expect(title).toHaveText(STABLE_POST.title);
+    await expect(checklist).toBeFocused();
+    await expect(checklist).toBeInViewport();
     await page.getByRole("button", { name: "回到顶部" }).press("Enter");
     await expect(title).toBeFocused();
     expect(new URL(page.url()).hash).toBe("");

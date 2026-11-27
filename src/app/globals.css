@@ -302,6 +302,13 @@ body[data-scrolled="true"] .back-to-top {
     gap: 8px;
     padding-bottom: 5px;
   }
+  .back-to-top {
+    position: sticky;
+    align-self: flex-end;
+    flex: none;
+    /* Park in the footer's existing top margin when the page reaches its end. */
+    margin-bottom: -44px;
+  }
   .site-footer {
     margin-top: 54px;
     padding-block: 14px;

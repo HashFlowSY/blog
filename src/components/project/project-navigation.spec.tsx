@@ -229,6 +229,17 @@ describe("project navigation history", () => {
     }
   });
 
+  it("focuses a directly linked project card without a previous visit", () => {
+    const id = "projects-" + slug;
+    mount("/projects/#" + id);
+    expect(document.getElementById(id)).toHaveFocus();
+    expect(nearest).toHaveBeenCalledWith({
+      block: "nearest",
+      behavior: "instant",
+    });
+    expect(window.scrollTo).not.toHaveBeenCalled();
+  });
+
   it("leaves modified, downloaded, external, new-tab and unrelated clicks to the browser", () => {
     const route = mount("/");
     const link = screen.getByRole("link", { name: "项目封面" });

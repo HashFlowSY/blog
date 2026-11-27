@@ -1,5 +1,3 @@
-import { CollectionReturnFocus } from "@/components/layout/collection-return-focus";
-
 import { ProjectCard } from "./project-card";
 
 import type { ProjectCaseMeta } from "@/lib/content-catalog";
@@ -17,7 +15,6 @@ export function ProjectList({ projects }: ProjectListProps) {
       {projects.map((project) => (
         <ProjectCard key={project.slug} project={project} />
       ))}
-      <CollectionReturnFocus collection="projects" />
     </div>
   );
 }

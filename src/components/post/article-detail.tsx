@@ -22,7 +22,6 @@ export function ArticleDetail({
 }) {
   const { document, title, summary, slug, tags, date, updated } = post;
   const related = relatedReading(post, posts);
-  const split = title.match(/^(.+?(?:：|:\s)\s*)(\S.*)$/u);
 
   return (
     <article
@@ -41,15 +40,8 @@ export function ArticleDetail({
           aria-labelledby={titleId}
         >
           <p className="collection-eyebrow">技术文章</p>
-          <h1 id={titleId} tabIndex={-1} aria-label={split ? title : undefined}>
-            {split ? (
-              <>
-                <span>{split[1]}</span>
-                <span>{split[2]}</span>
-              </>
-            ) : (
-              title
-            )}
+          <h1 id={titleId} tabIndex={-1}>
+            {title}
           </h1>
           <p className="portfolio-lede">{summary}</p>
           <div className="portfolio-article-meta" aria-label="文章信息">

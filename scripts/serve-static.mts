@@ -4,15 +4,6 @@ import path from "node:path";
 
 import type { IncomingMessage, ServerResponse } from "node:http";
 
-const requiredArtifacts = [
-  "404.html",
-  "feed.xml",
-  "index.html",
-  "robots.txt",
-  "search-index.json",
-  "sitemap.xml",
-] as const;
-
 const mimeTypes: Record<string, string> = {
   ".avif": "image/avif",
   ".css": "text/css; charset=utf-8",
@@ -188,14 +179,7 @@ function sendFile(
   }
 
   const stream = createReadStream(file.path);
-  stream.once("error", (error) => {
-    if (!response.headersSent) {
-      sendPlainText(response, 500, "Unable to read static artifact");
-      return;
-    }
-
-    response.destroy(error);
-  });
+  stream.once("error", (error) => response.destroy(error));
   stream.pipe(response);
 }
 
@@ -207,27 +191,32 @@ async function startServer(): Promise<void> {
     throw new Error(`Static artifact is not a directory: ${configuredOutput}`);
   }
 
-  const requiredFiles = await Promise.all(
-    requiredArtifacts.map((artifact) =>
-      resolveStaticFile(artifactRoot, path.join(artifactRoot, artifact)),
-    ),
-  );
-  const missingArtifact = requiredArtifacts.find(
-    (_, index) => requiredFiles[index] === undefined,
-  );
-  if (missingArtifact) {
-    throw new Error(
-      `Static artifact is incomplete: missing out/${missingArtifact}. Build before starting the preview server.`,
+  async function requireArtifact(name: string): Promise<StaticFile> {
+    const file = await resolveStaticFile(
+      artifactRoot,
+      path.join(artifactRoot, name),
     );
+    if (!file) {
+      throw new Error(
+        `Static artifact is incomplete: missing out/${name}. Build before starting the preview server.`,
+      );
+    }
+    return file;
   }
+
+  const notFoundFile = await requireArtifact("404.html");
+  for (const name of [
+    "feed.xml",
+    "index.html",
+    "robots.txt",
+    "search-index.json",
+    "sitemap.xml",
+  ])
+    await requireArtifact(name);
 
   const basePath = readBasePath(process.env["STATIC_BASE_PATH"]);
   const host = process.env["HOST"] ?? "127.0.0.1";
   const port = readPort(process.env["PORT"]);
-  const notFoundFile = requiredFiles[0];
-  if (!notFoundFile) {
-    throw new Error("Static artifact is incomplete: missing out/404.html");
-  }
 
   const server = createServer((request, response) => {
     void (async () => {

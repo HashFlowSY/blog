@@ -1,7 +1,7 @@
 import { expect, type Page } from "@playwright/test";
 
 import { STABLE_PROJECT, test } from "./fixtures";
-import { goToHome } from "./helpers/navigation";
+import { goToHome, goToProjects } from "./helpers/navigation";
 
 async function observeFlights(page: Page) {
   const starts: number[] = [];
@@ -87,3 +87,36 @@ test("workbench links and reduced motion keep their return targets without anima
   await expect(entry).toBeFocused();
   expect(starts).toHaveLength(0);
 });
+
+for (const viewport of [
+  { width: 390, height: 844 },
+  { width: 1440, height: 900 },
+]) {
+  test(`the project list cover lands where it opened at ${viewport.width}px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(viewport);
+    const starts = await observeFlights(page);
+    await goToProjects(page);
+    const card = page.locator(`#projects-${STABLE_PROJECT.slug}`);
+    const cover = card.locator("[data-project-cover]");
+    const originalTop = await cover.evaluate(
+      (el) => el.getBoundingClientRect().top,
+    );
+    const originalScroll = await page.evaluate(() => scrollY);
+    await cover.click();
+    await expect.poll(() => starts.length).toBe(1);
+    await expect(page.locator(".project-cover-flight")).toHaveCount(0);
+    await page.getByRole("link", { name: "返回项目列表", exact: true }).click();
+    await expect.poll(() => starts.length).toBe(2);
+    await expect(
+      page.locator(".project-cover-flight, [data-cover-in-flight]"),
+    ).toHaveCount(0);
+    await expect(card).toBeFocused();
+    expect(await page.evaluate(() => scrollY)).toBe(originalScroll);
+    const returnedTop = await cover.evaluate(
+      (el) => el.getBoundingClientRect().top,
+    );
+    expect(Math.abs(returnedTop - originalTop)).toBeLessThanOrEqual(2);
+  });
+}

@@ -33,7 +33,12 @@ test.describe("Post detail", () => {
       name: STABLE_POST.title,
       exact: true,
     });
+    const resultList = page.locator(".portfolio-article-list");
+    const listTop = () =>
+      resultList.evaluate((list) => list.getBoundingClientRect().top + scrollY);
+    const unfilteredTop = await listTop();
     await page.getByRole("button", { name: "Codex", exact: true }).click();
+    expect(await listTop()).toBe(unfilteredTop);
     expect(indexRequests).toBe(0);
     await search.fill("月抛站");
     await expect(page.getByText("没有找到匹配的文章")).toBeVisible();
@@ -55,6 +60,44 @@ test.describe("Post detail", () => {
       page.getByRole("button", { name: "风险识别", exact: true }),
     ).toHaveAttribute("aria-pressed", "true");
     await expect(card.locator("mark")).toHaveText("月抛站");
+  });
+
+  test("restores the article, section and focus when traversing chapter history", async ({
+    page,
+  }) => {
+    await goToRoute(page, routeForPost());
+    const title = page.getByRole("heading", { level: 1 });
+    const checklist = page.getByRole("heading", { name: "使用前的检查清单" });
+    const contents = page.getByRole("navigation", { name: "文章章节" });
+    const toggle = page.getByRole("button", { name: "目录", exact: true });
+    await toggle.click();
+    await contents.getByRole("link", { name: "使用前的检查清单" }).click();
+    await expect(checklist).toBeFocused();
+    const chapter = page.url();
+    const related = page.locator(".content-related .article-card-link").first();
+    const relatedTitle = await related.getByRole("heading").innerText();
+    await related.click();
+    await expect(title).toHaveText(relatedTitle);
+
+    async function expectChapterRestored() {
+      await page.goBack();
+      await expect(page).toHaveURL(chapter);
+      await expect(title).toHaveText(STABLE_POST.title);
+      await expect(checklist).toBeFocused();
+      await expect(checklist).toBeInViewport();
+    }
+
+    await expectChapterRestored();
+    await page.goForward();
+    await expect(title).toHaveText(relatedTitle);
+    await expectChapterRestored();
+    await toggle.click();
+    await contents
+      .getByRole("link", { name: "OpenAI 官方（ChatGPT）" })
+      .click();
+    await page.getByRole("link", { name: "返回文章列表" }).click();
+    await expect(page.getByRole("searchbox")).toBeVisible();
+    await expectChapterRestored();
   });
 
   test("focuses a body-only result when returning from a directly opened post", async ({

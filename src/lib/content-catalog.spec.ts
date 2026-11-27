@@ -81,7 +81,6 @@ draft: false`;
 
 describe("Content Catalog", () => {
   it("exports only complete Published entry contracts", () => {
-    type PostExposesCover = "cover" extends keyof Post ? true : false;
     type PostDocumentIsOptional =
       object extends Pick<Post, "document"> ? true : false;
     type ProjectCaseCoverAllowsNull = null extends ProjectCase["cover"]
@@ -98,8 +97,6 @@ describe("Content Catalog", () => {
       ? true
       : false;
 
-    // @ts-expect-error Published Posts never expose a cover field.
-    const postExposesCover: PostExposesCover = true;
     // @ts-expect-error Published Posts always have a compiled document.
     const postDocumentIsOptional: PostDocumentIsOptional = true;
     // @ts-expect-error Published Project Case covers are always present.
@@ -115,7 +112,6 @@ describe("Content Catalog", () => {
     // @ts-expect-error Published Project Cases always have at least one tag.
     const projectCaseTagsAllowEmpty: ProjectCaseTagsAllowEmpty = true;
 
-    void postExposesCover;
     void postDocumentIsOptional;
     void projectCaseCoverAllowsNull;
     void projectCaseRoleIsOptional;
@@ -166,7 +162,6 @@ evidence:
     expect(catalog.projectCases.map((projectCase) => projectCase.slug)).toEqual(
       ["catalog-project"],
     );
-    expect(catalog.posts[0]).not.toHaveProperty("cover");
     expect(catalog.projectCases[0]).toMatchObject({
       cover: "/assets/project.png",
       role: "Development",

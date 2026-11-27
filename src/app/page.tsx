@@ -55,23 +55,17 @@ export default async function HomePage() {
             </Link>
           </div>
         </div>
-        <figure className="paper-figure">
-          <AssemblyWorkbench />
-          <figcaption>
-            <span>
-              <i lang="en">Fig. 1</i> 首页手绘工作台
-            </span>
-            {workbenchCase && (
-              <Link
-                href={`/projects/${workbenchCase.slug}/`}
-                id="workbench-case"
-                data-project-entry={workbenchCase.slug}
-              >
-                打开项目 <span aria-hidden="true">↗</span>
-              </Link>
-            )}
-          </figcaption>
-        </figure>
+        <AssemblyWorkbench>
+          {workbenchCase && (
+            <Link
+              href={`/projects/${workbenchCase.slug}/`}
+              id="workbench-case"
+              data-project-entry={workbenchCase.slug}
+            >
+              打开项目 <span aria-hidden="true">↗</span>
+            </Link>
+          )}
+        </AssemblyWorkbench>
       </div>
 
       <div className="paper-index">

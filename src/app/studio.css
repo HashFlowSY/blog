@@ -77,7 +77,8 @@
   margin: 10px 0 0 6%;
   display: flex;
   align-items: center;
-  gap: 24px;
+  flex-wrap: wrap;
+  gap: 0 clamp(12px, 2vw, 24px);
   color: var(--muted);
   font: 400 12px/1.5 var(--font-ui);
 }

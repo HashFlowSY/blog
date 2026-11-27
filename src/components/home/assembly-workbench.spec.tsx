@@ -57,6 +57,7 @@ describe("AssemblyWorkbench", () => {
   }
 
   beforeEach(() => {
+    window.sessionStorage.clear();
     time = 0;
     nextId = 0;
     frames = new Map();
@@ -149,7 +150,7 @@ describe("AssemblyWorkbench", () => {
     });
   }
 
-  it("waits for a visible canvas and draws from the start on each mount", async () => {
+  it("waits for a visible canvas on the first visit and opens the finished drawing on return", async () => {
     const first = await renderReadyWorkbench();
     revealCanvas(0.39);
     advanceTo(1200);
@@ -162,10 +163,8 @@ describe("AssemblyWorkbench", () => {
     first.unmount();
     expect(frames.size).toBe(0);
     await renderReadyWorkbench();
-    expect(scene()).toHaveAttribute("data-progress", "0");
-    revealCanvas();
-    advanceTo(3600);
-    expect(Number(scene().getAttribute("data-progress"))).toBeGreaterThan(0);
+    expect(scene()).toHaveAttribute("data-drawing-state", "complete");
+    expect(screen.getByRole("button", { name: "工作灯" })).toBeEnabled();
   });
 
   it("waits for part image events when decoding is unavailable", async () => {
@@ -187,7 +186,7 @@ describe("AssemblyWorkbench", () => {
     expect(
       scene().querySelector('[data-workbench-art="rest"]'),
     ).toBeInTheDocument();
-    expect(screen.queryAllByRole("button")).toHaveLength(0);
+    expect(scene().querySelectorAll("button")).toHaveLength(0);
     await act(async () => {
       for (const image of requested) image.onload?.();
     });
@@ -221,7 +220,7 @@ describe("AssemblyWorkbench", () => {
     expect(
       screen.getByRole("img", { name: "正在绘制的工作台" }),
     ).toBeInTheDocument();
-    expect(screen.queryAllByRole("button")).toHaveLength(0);
+    expect(scene().querySelectorAll("button")).toHaveLength(0);
     advanceTo(drawingDuration);
     expect(scene().querySelector('[data-workbench-art="rest"]')).toBe(rest);
     expect(rest?.parentElement).toHaveAttribute("mask", contactMask);
@@ -245,7 +244,7 @@ describe("AssemblyWorkbench", () => {
     expect(scene()).toHaveAttribute("data-drawing-state", "complete");
   });
 
-  it("restarts after history-cache restoration, while ordinary pageshow leaves it unchanged", async () => {
+  it("keeps the finished drawing on ordinary pageshow and history-cache restoration", async () => {
     await renderReadyWorkbench();
     revealCanvas();
     advanceTo(drawingDuration);
@@ -255,28 +254,19 @@ describe("AssemblyWorkbench", () => {
     );
     expect(scene()).toHaveAttribute("data-drawing-state", "complete");
     await restoreFromHistoryCache();
-    expect(scene()).toHaveAttribute("data-progress", "0");
-    expect(
-      screen.queryByRole("group", { name: "二维工作台部件" }),
-    ).not.toBeInTheDocument();
-    revealCanvas();
-    advanceTo(drawingDuration + 500);
-    expect(Number(scene().getAttribute("data-progress"))).toBeGreaterThan(0);
-    expect(scene()).toHaveAttribute("data-drawing-object", "background");
+    expect(scene()).toHaveAttribute("data-progress", "100");
+    expect(screen.getByRole("button", { name: "工作灯" })).toBeEnabled();
   });
 
-  it("starts a fresh timeline when history restores an unfinished playing drawing", async () => {
+  it("shows the finished drawing when history restores an unfinished drawing", async () => {
     await renderReadyWorkbench();
     revealCanvas();
     advanceTo(1200);
     time = 100000;
     await restoreFromHistoryCache();
-    expect(scene()).toHaveAttribute("data-progress", "0");
+    expect(scene()).toHaveAttribute("data-progress", "100");
     expect(frames.size).toBe(0);
-    revealCanvas();
-    advanceTo(100000 + 500);
-    expect(Number(scene().getAttribute("data-progress"))).toBeGreaterThan(0);
-    expect(scene()).toHaveAttribute("data-drawing-object", "background");
+    expect(screen.getByRole("button", { name: "重看绘制" })).toBeEnabled();
   });
 
   it("shows the finished artwork with reduced motion and resets retained controls on restoration", async () => {

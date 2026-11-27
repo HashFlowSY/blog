@@ -3,7 +3,6 @@
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 
-import { CollectionReturnFocus } from "@/components/layout/collection-return-focus";
 import { articleFilterSearch } from "@/lib/content-navigation";
 import { loadPostSearchIndex, searchPosts } from "@/lib/post-search";
 
@@ -74,6 +73,21 @@ export function PostArchive({ posts, tags, indexUrl }: PostArchiveProps) {
     results.kind === "ready" &&
     posts.length > 0 &&
     results.matches.length === 0;
+  const hasMatches = results.kind === "ready" && results.matches.length > 0;
+
+  useEffect(() => {
+    if (!hasMatches) return;
+    const frame = window.requestAnimationFrame(() => {
+      if (search !== window.location.search) return;
+      const id = window.location.hash.slice(1);
+      if (!id.startsWith("posts-")) return;
+      const card = document.getElementById(id);
+      if (!(card instanceof HTMLAnchorElement)) return;
+      card.focus({ preventScroll: true });
+      card.scrollIntoView({ block: "nearest", behavior: "instant" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [hasMatches, search]);
 
   useEffect(() => {
     if (!loadingIndex) return;
@@ -251,9 +265,6 @@ export function PostArchive({ posts, tags, indexUrl }: PostArchiveProps) {
           </div>
         )}
       </div>
-      {results.kind === "ready" && results.matches.length > 0 && (
-        <CollectionReturnFocus collection="posts" search={search} />
-      )}
     </>
   );
 }

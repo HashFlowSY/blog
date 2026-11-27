@@ -21,9 +21,9 @@ export function SiteShell({ children }: SiteShellProps) {
         <main id="content" tabIndex={-1}>
           {children}
         </main>
+        <BackToTop targetId="content" placement="site" />
         <Footer />
       </div>
-      <BackToTop targetId="content" placement="site" />
       <ScrollState />
       <ProjectNavigation />
     </>

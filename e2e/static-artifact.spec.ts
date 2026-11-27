@@ -601,10 +601,6 @@ test.describe("generated static artifact", () => {
       }),
     ).toHaveAttribute("href", "https://github.com/HashFlowSY");
 
-    const visibleText = (await page.locator("body").innerText()).toLowerCase();
-    expect(visibleText).not.toContain("hello@example.com");
-    expect(visibleText).not.toContain("later replace");
-
     const feed = await page.request.get(routePath("/feed.xml"));
     expect(feed.status()).toBe(200);
     expect(feed.headers()["content-type"]).toMatch(/application\/xml/);

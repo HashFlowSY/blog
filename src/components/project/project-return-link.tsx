@@ -33,7 +33,13 @@ export function ProjectReturnLink({
       ? "返回项目"
       : "返回项目列表";
   return (
-    <Link className={className} data-project-return={slug} href={href} replace>
+    <Link
+      className={className}
+      data-project-return={slug}
+      href={href}
+      replace
+      scroll={false}
+    >
       <span aria-hidden="true">←</span> {label}
     </Link>
   );

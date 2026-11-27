@@ -104,6 +104,50 @@ export function ReadingTools({
   const isPost = collection === "posts";
 
   useEffect(() => {
+    if (!isPost) return;
+
+    const visit = location.pathname + location.search;
+    const routeState: unknown = history.state;
+    const body = document.getElementById(bodyId);
+
+    // Native heading and footnote links focus their targets, but create entries
+    // without the route state needed to return from a different article.
+    function preserveFragment() {
+      if (
+        location.pathname + location.search === visit &&
+        location.hash &&
+        history.state === null
+      ) {
+        history.replaceState(routeState, "");
+      }
+    }
+    window.addEventListener("popstate", preserveFragment, true);
+    window.addEventListener("hashchange", preserveFragment);
+
+    // A cross-page traversal mounts the article after the browser's native
+    // fragment navigation. Restore its target once the new DOM is present.
+    const frame = requestAnimationFrame(() => {
+      if (!location.hash) return;
+      let id: string;
+      try {
+        id = decodeURIComponent(location.hash.slice(1));
+      } catch {
+        return;
+      }
+      const target = document.getElementById(id);
+      if (target && body?.contains(target)) {
+        target.focus({ preventScroll: true });
+        target.scrollIntoView({ block: "start", behavior: "instant" });
+      }
+    });
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("popstate", preserveFragment, true);
+      window.removeEventListener("hashchange", preserveFragment);
+    };
+  }, [bodyId, isPost, slug]);
+
+  useEffect(() => {
     const toolbar = bar.current;
     const body = document.getElementById(bodyId);
     const viewport = window.visualViewport;

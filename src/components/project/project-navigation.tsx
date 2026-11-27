@@ -191,8 +191,14 @@ export function ProjectNavigation() {
       entry && detailPath(entry.slug) === location.pathname
         ? { entry, state: history.state }
         : undefined;
-    const target = restore;
+    let target = restore;
     restore = undefined;
+    if (
+      !target &&
+      location.pathname === originPath("projects") &&
+      location.hash.startsWith("#projects-")
+    )
+      target = { id: location.hash.slice(1) };
 
     const frame = requestAnimationFrame(() => {
       if (target) {
@@ -202,7 +208,11 @@ export function ProjectNavigation() {
           if (target.top !== undefined)
             window.scrollTo({ top: target.top, behavior: "instant" });
           const rect = card.getBoundingClientRect();
-          if (rect.bottom <= 0 || rect.top >= innerHeight)
+          if (
+            target.top === undefined ||
+            rect.bottom <= 0 ||
+            rect.top >= innerHeight
+          )
             card.scrollIntoView({ block: "nearest", behavior: "instant" });
         }
       }

@@ -228,7 +228,7 @@ test.describe("Home page", () => {
     await waitForFinishedWorkbench(workbench);
   });
 
-  test("redraws on entry, return, back and refresh without playback controls", async ({
+  test("lets visitors skip or replay the drawing and opens the finished workbench on return", async ({
     page,
   }) => {
     await installDrawingClock(page);
@@ -248,11 +248,11 @@ test.describe("Home page", () => {
       ).toBeLessThan(0.03);
     }
     await expectFreshDrawing();
-    await expect(workbench.getByRole("slider")).toHaveCount(0);
-    await expect(workbench).not.toContainText(
-      /100%|回到起点|重看细节|先落点|从点开始/,
-    );
-    await drawToTime(page, workbench, drawingDuration);
+    await page.getByRole("button", { name: "直接体验" }).press("Enter");
+    const lamp = workbench.getByRole("button", { name: "工作灯" });
+    await expect(lamp).toBeFocused();
+    await lamp.press("Space");
+    await expect(lamp).toHaveAttribute("aria-pressed", "false");
     await page
       .getByRole("navigation", { name: "主导航" })
       .getByRole("link", { name: /关于/ })
@@ -261,11 +261,11 @@ test.describe("Home page", () => {
       page.getByRole("heading", { level: 1, name: SITE_COPY.aboutTitle }),
     ).toBeVisible();
     await page.getByRole("link", { name: "回到首页", exact: true }).click();
-    await expectFreshDrawing();
-    await drawToTime(page, workbench, drawingDuration);
+    await expect(scene).toHaveAttribute("data-progress", "100");
     await page.reload();
+    await expect(scene).toHaveAttribute("data-progress", "100");
+    await page.getByRole("button", { name: "重看绘制" }).press("Enter");
     await expectFreshDrawing();
-    await drawToTime(page, workbench, drawingDuration);
     await page
       .getByRole("navigation", { name: "主导航" })
       .getByRole("link", { name: /关于/ })
@@ -274,7 +274,8 @@ test.describe("Home page", () => {
       page.getByRole("heading", { level: 1, name: SITE_COPY.aboutTitle }),
     ).toBeVisible();
     await page.goBack();
-    await expectFreshDrawing();
+    await expect(scene).toHaveAttribute("data-progress", "100");
+    await expect(lamp).toBeEnabled();
   });
 
   test("reveals the first position mark only when the pencil touches it", async ({
@@ -1233,10 +1234,11 @@ test.describe("Home page", () => {
       });
     }
 
-    async function tap(target: typeof keyboard) {
+    async function tap(target: typeof keyboard, offsetY = 0) {
+      const point = await center(target);
       await touch.send("Input.dispatchTouchEvent", {
         type: "touchStart",
-        touchPoints: [await center(target)],
+        touchPoints: [{ ...point, y: point.y + offsetY }],
       });
       await touch.send("Input.dispatchTouchEvent", {
         type: "touchEnd",
@@ -1287,12 +1289,12 @@ test.describe("Home page", () => {
     expect(await page.evaluate(() => scrollY)).toBeGreaterThan(scrollBefore);
     await expect(screen).toHaveCount(0);
 
-    await tap(keyboard);
+    await tap(keyboard, 7);
     await expect(screen).toHaveAttribute("data-phase", "typing");
     await page.clock.fastForward(5000);
     await expect(screen).toHaveCount(0);
 
-    await tap(lamp);
+    await tap(lamp, 7);
     await expect(lamp).toHaveAttribute("aria-pressed", "false");
     await tap(lamp);
     await expect(lamp).toHaveAttribute("aria-pressed", "true");

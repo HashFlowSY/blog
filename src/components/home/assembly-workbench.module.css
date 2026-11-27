@@ -53,6 +53,7 @@
 
 .hotspot {
   position: absolute;
+  transform: translate(-50%, -50%);
   padding: 0;
   border: 0;
   border-radius: 50%;
@@ -60,6 +61,32 @@
   cursor: pointer;
   touch-action: pan-y pinch-zoom;
   pointer-events: auto;
+}
+
+@media (any-pointer: coarse) {
+  .hotspot[data-part="lamp"],
+  .hotspot[data-part="display-key-0"] {
+    min-height: 36px;
+    border-radius: 8px;
+  }
+
+  .hotspot[data-part="lamp"] {
+    min-width: 44px;
+  }
+
+  .hotspot[data-part="display-key-0"] {
+    min-width: 32px;
+  }
+}
+
+.playback {
+  min-height: 44px;
+  padding: 0;
+  color: var(--accent);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.3em;
+  cursor: pointer;
 }
 
 /* Keep the paper feather behind the active control. The same crop on the

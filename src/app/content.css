@@ -301,9 +301,6 @@
   overflow-wrap: anywhere;
   text-wrap: balance;
 }
-.portfolio-article-hero h1 > span {
-  display: inline;
-}
 .portfolio-lede {
   color: var(--muted);
   font: 400 16px/1.85 var(--font-ui);
@@ -393,9 +390,6 @@
   }
   .project-card-copy .content-text-link {
     margin-top: 7px;
-  }
-  .archive-result-summary {
-    min-height: 31px;
   }
   .portfolio-article-hero {
     padding-block: 6px 24px;

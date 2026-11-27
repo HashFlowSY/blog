@@ -162,11 +162,12 @@ export function WorkbenchInteractive({
                 key={part}
                 type="button"
                 className={styles["hotspot"]}
+                data-part={part}
                 aria-label={label}
                 aria-pressed={part === "lamp" ? pose.lampOn : undefined}
                 style={{
-                  left: `${(x / workbenchSheet.width) * 100}%`,
-                  top: `${((y - workbenchSheet.top) / workbenchSheet.sceneHeight) * 100}%`,
+                  left: `${((x + width / 2) / workbenchSheet.width) * 100}%`,
+                  top: `${((y + height / 2 - workbenchSheet.top) / workbenchSheet.sceneHeight) * 100}%`,
                   width: `${(width / workbenchSheet.width) * 100}%`,
                   height: `${(height / workbenchSheet.sceneHeight) * 100}%`,
                 }}
