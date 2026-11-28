@@ -1,6 +1,6 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
-import { SITE_COPY, STABLE_POST, test } from "./fixtures";
+import { SITE_COPY, STABLE_POST } from "./fixtures";
 import { goToHome, goToPosts } from "./helpers/navigation";
 
 /**

@@ -395,6 +395,69 @@ describe("strict content contracts", () => {
       expect(result.entries).toHaveLength(1);
     });
 
+    it("keeps named screenshots in author order when the referenced local files exist", () => {
+      const publicDir = createPublicDirectory();
+      const screenshots = [
+        {
+          src: "/assets/search.png",
+          label: "搜索",
+          caption: "正文关键词匹配结果",
+        },
+        { src: "/assets/notes.png", label: "列表", caption: "按主题筛选文章" },
+      ];
+      for (const screenshot of screenshots) {
+        fs.writeFileSync(path.join(publicDir, screenshot.src), "image asset");
+      }
+      const result = validateProjectCaseContracts(
+        [
+          {
+            filePath: "content/projects/zh-CN/strict-project.md",
+            frontmatter: { ...publishedProject(), showcase: { screenshots } },
+            body: "# Project body",
+          },
+        ],
+        { publicDir },
+      );
+      expect(result.errors).toEqual([]);
+      expect(result.entries[0]?.frontmatter.showcase?.screenshots).toEqual(
+        screenshots,
+      );
+    });
+
+    it("identifies missing screenshot files, noncanonical paths, and incomplete descriptions by index", () => {
+      const publicDir = createPublicDirectory();
+      const filePath = "content/projects/zh-CN/strict-project.md";
+      const result = validateProjectCaseContracts(
+        [
+          {
+            filePath,
+            frontmatter: {
+              ...publishedProject(),
+              showcase: {
+                screenshots: [
+                  {
+                    src: "/assets/missing.png",
+                    label: "截屏",
+                    caption: "图注",
+                  },
+                  { src: "assets/cover.png", label: "截屏", caption: "图注" },
+                  { src: "/assets/cover.png", label: " " },
+                ],
+              },
+            },
+            body: "# Project body",
+          },
+        ],
+        { publicDir },
+      );
+      expect(result.entries).toHaveLength(0);
+      for (const field of ["0.src", "1.src", "2.label", "2.caption"]) {
+        expect(
+          hasError(result, filePath, `showcase.screenshots.${field}`),
+        ).toBe(true);
+      }
+    });
+
     it("requires explicit draft and featured states and every publication field", () => {
       const publicDir = createPublicDirectory();
       const filePath = "content/projects/zh-CN/incomplete.md";

@@ -1,15 +1,14 @@
-import Image from "next/image";
 import { notFound } from "next/navigation";
 
 import { BackToTop } from "@/components/layout/back-to-top";
 import { DocumentBody } from "@/components/markdown/document-body";
 import { ReadingTools } from "@/components/markdown/reading-tools";
-import { ProjectCover } from "@/components/project/project-cover";
 import styles from "@/components/project/project-detail.module.css";
+import { ProjectGallery } from "@/components/project/project-gallery";
 import { ProjectReturnLink } from "@/components/project/project-return-link";
 import { ProjectStory } from "@/components/project/project-story";
 import { getContentCatalog } from "@/lib/content-catalog";
-import { assetPath, siteUrl } from "@/lib/site";
+import { siteUrl } from "@/lib/site";
 
 import type { Metadata } from "next";
 
@@ -108,18 +107,13 @@ export default async function ProjectDetailPage({ params }: Props) {
             </nav>
           )}
         </div>
-        <figure className={styles["figure"]}>
-          <ProjectCover slug={slug} className={styles["cover"]}>
-            <Image
-              src={assetPath(projectCase.cover)}
-              alt={`${projectCase.title}界面预览`}
-              fill
-              preload
-              sizes="(max-width: 650px) 100vw, 47vw"
-            />
-          </ProjectCover>
-          <figcaption>{projectCase.title} · 项目封面</figcaption>
-        </figure>
+        <ProjectGallery
+          key={slug}
+          slug={slug}
+          title={projectCase.title}
+          cover={projectCase.cover}
+          screenshots={showcase?.screenshots}
+        />
       </header>
       <div className={styles["bodyLayout"]}>
         {outline.length >= 2 && (

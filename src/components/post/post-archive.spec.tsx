@@ -86,6 +86,39 @@ describe("PostArchive", () => {
     expect(fetchIndex).not.toHaveBeenCalled();
   });
 
+  it("moves a surviving article from its previous row and stops when motion is reduced", () => {
+    const preference = Object.assign(new EventTarget(), { matches: true });
+    vi.stubGlobal("matchMedia", () => preference);
+    render(
+      <PostArchive posts={posts} tags={["手记", "工程"]} indexUrl={indexUrl} />,
+    );
+    const row = screen
+      .getByRole("link", { name: "第二篇" })
+      .closest("article")!;
+    const list = row.parentElement!;
+    const cancel = vi.fn();
+    const animate = vi.fn(() => ({ cancel }));
+    Object.defineProperty(list, "animate", { value: animate });
+    Object.defineProperty(row, "animate", { value: animate });
+    vi.spyOn(row, "getBoundingClientRect").mockImplementation(
+      () => new DOMRect(0, list.firstElementChild === row ? 0 : 120, 400, 120),
+    );
+
+    const topic = screen.getByRole("button", { name: "工程" });
+    fireEvent.click(topic);
+    expect(animate).toHaveBeenCalledWith(
+      [{ transform: "translateY(120px)" }, { transform: "none" }],
+      expect.anything(),
+    );
+    expect(topic).toHaveAttribute("aria-pressed", "true");
+    preference.matches = false;
+    preference.dispatchEvent(new Event("change"));
+    expect(cancel).toHaveBeenCalled();
+    fireEvent.click(topic);
+    expect(screen.getAllByRole("article")).toHaveLength(2);
+    expect(animate).toHaveBeenCalledTimes(1);
+  });
+
   it("waits for Chinese composition before searching and can remove only the topic", async () => {
     const fetchIndex = vi.fn().mockResolvedValue(Response.json(index));
     vi.stubGlobal("fetch", fetchIndex);

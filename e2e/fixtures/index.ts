@@ -1,5 +1,3 @@
-import { test } from "@playwright/test";
-
 const SITE_COPY = {
   posts: "文章",
   projects: "项目",
@@ -43,5 +41,4 @@ export {
   STABLE_PROJECT,
   routeForPost,
   routeForProject,
-  test,
 };

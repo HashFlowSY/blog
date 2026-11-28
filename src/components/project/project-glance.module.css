@@ -1,0 +1,50 @@
+.glance {
+  border-block-start: 1px solid var(--content-rule);
+  margin-block-end: 24px;
+}
+.glance summary {
+  width: fit-content;
+  cursor: pointer;
+  min-block-size: 44px;
+  padding-block: 12px;
+  color: var(--accent);
+  font: 600 14px/1.55 var(--font-ui);
+}
+.glance ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr));
+  list-style: none;
+  gap: 14px 32px;
+  margin: 0;
+  padding: 5px 0 10px;
+}
+.glance a {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 44px;
+  gap: 8px;
+  color: var(--accent);
+  text-underline-offset: 0.24em;
+  font: 600 16px/1.55 var(--font-reading);
+}
+.glance p {
+  margin: 0;
+  color: var(--muted);
+  font: 14px/1.7 var(--font-ui);
+  overflow-wrap: anywhere;
+}
+@supports (interpolate-size: allow-keywords) {
+  @media (prefers-reduced-motion: no-preference) {
+    .glance::details-content {
+      interpolate-size: allow-keywords;
+      block-size: 0;
+      overflow: clip;
+      transition:
+        block-size 180ms ease-out,
+        content-visibility 180ms allow-discrete;
+    }
+    .glance[open]::details-content {
+      block-size: auto;
+    }
+  }
+}

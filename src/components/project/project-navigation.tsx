@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useEffect, useLayoutEffect } from "react";
 
+import { collectionCardId } from "@/lib/content-navigation";
 import { assetPath } from "@/lib/site";
 
 import {
@@ -102,7 +103,8 @@ function onClick(event: MouseEvent) {
       slug,
       origin,
       top: scrollY,
-      id: anchor.id,
+      id:
+        origin === "projects" ? collectionCardId("projects", slug) : anchor.id,
       withCover: !!anchor.querySelector("[data-project-cover]"),
     };
     storeEntry("projectCard", pending);
@@ -181,7 +183,9 @@ export function ProjectNavigation() {
 
   useLayoutEffect(() => {
     displayedPath = location.pathname;
+    let chapterId: string | undefined;
     if (pending && detailPath(pending.slug) === location.pathname) {
+      if (location.hash) chapterId = decodeURIComponent(location.hash.slice(1));
       storeEntry("projectOrigin", pending);
       window.dispatchEvent(new Event(eventName));
     }
@@ -201,6 +205,8 @@ export function ProjectNavigation() {
       target = { id: location.hash.slice(1) };
 
     const frame = requestAnimationFrame(() => {
+      if (chapterId)
+        document.getElementById(chapterId)?.focus({ preventScroll: true });
       if (target) {
         const card = document.getElementById(target.id);
         if (card instanceof HTMLAnchorElement) {

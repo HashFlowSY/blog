@@ -5,9 +5,9 @@ import { createServer } from "node:http";
 import path from "node:path";
 
 import AxeBuilder from "@axe-core/playwright";
-import { expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
-import { STABLE_PROJECT, STABLE_POST, test } from "./fixtures";
+import { STABLE_PROJECT, STABLE_POST } from "./fixtures";
 
 import type { Page } from "@playwright/test";
 import type { ChildProcess } from "node:child_process";

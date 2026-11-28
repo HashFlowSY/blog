@@ -21,6 +21,13 @@ showcase:
   intro: "我用这个站点发布中文技术文章和项目案例，记录做过的尝试、遇到的问题和可以查证的结果。"
   demoLabel: "浏览博客"
   chapters: true
+  screenshots:
+    - label: "文章检索"
+      src: "/assets/projects/personal-blog/article-search.webp"
+      caption: "搜索「验收条件」，结果卡直接列出命中的正文片段。"
+    - label: "阅读目录"
+      src: "/assets/projects/personal-blog/reading-outline.webp"
+      caption: "打开文章目录，可以从章节列表直接跳到「复盘」。"
 featured: true
 draft: false
 ---

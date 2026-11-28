@@ -1,9 +1,37 @@
-import { expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
-import { SITE_COPY, STABLE_PROJECT, test } from "./fixtures";
+import { SITE_COPY, STABLE_PROJECT } from "./fixtures";
 import { goToProject, goToProjects } from "./helpers/navigation";
 
 test.describe("Projects", () => {
+  test("opens a chapter from the project glance and restores the source card", async ({
+    page,
+  }) => {
+    await goToProjects(page);
+    const card = page.getByRole("link", {
+      name: STABLE_PROJECT.title,
+      exact: true,
+    });
+    const glance = page.locator("details").filter({ hasText: "项目速览" });
+    const summary = glance.locator("summary");
+    for (const returnBy of ["link", "browser"] as const) {
+      if (!(await glance.evaluate((element) => element.hasAttribute("open"))))
+        await summary.press("Enter");
+      await glance.getByRole("link", { name: "搜索示例" }).press("Enter");
+      const heading = page.getByRole("heading", { name: "搜索示例" });
+      await expect(heading).toBeFocused();
+      await expect(heading).toBeInViewport();
+      expect(decodeURIComponent(new URL(page.url()).hash)).toBe(
+        "#" + (await heading.getAttribute("id")),
+      );
+      if (returnBy === "link")
+        await page.getByRole("link", { name: "返回项目列表" }).click();
+      else await page.goBack();
+      await expect(card).toBeFocused();
+      await expect(card).toBeInViewport();
+    }
+  });
+
   test("opens a case from its cover and returns to the same project card", async ({
     page,
   }) => {
@@ -115,6 +143,37 @@ test.describe("Projects", () => {
     ).toHaveText("验收条件");
   });
 
+  test("keeps the current chapter's evidence beside its text on a wide screen", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await goToProject(page, STABLE_PROJECT.slug);
+
+    const index = page.getByRole("navigation", { name: "项目目录" });
+    await index.getByRole("link", { name: "文章检索" }).click();
+    const chapter = page.getByRole("region", { name: "文章检索", exact: true });
+    const sample = chapter.getByRole("heading", { name: "搜索示例" });
+    const initial = await sample.boundingBox();
+    const prose = await chapter
+      .getByRole("heading", { level: 2 })
+      .boundingBox();
+    if (!initial || !prose) throw new Error("Missing the search chapter.");
+    expect(initial.x).toBeGreaterThan(prose.x + prose.width);
+
+    await page.evaluate(() => scrollBy({ top: 48, behavior: "instant" }));
+    await expect
+      .poll(async () => (await sample.boundingBox())?.y)
+      .toBe(initial.y);
+
+    await index.getByRole("link", { name: "首页交互工作台" }).click();
+    const workbench = page.getByRole("region", { name: "首页交互工作台" });
+    const artwork = workbench.getByRole("img", { name: /首页手绘工作台/u });
+    await expect(artwork).toBeInViewport();
+    await expect(sample).not.toBeInViewport();
+    await index.getByRole("link", { name: "文章检索" }).click();
+    await expect(sample).toBeInViewport();
+  });
+
   test("keeps the workbench example and chapter navigation available without scripts", async ({
     browser,
     baseURL,
@@ -126,7 +185,13 @@ test.describe("Projects", () => {
     });
     try {
       const page = await context.newPage();
-      await page.goto(`projects/${STABLE_PROJECT.slug}/`);
+      await page.goto("projects/");
+      const glance = page.locator("details").filter({ hasText: "项目速览" });
+      await glance.locator("summary").press("Enter");
+      await glance.getByRole("link", { name: "搜索示例" }).press("Enter");
+      await expect(
+        page.getByRole("heading", { name: "搜索示例" }),
+      ).toBeInViewport();
       await page
         .getByRole("button", { name: "目录", exact: true })
         .press("Enter");

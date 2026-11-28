@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { articleFilterSearch } from "@/lib/content-navigation";
 import { loadPostSearchIndex, searchPosts } from "@/lib/post-search";
@@ -45,6 +45,8 @@ export function PostArchive({ posts, tags, indexUrl }: PostArchiveProps) {
   const isComposing = useRef(false);
   const indexRequest = useRef<Promise<PostSearchBlocks> | null>(null);
   const searchInput = useRef<HTMLInputElement>(null);
+  const list = useRef<HTMLDivElement>(null);
+  const previousRows = useRef<Map<HTMLElement, number> | null>(null);
   const params = new URLSearchParams(search);
   const query = params.get("q") ?? "";
   const topic = params.get("topic");
@@ -74,6 +76,34 @@ export function PostArchive({ posts, tags, indexUrl }: PostArchiveProps) {
     posts.length > 0 &&
     results.matches.length === 0;
   const hasMatches = results.kind === "ready" && results.matches.length > 0;
+
+  useLayoutEffect(() => {
+    const previous = previousRows.current;
+    previousRows.current = null;
+    if (!previous || !list.current) return;
+    const media = window.matchMedia("(prefers-reduced-motion: no-preference)");
+    if (!media.matches) return;
+
+    const listTop = list.current.getBoundingClientRect().top;
+    const animations: Animation[] = [];
+    for (const [row, oldTop] of previous) {
+      if (!row.isConnected) continue;
+      const offset = oldTop - (row.getBoundingClientRect().top - listTop);
+      if (Math.abs(offset) < 1) continue;
+      animations.push(
+        row.animate(
+          [{ transform: `translateY(${offset}px)` }, { transform: "none" }],
+          { duration: 200, easing: "cubic-bezier(.25,.72,.28,1)" },
+        ),
+      );
+    }
+    const stop = () => animations.forEach((animation) => animation.cancel());
+    media.addEventListener("change", stop);
+    return () => {
+      media.removeEventListener("change", stop);
+      stop();
+    };
+  }, [search]);
 
   useEffect(() => {
     if (!hasMatches) return;
@@ -118,6 +148,23 @@ export function PostArchive({ posts, tags, indexUrl }: PostArchiveProps) {
 
   function updateFilters(nextQuery: string, nextTag: string | null) {
     const nextSearch = articleFilterSearch(nextQuery, nextTag);
+    const rows = list.current;
+    previousRows.current = null;
+    if (
+      rows &&
+      nextQuery === query &&
+      nextTag !== selectedTag &&
+      typeof rows.animate === "function" &&
+      window.matchMedia?.("(prefers-reduced-motion: no-preference)").matches
+    ) {
+      const listTop = rows.getBoundingClientRect().top;
+      previousRows.current = new Map(
+        Array.from(
+          rows.querySelectorAll<HTMLElement>(":scope > article"),
+          (row) => [row, row.getBoundingClientRect().top - listTop],
+        ),
+      );
+    }
     if (window.location.search !== nextSearch || window.location.hash) {
       window.history.replaceState(
         null,
@@ -231,7 +278,11 @@ export function PostArchive({ posts, tags, indexUrl }: PostArchiveProps) {
           </div>
         )}
       </div>
-      <div className="portfolio-article-list" aria-busy={loadingIndex}>
+      <div
+        ref={list}
+        className="portfolio-article-list"
+        aria-busy={loadingIndex}
+      >
         {results.kind === "ready" &&
           results.matches.map(({ post, snippet }) => (
             <PostCard

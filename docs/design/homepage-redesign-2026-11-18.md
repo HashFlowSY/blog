@@ -20,7 +20,7 @@
 
 ## 代表项目的选择
 
-首页从已发布项目里选一条。先在项目 Markdown 中用 `featured: true` 标记候选，再按项目填写的 `date` 从新到旧取第一条。同一天按 `slug` 正序。当前只有 `Personal Blog` 符合条件。想固定展示某个案例，只给它保留精选标记即可。没有精选案例时，设计上由「查看全部项目」链接承接。[内容目录的排序](https://github.com/HashFlowSY/blog/blob/6713edd2c4a55ab86496af9e0ad9eb6003b18f5c/src/lib/content-catalog.ts#L269) · [首页选取逻辑](https://github.com/HashFlowSY/blog/blob/6713edd2c4a55ab86496af9e0ad9eb6003b18f5c/src/app/page.tsx#L35) · [当前精选标记](../../content/projects/zh-CN/personal-blog.md#L24)
+首页从已发布项目里选一条。先在项目 Markdown 中用 `featured: true` 标记候选，再按项目填写的 `date` 从新到旧取第一条。同一天按 `slug` 正序。当前只有 `Personal Blog` 符合条件。想固定展示某个案例，只给它保留精选标记即可。没有精选案例时，设计上由「查看全部项目」链接承接。[内容目录的排序](https://github.com/HashFlowSY/blog/blob/6713edd2c4a55ab86496af9e0ad9eb6003b18f5c/src/lib/content-catalog.ts#L269) · [首页选取逻辑](https://github.com/HashFlowSY/blog/blob/6713edd2c4a55ab86496af9e0ad9eb6003b18f5c/src/app/page.tsx#L35) · [当时的精选标记](https://github.com/HashFlowSY/blog/blob/6713edd2c4a55ab86496af9e0ad9eb6003b18f5c/content/projects/zh-CN/personal-blog.md#L24)
 
 ## 工作台画面
 

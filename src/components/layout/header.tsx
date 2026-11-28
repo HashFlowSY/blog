@@ -12,6 +12,13 @@ const destinations = [
 
 export function Header({ siteName }: { siteName: string }) {
   const pathname = usePathname();
+  const current = destinations.findIndex(({ href }) =>
+    href === "/"
+      ? pathname === href
+      : pathname === href.slice(0, -1) || pathname.startsWith(href),
+  );
+  const onAbout = destinations[current]?.href === "/about/";
+  const ContactLink = onAbout ? "a" : Link;
 
   return (
     <header className="site-header" aria-label="站点头部">
@@ -24,28 +31,32 @@ export function Header({ siteName }: { siteName: string }) {
         <strong className="brand-name">{siteName}</strong>
       </Link>
       <nav className="site-nav" aria-label="主导航">
-        {destinations.map(({ href, label }) => (
+        {destinations.map(({ href, label }, index) => (
           <Link
             key={href}
             className="nav-link"
             href={href}
-            aria-current={
-              (
-                href === "/"
-                  ? pathname === href
-                  : pathname === href.slice(0, -1) || pathname.startsWith(href)
-              )
-                ? "page"
-                : "false"
-            }
+            aria-current={index === current ? "page" : "false"}
           >
             {label}
           </Link>
         ))}
+        {current >= 0 && (
+          <span
+            className="nav-current-track"
+            aria-hidden="true"
+            style={{
+              backgroundPositionX: `${(current * 100) / (destinations.length - 1)}%`,
+            }}
+          />
+        )}
       </nav>
-      <Link className="header-contact" href="/about/#contact">
+      <ContactLink
+        className="header-contact"
+        href={onAbout ? "#contact" : "/about/#contact"}
+      >
         联系我 <span aria-hidden="true">↗</span>
-      </Link>
+      </ContactLink>
     </header>
   );
 }

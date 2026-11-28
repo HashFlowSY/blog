@@ -1,4 +1,4 @@
-import { expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
 import {
   artworkSettledAt,
@@ -7,7 +7,7 @@ import {
 } from "../src/components/home/pencil-plan";
 import { pencilRoute } from "../src/components/home/pencil-route";
 
-import { SITE_COPY, STABLE_POST, STABLE_PROJECT, test } from "./fixtures";
+import { SITE_COPY, STABLE_POST, STABLE_PROJECT } from "./fixtures";
 import { goToHome, goToPost, goToProject } from "./helpers/navigation";
 import {
   artworkLuma,

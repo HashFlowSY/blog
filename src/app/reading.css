@@ -233,6 +233,13 @@ body[data-scrolled="true"] .reader-top {
   font-size: clamp(20px, 2.5vw, 25px);
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  .post-document .markdown-body :is(h1, h2, h3, h4, h5, h6)[id] {
+    background: linear-gradient(to right, var(--accent) 75%, transparent) left
+      bottom / 0 2px no-repeat;
+  }
+}
+
 .markdown-body [id] {
   scroll-margin-block-start: 16px;
 }

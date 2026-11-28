@@ -1,6 +1,6 @@
-import { expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
-import { routeForPost, STABLE_POST, test } from "./fixtures";
+import { routeForPost, STABLE_POST } from "./fixtures";
 import { goToPosts, goToRoute } from "./helpers/navigation";
 
 test.describe("Post detail", () => {

@@ -5,13 +5,17 @@ import { ProjectCover } from "@/components/project/project-cover";
 import { collectionCardId } from "@/lib/content-navigation";
 import { assetPath } from "@/lib/site";
 
+import { ProjectGlance } from "./project-glance";
+
 import type { ProjectCaseMeta } from "@/lib/content-catalog";
+import type { Root } from "hast";
 
 interface ProjectCardProps {
   project: ProjectCaseMeta;
+  chapters?: Root | undefined;
 }
 
-export function ProjectCard({ project }: ProjectCardProps) {
+export function ProjectCard({ project, chapters }: ProjectCardProps) {
   const cardId = collectionCardId("projects", project.slug);
   const titleId = `${cardId}-title`;
 
@@ -56,6 +60,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
           />
         </ProjectCover>
       </Link>
+      {chapters && <ProjectGlance tree={chapters} slug={project.slug} />}
     </article>
   );
 }

@@ -33,14 +33,15 @@ function PostReturn({ card }: { card: string }) {
 function Contents({
   outline,
   activeId,
-  label,
+  isPost,
 }: {
   outline: readonly DocumentHeading[];
   activeId: string | null;
-  label: string;
+  isPost: boolean;
 }) {
   const id = useId();
   const panel = useRef<HTMLDivElement>(null);
+  const landing = useRef<Animation | null>(null);
   const current = outline.find((heading) => heading.id === activeId);
 
   return (
@@ -54,7 +55,10 @@ function Contents({
         目录 <span className="reader-chevron" aria-hidden="true" />
       </button>
       <div id={id} ref={panel} className="reader-panel" popover="auto">
-        <nav className="reader-outline" aria-label={label}>
+        <nav
+          className="reader-outline"
+          aria-label={isPost ? "文章章节" : "项目章节"}
+        >
           {outline.map(({ id: target, text, level }) => (
             <a
               key={target}
@@ -70,6 +74,24 @@ function Contents({
                 )
                   return;
                 panel.current?.hidePopover();
+                if (!isPost) return;
+                landing.current?.cancel();
+                const heading = document.getElementById(target);
+                if (
+                  heading?.animate &&
+                  window.matchMedia?.("(prefers-reduced-motion: no-preference)")
+                    .matches
+                ) {
+                  landing.current = heading.animate(
+                    [
+                      { backgroundSize: "0em 2px" },
+                      { backgroundSize: "2em 2px", offset: 0.3 },
+                      { backgroundSize: "2em 2px", offset: 0.76 },
+                      { backgroundSize: "0em 2px" },
+                    ],
+                    { duration: 680, easing: "ease-out" },
+                  );
+                }
               }}
             >
               {text}
@@ -242,7 +264,7 @@ export function ReadingTools({
         <Contents
           outline={outline}
           activeId={position.activeId}
-          label={isPost ? "文章章节" : "项目章节"}
+          isPost={isPost}
         />
       )}
       <div

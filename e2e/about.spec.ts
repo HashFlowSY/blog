@@ -1,6 +1,6 @@
-import { expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
-import { SITE_COPY, test } from "./fixtures";
+import { SITE_COPY } from "./fixtures";
 import { goToAbout } from "./helpers/navigation";
 
 test.describe("About page", () => {

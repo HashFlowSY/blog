@@ -1,6 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
+import { compileMarkdownDocuments } from "@/lib/markdown/compile";
+
 import { ProjectCard } from "./project-card";
 
 import type { ProjectCaseMeta } from "@/lib/content-catalog";
@@ -44,5 +46,29 @@ describe("ProjectCard", () => {
     );
     expect(link).toContainElement(screen.getByText("A cool project"));
     expect(screen.getAllByRole("link")).toHaveLength(1);
+    expect(screen.queryByText("项目速览")).toBeNull();
+  });
+
+  it("builds the glance from real evidence and links to its compiled heading", async () => {
+    const filePath = "content/projects/zh-CN/my-project.md";
+    const body =
+      "## 概述\n\n仅有描述。\n\n## 检索\n\n检查返回结果。原文还有下文。\n\n---\n\n### 命中片段\n\n返回结果。\n\n## 截图\n\n---\n\n![预览](/assets/project.png)";
+    const documents = await compileMarkdownDocuments(
+      [{ filePath, bodyLine: 1, body, title: "My Project" }],
+      { basePath: "" },
+    );
+    const chapters = documents.get(filePath)!.tree;
+    render(<ProjectCard project={baseProject} chapters={chapters} />);
+    const glance = screen.getByText("项目速览").closest("details")!;
+    expect(
+      Array.from(glance.querySelectorAll("a"), (link) =>
+        decodeURIComponent(link.hash),
+      ),
+    ).toEqual(["#user-content-命中片段", "#user-content-截图"]);
+    expect(glance).toHaveTextContent("检查返回结果。");
+    expect(glance).not.toHaveTextContent("原文还有下文");
+    expect(
+      screen.getByRole("link", { name: "My Project" }),
+    ).not.toContainElement(glance);
   });
 });

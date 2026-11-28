@@ -143,9 +143,28 @@ button {
   height: 27px;
 }
 .site-nav {
+  --nav-link-width: max(44px, 2em);
+  --nav-padding-bottom: 0px;
+  position: relative;
   display: flex;
   margin-left: auto;
   gap: clamp(18px, 2.5vw, 40px);
+  padding-bottom: var(--nav-padding-bottom);
+  font-size: 13px;
+}
+.nav-current-track {
+  position: absolute;
+  inset-inline: calc((var(--nav-link-width) - 2em) / 2);
+  bottom: calc(4px + var(--nav-padding-bottom));
+  height: 2px;
+  background: linear-gradient(var(--accent), var(--accent)) no-repeat left / 2em
+    2px;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .nav-current-track {
+    transition: background-position-x 220ms cubic-bezier(0.25, 0.75, 0.25, 1);
+  }
 }
 .site-nav a,
 .header-contact {
@@ -155,6 +174,7 @@ button {
 }
 .nav-link {
   position: relative;
+  width: var(--nav-link-width);
 }
 .nav-link::after {
   content: "";
@@ -168,7 +188,7 @@ button {
   transform-origin: left;
   transition: transform var(--feedback-time) ease-out;
 }
-.nav-link:is([aria-current="page"], :focus-visible, :active)::after {
+.nav-link:not([aria-current="page"]):is(:focus-visible, :active)::after {
   transform: scaleX(1);
 }
 .nav-link:is(:focus-visible, :active)::after {
@@ -179,7 +199,7 @@ button {
   gap: 0.5em;
 }
 @media (hover: hover) and (pointer: fine) {
-  .nav-link:hover::after {
+  .nav-link:not([aria-current="page"]):hover::after {
     border-radius: 2px;
     transform: scaleX(1);
   }
@@ -295,12 +315,12 @@ body[data-scrolled="true"] .back-to-top {
     margin-left: auto;
   }
   .site-nav {
+    --nav-padding-bottom: 5px;
     order: 3;
     width: 100%;
     justify-content: space-between;
     margin: 0;
     gap: 8px;
-    padding-bottom: 5px;
   }
   .back-to-top {
     position: sticky;
@@ -332,5 +352,8 @@ body[data-scrolled="true"] .back-to-top {
   }
   .nav-link[aria-current="page"] {
     text-decoration: underline;
+  }
+  .nav-current-track {
+    display: none;
   }
 }

@@ -34,7 +34,17 @@ draft: false
 
 需要单独写详情页简介或演示入口文案时，可加 `showcase`。`eyebrow`、`intro` 和 `demoLabel` 可独立填写，分别覆盖「项目档案」、`description` 和「打开在线演示」。
 
-如果每段有配套的画面、一次真实输入与输出或一份验证记录，可加 `showcase.chapters: true`。正文用二级标题开始一段，在说明和材料之间放一个独立的 Markdown 分隔线 `---`。图片直接写在对应段落里，使用 `public/` 下的实际文件，并填写描述画面的替代文字。纯文字段落不需要分隔线；纯文字项目也可以完全省略 `showcase`。
+只有一张图时填写 `cover` 即可。封面始终是详情页的第一张图。另有独立功能截图时，在同一段 frontmatter 的 `showcase` 下列出其他图片，每张图写一个名称和一句图注。下面使用已发布项目的真实素材作为格式示例。
+
+```yaml
+showcase:
+  screenshots:
+    - label: "文章检索"
+      src: "/assets/projects/personal-blog/article-search.webp"
+      caption: "搜索「验收条件」，结果卡直接列出命中的正文片段。"
+```
+
+如果截图对应业务步骤或具体章节，可在 `showcase` 下加 `chapters: true`。正文用二级标题开始一段，在说明和配套截图、输入输出或验证记录之间放一个独立的 Markdown 分隔线 `---`。图片直接写在对应段落里，使用 `public/` 下的实际文件，并填写描述画面的替代文字，例如 `[![正文检索结果](/assets/projects/personal-blog/article-search.webp)](/assets/projects/personal-blog/article-search.webp)`。桌面宽屏在右侧展示证据，手机在所属段落后展示。纯文字段落不需要分隔线。
 
 ## 问题背景
 

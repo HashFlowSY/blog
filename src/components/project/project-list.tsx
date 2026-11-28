@@ -1,9 +1,9 @@
 import { ProjectCard } from "./project-card";
 
-import type { ProjectCaseMeta } from "@/lib/content-catalog";
+import type { ProjectCase } from "@/lib/content-catalog";
 
 interface ProjectListProps {
-  projects: ProjectCaseMeta[];
+  projects: readonly ProjectCase[];
 }
 
 export function ProjectList({ projects }: ProjectListProps) {
@@ -13,7 +13,13 @@ export function ProjectList({ projects }: ProjectListProps) {
   return (
     <div className="portfolio-project-grid">
       {projects.map((project) => (
-        <ProjectCard key={project.slug} project={project} />
+        <ProjectCard
+          key={project.slug}
+          project={project}
+          chapters={
+            project.showcase?.chapters ? project.document.tree : undefined
+          }
+        />
       ))}
     </div>
   );

@@ -2,6 +2,8 @@ import Link from "next/link";
 
 import { SITE, siteUrl } from "@/lib/site";
 
+import { ContactHeading } from "./contact-heading";
+
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -82,10 +84,9 @@ export default function AboutPage() {
       </div>
       <section
         className="paper-profile-contact"
-        id="contact"
         aria-labelledby="contact-title"
       >
-        <h2 id="contact-title">求职与合作</h2>
+        <ContactHeading />
         <p>适合一起推进需要工程判断、快速验证和持续迭代的产品。</p>
         <div className="paper-actions">
           <a

@@ -93,7 +93,7 @@ const tagsSchema = z
     }
   });
 
-const coverPathSchema = z.string().min(1, "Must not be blank.");
+const assetPathSchema = z.string().min(1, "Must not be blank.");
 
 const absoluteHttpsUrlSchema = z
   .string()
@@ -147,17 +147,28 @@ const postFields = {
   summary: nonBlankTextSchema,
 };
 
+const projectScreenshotSchema = z
+  .strictObject({
+    src: assetPathSchema,
+    label: nonBlankTextSchema,
+    caption: nonBlankTextSchema,
+  })
+  .readonly();
+
+export type ProjectScreenshot = z.infer<typeof projectScreenshotSchema>;
+
 const projectShowcaseSchema = z.strictObject({
   eyebrow: nonBlankTextSchema.optional(),
   intro: nonBlankTextSchema.optional(),
   demoLabel: nonBlankTextSchema.optional(),
   chapters: z.literal(true).optional(),
+  screenshots: z.array(projectScreenshotSchema).readonly().optional(),
 });
 
 const projectFields = {
   ...sharedContentFields,
   description: nonBlankTextSchema,
-  cover: coverPathSchema,
+  cover: assetPathSchema,
   role: nonBlankTextSchema,
   duration: nonBlankTextSchema,
   result: nonBlankTextSchema,
@@ -441,58 +452,54 @@ function isPathWithin(root: string, candidate: string): boolean {
   );
 }
 
-function projectCoverErrors(
-  { filePath, frontmatter }: ContentContractInput,
+function projectAssetErrors(
+  filePath: string,
+  field: string,
+  source: unknown,
   options: ProjectContractOptions,
 ): ContentValidationError[] {
-  if (!isRecord(frontmatter)) return [];
-  const cover = frontmatter["cover"];
-  if (typeof cover !== "string" || !cover) return [];
+  if (typeof source !== "string" || !source) return [];
 
-  const invalidCover = (reason: string): ContentValidationError[] => [
-    { filePath, field: "cover", reason },
+  const invalid = (reason: string): ContentValidationError[] => [
+    { filePath, field, reason },
   ];
-  const decodedPath = decodeCanonicalRootRelativePathname(cover);
+  const decodedPath = decodeCanonicalRootRelativePathname(source);
   if (decodedPath === null) {
-    return invalidCover(
+    return invalid(
       "Must be a canonical root-relative URL pathname inside public/ without a query, hash, or encoded path traversal.",
     );
   }
 
   const publicDir = path.resolve(/* turbopackIgnore: true */ options.publicDir);
-  const coverPath = path.resolve(
+  const asset = path.resolve(
     /* turbopackIgnore: true */ publicDir,
     `.${decodedPath}`,
   );
 
-  if (!isPathWithin(publicDir, coverPath)) {
-    return invalidCover("Must resolve inside public/ without path traversal.");
+  if (!isPathWithin(publicDir, asset)) {
+    return invalid("Must resolve inside public/ without path traversal.");
   }
 
-  if (!fs.existsSync(/* turbopackIgnore: true */ coverPath)) {
-    return invalidCover("Referenced file does not exist inside public/.");
+  if (!fs.existsSync(/* turbopackIgnore: true */ asset)) {
+    return invalid("Referenced file does not exist inside public/.");
   }
 
   try {
-    if (!fs.statSync(/* turbopackIgnore: true */ coverPath).isFile()) {
-      return invalidCover("Must reference a file inside public/.");
+    if (!fs.statSync(/* turbopackIgnore: true */ asset).isFile()) {
+      return invalid("Must reference a file inside public/.");
     }
 
     const realPublicDir = fs.realpathSync(
       /* turbopackIgnore: true */ publicDir,
     );
-    const realCoverPath = fs.realpathSync(
-      /* turbopackIgnore: true */ coverPath,
-    );
-    if (!isPathWithin(realPublicDir, realCoverPath)) {
-      return invalidCover(
+    const realAsset = fs.realpathSync(/* turbopackIgnore: true */ asset);
+    if (!isPathWithin(realPublicDir, realAsset)) {
+      return invalid(
         "Must resolve inside public/ without following a path outside it.",
       );
     }
   } catch {
-    return invalidCover(
-      "Could not resolve the referenced file inside public/.",
-    );
+    return invalid("Could not resolve the referenced file inside public/.");
   }
 
   return [];
@@ -517,11 +524,27 @@ function validateProjectCaseContract(
   options: ProjectContractOptions,
 ): ContentContractResult<ProjectCaseFrontmatter> {
   const result = validateContentState(input, projectStateSchemas);
-
-  return appendErrors(result, [
-    ...projectCoverErrors(input, options),
+  const { filePath, frontmatter } = input;
+  if (!isRecord(frontmatter)) return result;
+  const errors = [
+    ...projectAssetErrors(filePath, "cover", frontmatter["cover"], options),
     ...dateOnlySlugErrors(input, "project"),
-  ]);
+  ];
+  const showcase = frontmatter["showcase"];
+  if (isRecord(showcase) && Array.isArray(showcase["screenshots"])) {
+    for (const [index, shot] of showcase["screenshots"].entries()) {
+      if (isRecord(shot))
+        errors.push(
+          ...projectAssetErrors(
+            filePath,
+            `showcase.screenshots.${index}.src`,
+            shot["src"],
+            options,
+          ),
+        );
+    }
+  }
+  return appendErrors(result, errors);
 }
 
 function duplicateSlugErrors(

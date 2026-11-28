@@ -2,14 +2,13 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 
 import { AxeBuilder } from "@axe-core/playwright";
-import { expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
 import {
   routeForPost,
   routeForProject,
   STABLE_POST,
   STABLE_PROJECT,
-  test,
 } from "./fixtures";
 import { waitForRouteEntry } from "./helpers/navigation";
 import { visitStaticPage } from "./helpers/static-page";

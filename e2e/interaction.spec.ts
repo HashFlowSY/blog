@@ -1,6 +1,6 @@
-import { expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
-import { routeForPost, STABLE_POST, test } from "./fixtures";
+import { routeForPost, STABLE_POST } from "./fixtures";
 import { goToHome, goToPost, goToPosts, goToRoute } from "./helpers/navigation";
 import { waitForFinishedWorkbench } from "./helpers/workbench";
 

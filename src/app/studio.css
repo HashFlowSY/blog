@@ -259,6 +259,42 @@
 .paper-profile-contact .paper-actions {
   margin-top: 12px;
 }
+.paper-profile-contact h2:focus {
+  outline: none;
+}
+.paper-profile-contact h2:focus-visible span {
+  text-decoration: underline solid var(--focus-ring) 2px;
+  text-underline-offset: 0.2em;
+}
+@media (prefers-reduced-motion: no-preference) and (forced-colors: none) {
+  .paper-profile-contact h2:focus span {
+    position: relative;
+  }
+  .paper-profile-contact h2:focus span::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 -0.18em;
+    height: 2px;
+    background: var(--accent);
+    border-radius: 70% 25% 65% 30%;
+    transform-origin: left;
+    animation: contact-heading-stroke 660ms ease-out both;
+  }
+  @keyframes contact-heading-stroke {
+    from {
+      transform: scaleX(0);
+    }
+    35%,
+    70% {
+      opacity: 1;
+      transform: scaleX(1);
+    }
+    to {
+      opacity: 0;
+      transform: scaleX(1);
+    }
+  }
+}
 .paper-project-open > span,
 .paper-writing a > span:last-child {
   display: inline-block;

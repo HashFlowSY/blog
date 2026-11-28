@@ -1,7 +1,36 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
-import { STABLE_PROJECT, test } from "./fixtures";
-import { goToHome, goToProjects } from "./helpers/navigation";
+import { STABLE_PROJECT } from "./fixtures";
+import { goToHome, goToProject, goToProjects } from "./helpers/navigation";
+
+test("opens the selected feature screenshot at its original deployment URL", async ({
+  page,
+}) => {
+  await goToProject(page, STABLE_PROJECT.slug);
+  const gallery = page.getByRole("figure", { name: "项目图片" });
+  const choice = gallery.getByRole("link", { name: "文章检索", exact: true });
+  await choice.press("Enter");
+  await expect(choice).toHaveAttribute("aria-current", "true");
+  const original = gallery.getByRole("link", { name: /查看原图：文章检索/ });
+  const popupPromise = page.waitForEvent("popup");
+  await original.click();
+  const popup = await popupPromise;
+  await expect(popup).toHaveURL(
+    new URL((await choice.getAttribute("href"))!, page.url()).href,
+  );
+  await expect
+    .poll(() =>
+      popup
+        .locator("img")
+        .evaluate((image) => (image as HTMLImageElement).naturalWidth),
+    )
+    .toBeGreaterThan(0);
+  await popup.close();
+  await gallery.getByRole("link", { name: "项目封面", exact: true }).click();
+  await expect(
+    gallery.getByRole("img", { name: `${STABLE_PROJECT.title}界面预览` }),
+  ).toBeVisible();
+});
 
 async function observeFlights(page: Page) {
   const starts: number[] = [];

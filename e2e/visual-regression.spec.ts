@@ -1,13 +1,12 @@
 import { readFile } from "node:fs/promises";
 
-import { expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
 import {
   routeForPost,
   routeForProject,
   STABLE_POST,
   STABLE_PROJECT,
-  test,
 } from "./fixtures";
 import { visitStaticPage } from "./helpers/static-page";
 import {
